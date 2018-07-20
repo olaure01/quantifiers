@@ -1,3 +1,5 @@
+(* Coq 8.7.1 *)
+
 Require Import PeanoNat.
 Require Import EqNat.
 Require Import Omega.
@@ -55,22 +57,22 @@ Qed.
 
 (** * Different kinds of atoms *)
 
+Parameter atom : Set. (* second-order constants *)
 Parameter vatom : Set. (* variables for quantification *)
 Parameter beq_vat : vatom -> vatom -> bool. (* boolean equality on [vatom] *)
 Parameter beq_eq_vat : forall a b, beq_vat a b = true <-> a = b.
    (* equality specification for [vatom] *)
 
 (* [vatom] presented as a type with Boolean equality *)
-Module vatomEq <: UsualBoolEq.
+Module vatomBoolEq <: UsualBoolEq.
 Definition t := vatom.
 Definition eq := @eq vatom.
 Definition eqb := beq_vat.
 Definition eqb_eq := beq_eq_vat.
-End vatomEq.
-Module vatomEqFull := Make_UDTF vatomEq.
-Module vatomFacts := BoolEqualityFacts vatomEqFull.
+End vatomBoolEq.
+Module vatomEq := Make_UDTF vatomBoolEq.
+Module vatomFacts := BoolEqualityFacts vatomEq.
 Import vatomFacts.
-
 
 
 
@@ -78,23 +80,43 @@ Import vatomFacts.
 (** * Formulas *)
 
 (** formulas *)
-(** first-order formulas in the langage: true, conjunction, universal quantification *)
+(** second-order formulas in the langage: true, conjunction, universal quantification *)
 Inductive formula : Set :=
 | var : vatom -> formula
 | dvar : nat -> formula
+| cst : atom -> formula
 | top : formula
 | wdg : formula -> formula -> formula
 | frl : vatom -> formula -> formula.
+
+(** size of formulas *)
+Fixpoint fsize A : nat :=
+match A with
+| var _ => 1
+| dvar _ => 1
+| cst _ => 1
+| top => 1
+| wdg B C => S (fsize B + fsize C)
+| frl _ B => S (fsize B)
+end.
+
 
 (** lift indexes above [k] in [formula] [A] *)
 Fixpoint fup k A :=
 match A with
 | var X => var X
 | dvar n => if n <? k then dvar n else dvar (S n)
+| cst R => cst R
 | top => top
 | wdg B C => wdg (fup k B) (fup k C)
 | frl X B => frl X (fup k B)
 end.
+
+Lemma fsize_fup : forall k A, fsize (fup k A) = fsize A.
+Proof.
+induction A ; intros ; simpl ; auto ; try now (f_equal ; auto).
+case_eq (n <? k) ; auto.
+Qed.
 
 Lemma fup_fup_com : forall k A,
   fup (S k) (fup 0 A) = fup 0 (fup k A).
@@ -110,10 +132,18 @@ Fixpoint mkn k X A :=
 match A with
 | var Y => if (beq_vat X Y) then dvar k else var Y
 | dvar n => dvar n
+| cst R => cst R
 | top => top
 | wdg B C => wdg (mkn k X B) (mkn k X C)
 | frl Y B as C => if (beq_vat Y X) then C else frl Y (mkn k X B)
 end.
+
+Lemma fsize_mkn : forall k X A, fsize (mkn k X A) = fsize A.
+Proof.
+induction A ; intros ; simpl ; auto ; try now (f_equal ; auto).
+- case_eq (beq_vat X v) ; auto.
+- case_eq (beq_vat v X) ; simpl ; auto.
+Qed.
 
 Lemma fup_mkn_fup : forall k X A,
   fup (S k) (mkn 0 X (fup 0 A)) = mkn 0 X (fup 0 (fup k A)).
@@ -130,6 +160,7 @@ Fixpoint subs X F A :=
 match A with
 | dvar k => dvar k
 | var Y => if (beq_vat Y X) then F else var Y
+| cst R => cst R
 | top => top
 | wdg B C => wdg (subs X F B) (subs X F C)
 | frl Y B as C => if (beq_vat Y X) then C else frl Y (subs X F B)
@@ -165,6 +196,7 @@ match G with
             | Lt => dvar (pred k)
             | Gt => dvar k
             end
+| cst R => cst R
 | top => top
 | wdg G1 G2 => wdg (nsubs n F G1) (nsubs n F G2)
 | frl X G1 => frl X (nsubs n F G1)
@@ -195,9 +227,10 @@ Fixpoint freevars A :=
 match A with
 | var X => X :: nil
 | dvar _ => nil
+| cst _ => nil
 | top => nil
 | wdg B C => (freevars B) ++ (freevars C)
-| frl X B => remove vatomEqFull.eq_dec X (freevars B)
+| frl X B => remove vatomEq.eq_dec X (freevars B)
 end.
 
 Lemma in_freevars_frl : forall X Y, beq_vat Y X = false -> forall A,
@@ -207,10 +240,10 @@ intros ; simpl.
 remember (freevars A) as l.
 revert H0 ; clear - H ; induction l ; intros Hi ; auto.
 inversion Hi ; subst.
-- simpl ; destruct (vatomEqFull.eq_dec Y X) ; subst.
+- simpl ; destruct (vatomEq.eq_dec Y X) ; subst.
   + rewrite eqb_refl in H ; inversion H.
   + constructor ; auto.
-- simpl ; destruct (vatomEqFull.eq_dec Y a) ; subst ; auto.
+- simpl ; destruct (vatomEq.eq_dec Y a) ; subst ; auto.
   simpl ; right ; auto.
 Qed.
 
@@ -252,10 +285,10 @@ induction F ; intros ; simpl ; auto.
   remember (freevars F) as l.
   revert Hf ; clear - H0 ; induction l ; intros Hf ; auto.
   inversion Hf ; subst.
-  + simpl ; destruct (vatomEqFull.eq_dec v X) ; subst.
+  + simpl ; destruct (vatomEq.eq_dec v X) ; subst.
     * rewrite eqb_refl in H0 ; inversion H0.
     * constructor ; auto.
-  + simpl ; destruct (vatomEqFull.eq_dec v a) ; subst ; auto.
+  + simpl ; destruct (vatomEq.eq_dec v a) ; subst ; auto.
     simpl ; right ; auto.
 Qed.
 
@@ -371,48 +404,38 @@ Inductive prove : formula -> formula -> Set :=
 | frlr { X C A } : prove (fup 0 C) (mkn 0 X (fup 0 A)) -> prove C (frl X A)
 | frll { X A C } : forall F, freevars F = nil -> prove (subs X F A) C -> prove (frl X A) C.
 
-
 (** substitutes [cterm] [u] for index [n] in proof [pi] and decreases indexes above [n] *)
 Fixpoint psubs n F (Hc : freevars F = nil) {C A} (pi : prove C A) : prove (nsubs n F C) (nsubs n F A).
 Proof.
 destruct pi.
 - apply ax.
 - apply topr.
-- simpl ; apply wdgr ; apply psubs ; assumption.
-- simpl ; apply wdgll ; apply psubs ; assumption.
-- simpl ; apply wdglr ; apply psubs ; assumption.
-- simpl ; apply frlr.
-  change n with (0 + n).
-  rewrite <- nsubs_fup_com ; simpl.
-  change n with (0 + n).
-  rewrite <- nsubs_fup_com ; simpl.
-  rewrite <- nsubs_mkn_com.
-  + apply psubs.
-    * rewrite freevars_fup ; assumption.
-    * assumption.
-  + rewrite freevars_fup ; assumption.
+- simpl ; apply wdgr ; auto.
+- simpl ; apply wdgll ; auto.
+- simpl ; apply wdglr ; auto.
+- rewrite <- (freevars_fup 0) in Hc.
+  simpl ; apply frlr.
+  change n with (0 + n) ; rewrite <- 2 nsubs_fup_com ; rewrite <- nsubs_mkn_com ; auto.
 - simpl ; apply (frll (nsubs n F F0)).
   + rewrite freevars_nsubs ; assumption.
-  + rewrite <- nsubs_subs_com.
-    * apply psubs ; assumption.
-    * assumption.
+  + rewrite <- nsubs_subs_com ; auto.
 Defined.
 
 (** lift indexes above [k] in proof [pi] *)
 Fixpoint pup k {C A} (pi : prove C A) : prove (fup k C) (fup k A) :=
 match pi with
-| ax _ => ax (fup k _)
+| ax _ => ax (fup _ _)
 | topr _ => topr _
-| wdgr pi1 pi2 => wdgr (pup k pi1) (pup k pi2)
-| wdgll _ pi1 => wdgll _ (pup k pi1)
-| wdglr _ pi1 => wdglr _ (pup k pi1)
+| wdgr pi1 pi2 => wdgr (pup _ pi1) (pup _ pi2)
+| wdgll _ pi1 => wdgll _ (pup _ pi1)
+| wdglr _ pi1 => wdglr _ (pup _ pi1)
 | frlr pi1 => frlr (eq_rec _ (fun X => prove X _)
                              (eq_rec _ (fun X => prove _ X)
-                                       (pup (S k) pi1) _
+                                       (pup _ pi1) _
                                        (fup_mkn_fup _ _ _)) _
                              (fup_fup_com _ _))
-| frll _ Hf pi1 => frll _ (fup_closed k _ Hf) (eq_rec _ (fun X => prove X _)
-                                                        (pup k pi1) _
+| frll _ Hf pi1 => frll _ (fup_closed _ _ Hf) (eq_rec _ (fun X => prove X _)
+                                                        (pup _ pi1) _
                                                         (fup_subs_com _ _ _ _))
 end.
 
@@ -593,6 +616,28 @@ rewrite nfree_mkn.
 - apply ax.
 - intros Hf ; apply Hnf.
   rewrite freevars_fup in Hf ; assumption.
+Qed.
+
+
+(** * Other properties *)
+
+(** Axiom expansion *)
+Lemma ax_exp : forall A, prove A A.
+Proof.
+assert (forall n A, fsize A = n -> prove A A) as Hn.
+{ induction n using (well_founded_induction lt_wf) ; intros ; subst.
+  destruct A.
+  - apply ax.
+  - apply ax.
+  - apply ax.
+  - apply topr.
+  - apply wdgr ; [ apply wdgll | apply wdglr ] ; (eapply H ; [ | reflexivity ]) ; simpl ; omega.
+  - apply frlr.
+    simpl ; apply (frll (dvar 0)) ; auto.
+    rewrite subs_dvar_mkn.
+    eapply H ; [ | reflexivity ].
+    rewrite fsize_mkn ; rewrite fsize_fup ; simpl ; omega. }
+intros A ; eapply Hn ; reflexivity.
 Qed.
 
 
