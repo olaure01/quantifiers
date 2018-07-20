@@ -296,17 +296,6 @@ intros ; term_induction t.
 - case_eq (beq_vat x0 x) ; auto.
 Qed.
 
-Lemma tsubs_tsubs_com : forall x v y u t, beq_vat x y = false ->
-  tsubs y u (tsubs x v t) = tsubs x v (tsubs y u t).
-Proof.
-intros ; term_induction t.
-case_eq (beq_vat x0 x) ; case_eq (beq_vat x0 y) ; intros Heq1 Heq2 ; simpl ;
-  try now (try rewrite Heq1 ; try rewrite Heq2 ; auto).
-exfalso.
-apply vatomEq.eqb_eq in Heq1 ; apply vatomEq.eqb_eq in Heq2 ; subst.
-rewrite eqb_refl in H ; inversion H.
-Qed.
-
 Lemma tsubs_cdvar_tmkn : forall k x t, tsubs x (cdvar k) t = tmkn k x t.
 Proof.
 intros ; term_induction t.
@@ -333,7 +322,7 @@ case_eq (n ?= n0) ; auto.
 Qed.
 
 Hint Resolve tup_tup_com tup_tmkn_tup tmkn_cterm
- tup_tsubs_com tsubs_tsubs_com tsubs_cdvar_tmkn ntsubs_cterm.
+ tup_tsubs_com tsubs_cdvar_tmkn ntsubs_cterm.
 
 Lemma ntsubs_tup_com : forall k n u t,
   ntsubs (S (k + n)) (cup k u) (tup k t) = tup k (ntsubs (k + n) u t).
@@ -447,16 +436,6 @@ match A with
 | wdg B C => wdg (subs x u B) (subs x u C)
 | frl y B as C => if (beq_vat y x) then C else frl y (subs x u B)
 end.
-
-Lemma subs_subs_com : forall x v y u A, beq_vat x y = false ->
-  subs y u (subs x v A) = subs x v (subs y u A).
-Proof.
-intros x v y u A ; formula_induction A ; intros Hneq ; try now (f_equal ; auto).
-- f_equal.
-  induction l ; auto ; now (simpl ; f_equal ; auto).
-- case_eq (beq_vat x0 x) ; intros Heq1 ; simpl ; case_eq (beq_vat x0 y) ; intros Heq2 ; 
-    simpl ; try rewrite Heq1 ; simpl ; f_equal ; auto.
-Qed.
 
 Lemma subs_cdvar_mkn : forall k x A, subs x (cdvar k) A = mkn k x A.
 Proof.
@@ -679,7 +658,6 @@ destruct pi2.
          D = wdg A0 B -> prove A C) ; [ | clear ].
   { intros IH2 ; eapply IH2 ; [ eassumption | reflexivity ]. }
   intros A D pi1 ; destruct pi1 ; intros ; inversion H ; subst.
-  (* dependent induction pi1. *)
   + apply wdgll ; assumption.
   + apply (IH _ _ _ pi1_1 pi2) ; simpl ; lia.
   + apply wdgll.
@@ -694,7 +672,6 @@ destruct pi2.
          D = wdg B A0 -> prove A C) ; [ | clear ].
   { intros IH2 ; eapply IH2 ; [ eassumption | reflexivity ]. }
   intros A D pi1 ; destruct pi1 ; intros ; inversion H ; subst.
-  (* dependent induction pi1. *)
   + apply wdglr ; assumption.
   + apply (IH _ _ _ pi1_2 pi2) ; simpl ; lia.
   + apply wdgll.
@@ -712,7 +689,6 @@ destruct pi2.
          D = frl x A0 -> prove A C) ; [ | clear ].
   { intros IH2 ; eapply IH2 ; [ eassumption | reflexivity ]. }
   intros A D pi1 ; destruct pi1 ; intros ; inversion H ; subst.
-  (* dependent induction pi1. *)
   + apply (frll u) ; assumption.
   + apply wdgll.
     apply (IH _ _ _ pi1 (frll _ pi2)) ; simpl ; lia.
