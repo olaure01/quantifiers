@@ -1,5 +1,3 @@
-(* Coq 8.8.0 *)
-
 Require Import PeanoNat.
 Require Import Wf_nat.
 Require Import Lia.
@@ -309,9 +307,8 @@ enough (forall n, forall A B C (pi1 : prove A B) (pi2 : prove B C),
   by (intros ; apply (H _ _ _ _ pi1 pi2 eq_refl)).
 induction n using (well_founded_induction_type lt_wf) ; intros ; subst.
 assert (IH : forall A B C (pi1' : prove A B) (pi2' : prove B C),
-               psize pi1' + psize pi2' < psize pi1 + psize pi2 -> prove A C) ;
-  [ | clear H ].
-{ intros ; eapply H ; eauto. }
+               psize pi1' + psize pi2' < psize pi1 + psize pi2 -> prove A C)
+  by (intros ; eapply H ; eauto) ; clear H.
 destruct pi2.
 - assumption.
 - apply topr.
@@ -321,8 +318,8 @@ destruct pi2.
 - enough (forall A D (pi1 : prove A D) A0 B C (pi2 : prove A0 C)
             (IH : forall A1 B0 C0 (pi1' : prove A1 B0) (pi2' : prove B0 C0),
                    psize pi1' + psize pi2' < psize pi1 + psize (wdgll B pi2) -> prove A1 C0),
-         D = wdg A0 B -> prove A C) as IH2 ; [ | clear ].
-  { eapply IH2 ; [ eassumption | reflexivity ]. }
+         D = wdg A0 B -> prove A C)
+    as IH2 by (eapply IH2 ; [ eassumption | reflexivity ]) ; clear.
   intros A D pi1 ; destruct pi1 ; intros ; inversion H ; subst.
   + apply wdgll ; assumption.
   + apply (IH _ _ _ pi1_1 pi2) ; simpl ; lia.
@@ -335,8 +332,8 @@ destruct pi2.
 - enough (forall A D (pi1 : prove A D) A0 B C (pi2 : prove A0 C)
             (IH : forall A1 B0 C0 (pi1' : prove A1 B0) (pi2' : prove B0 C0),
                 psize pi1' + psize pi2' < psize pi1 + psize (wdglr B pi2) -> prove A1 C0),
-         D = wdg B A0 -> prove A C) as IH2 ; [ | clear ].
-  { eapply IH2 ; [ eassumption | reflexivity ]. }
+         D = wdg B A0 -> prove A C)
+    as IH2 by (eapply IH2 ; [ eassumption | reflexivity ]) ; clear.
   intros A D pi1 ; destruct pi1 ; intros ; inversion H ; subst.
   + apply wdglr ; assumption.
   + apply (IH _ _ _ pi1_2 pi2) ; simpl ; lia.
@@ -348,13 +345,12 @@ destruct pi2.
     apply (IH _ _ _ pi1 (wdglr _ pi2)) ; simpl ; lia.
 - apply frlr.
   destruct (pup 0 pi1) as [pi1' Hs].
-  apply (IH _ _ _ pi1' pi2).
-  rewrite Hs ; simpl ; lia.
+  apply (IH _ _ _ pi1' pi2) ; simpl ; lia.
 - enough (forall A D (pi1 : prove A D) X A0 C F e (pi2 : prove (subs X F A0) C)
             (IH : forall A1 B C0 (pi1' : prove A1 B) (pi2' : prove B C0),
                    psize pi1' + psize pi2' < psize pi1 + psize (frll F e pi2) -> prove A1 C0),
-         D = frl X A0 -> prove A C) as IH2 ; [ | clear ].
-  { eapply IH2 ; [ eassumption | reflexivity ]. }
+         D = frl X A0 -> prove A C)
+    as IH2 by (eapply IH2 ; [ eassumption | reflexivity ]) ; clear.
   intros A D pi1 ; destruct pi1 ; intros ; inversion H ; subst.
   + apply (frll F e) ; assumption.
   + apply wdgll.
@@ -367,8 +363,8 @@ destruct pi2.
     rewrite nsubs_z_subs_fup.
     rewrite nsubs_z_fup.
     intros pi1' IH ; apply (IH _ _ _ pi1' pi2) ; lia.
- + apply (frll F e).
-   apply (IH _ _ _ pi1 (frll F0 e0 pi2)) ; simpl ; lia.
+  + apply (frll F e).
+    apply (IH _ _ _ pi1 (frll F0 e0 pi2)) ; simpl ; lia.
 Qed.
 
 
@@ -412,20 +408,20 @@ Qed.
 (** Axiom expansion *)
 Lemma ax_exp : forall A, prove A A.
 Proof.
-assert (Hn : forall n A, fsize A = n -> prove A A).
-{ induction n using (well_founded_induction_type lt_wf) ; intros ; subst.
-(*  destruct A ; try now constructor. *)
-  destruct A.
-  - apply ax.
-  - apply ax.
-  - apply ax.
-  - apply topr.
-  - apply wdgr ; [ apply wdgll | apply wdglr ] ; (eapply H ; [ | reflexivity ]) ; simpl ; lia.
-  - apply frlr.
-    simpl ; apply (frll (dvar 0)) ; auto.
-    eapply H ; [ | reflexivity ].
-    rewrite fsize_subs_dvar ; rewrite fsize_fup ; simpl ; lia. }
-intros A ; eapply Hn ; reflexivity.
+enough (Hn : forall n A, fsize A = n -> prove A A)
+  by (intros A ; eapply Hn ; reflexivity).
+induction n using (well_founded_induction_type lt_wf) ; intros ; subst.
+(* destruct A ; try now constructor. *)
+destruct A.
+- apply ax.
+- apply ax.
+- apply ax.
+- apply topr.
+- apply wdgr ; [ apply wdgll | apply wdglr ] ; (eapply H ; [ | reflexivity ]) ; simpl ; lia.
+- apply frlr.
+  simpl ; apply (frll (dvar 0)) ; auto.
+  eapply H ; [ | reflexivity ].
+  rewrite fsize_subs_dvar ; rewrite fsize_fup ; simpl ; lia.
 Qed.
 
 
