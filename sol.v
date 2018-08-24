@@ -4,6 +4,8 @@ Require Import Lia.
 Require Import List.
 Require Import Equalities.
 
+Ltac autorewrite_all := autorewrite with core in *.
+Tactic Notation "rnow" tactic(t) := now t ; autorewrite_all.
 
 (** * Different kinds of atoms *)
 
@@ -23,6 +25,18 @@ End vatomBoolEq.
 Module vatomEq := Make_UDTF vatomBoolEq.
 Module vatomFacts := BoolEqualityFacts vatomEq.
 Import vatomFacts.
+
+Lemma in_rmv : forall X Y, beq_vat Y X = false -> forall l,
+  In X l -> In X (remove vatomEq.eq_dec Y l).
+Proof.
+induction l ; auto ; intros Hi.
+inversion Hi ; subst ; simpl.
+- destruct (vatomEq.eq_dec Y X) ; intuition.
+  subst ; rewrite eqb_refl in H ; inversion H.
+- destruct (vatomEq.eq_dec Y a) ; intuition.
+Qed.
+
+Hint Resolve in_rmv.
 
 
 
@@ -68,12 +82,18 @@ induction A ; simpl ; intuition.
 case_eq (n <? k) ; auto.
 Qed.
 
+Hint Rewrite fsize_fup.
+
 Lemma fup_fup_com : forall k A,
   fup (S k) (fup 0 A) = fup 0 (fup k A).
 Proof.
 induction A ; simpl ; f_equal ; intuition.
 change (S n <? S k) with (n <? k) ; case_eq (n <? k) ; auto.
 Qed.
+
+Hint Rewrite fup_fup_com.
+
+
 
 (** substitutes [formula] [F] for variable [X] in [formula] [A] (capture is possible) *)
 Fixpoint subs X F A :=
@@ -92,14 +112,20 @@ induction A ; simpl ; intuition ;
   case_eq (beq_vat v X) ; simpl ; auto.
 Qed.
 
+Hint Rewrite fsize_subs_dvar.
+
+
 Lemma fup_subs_com : forall k X F A,
   fup k (subs X F A) = subs X (fup k F) (fup k A).
 Proof.
 intros ; induction A ; simpl ; f_equal ; intuition.
-- case_eq (beq_vat v X) ; intuition.
-- case_eq (n <? k) ; auto.
-- case_eq (beq_vat v X) ; intuition ; simpl ; f_equal ; auto.
+- now case_eq (beq_vat v X).
+- now case_eq (n <? k).
+- now case_eq (beq_vat v X) ; intuition ; simpl ; f_equal.
 Qed.
+
+Hint Rewrite fup_subs_com.
+
 
 
 
@@ -124,8 +150,11 @@ Proof.
 intros ; induction A ; simpl ; f_equal ; intuition.
 case_eq (k ?= n) ; auto.
 intros Heq ; destruct n ; auto.
-exfalso ; destruct k ; inversion Heq.
+now destruct k.
 Qed.
+
+Hint Rewrite nsubs_fup_com.
+
 
 Fixpoint freevars A :=
 match A with
@@ -137,78 +166,79 @@ match A with
 | frl X B => remove vatomEq.eq_dec X (freevars B)
 end.
 
-Lemma in_freevars_frl : forall X Y, beq_vat Y X = false -> forall A,
-  In X (freevars A) -> In X (freevars (frl Y A)).
-Proof.
-intros ; simpl.
-remember (freevars A) as l.
-revert H0 ; clear - H ; induction l ; intros Hi ; auto.
-inversion Hi ; subst ; simpl.
-- destruct (vatomEq.eq_dec Y X) ; intuition.
-  subst ; rewrite eqb_refl in H ; inversion H.
-- destruct (vatomEq.eq_dec Y a) ; intuition.
-Qed.
-
 Lemma freevars_fup : forall k F, freevars (fup k F) = freevars F.
 Proof.
 induction F ; simpl ; f_equal ; intuition.
-case_eq (n <? k) ; auto.
+now case_eq (n <? k).
 Qed.
+
+Hint Rewrite freevars_fup.
 
 Lemma freevars_nsubs : forall n F, freevars F = nil -> forall A,
   freevars (nsubs n F A) = freevars A.
 Proof.
 induction A ; simpl ; f_equal ; intuition.
-case_eq (n ?= n0) ; auto.
+now case_eq (n ?= n0).
 Qed.
+
+Hint Rewrite freevars_nsubs using assumption.
 
 Lemma nfree_subs : forall X F A, ~ In X (freevars A) -> subs X F A = A.
 Proof.
 induction A ; simpl ; intuition ; f_equal ; intuition ;
   case_eq (beq_vat v X) ; intuition.
-- exfalso ; apply vatomEq.eqb_eq in H ; intuition.
-- f_equal ; apply IHA.
-  intros Hf ; apply H ; apply in_freevars_frl ; assumption.
+- now apply vatomEq.eqb_eq in H.
+- now f_equal.
 Qed.
+
+Hint Rewrite nfree_subs using assumption.
 
 Lemma subs_closed : forall X F A, freevars A = nil -> subs X F A = A.
 Proof.
-intros ; apply nfree_subs.
-intros Hf ; rewrite H in Hf ; inversion Hf.
+intros.
+assert (~ In X (freevars A))
+  by (intros Hf ; rewrite H in Hf ; inversion Hf).
+rnow idtac.
 Qed.
+
+Hint Rewrite subs_closed using assumption.
 
 Lemma nsubs_subs_com : forall X F n G, freevars G = nil -> forall A,
   nsubs n G (subs X F A) = subs X (nsubs n G F) (nsubs n G A).
 Proof.
 intros ; induction A ; simpl ; f_equal ; intuition ;
   try now (case_eq (beq_vat v X) ; intros ; simpl ; f_equal ; auto).
-case_eq (n ?= n0) ; intuition.
-rewrite subs_closed ; auto.
+rnow case_eq (n ?= n0).
 Qed.
 
+Hint Rewrite nsubs_subs_com using assumption.
+
 Lemma subs_z_nsubs_com : forall X n F, freevars F = nil -> forall A,
-  subs X (dvar 0) (nsubs (S n) F A) = nsubs (S n) F (subs X (dvar 0) A).
+  nsubs (S n) F (subs X (dvar 0) A) = subs X (dvar 0) (nsubs (S n) F A).
 Proof.
 intros ; induction A ; simpl ; f_equal ; intuition ;
   try now (case_eq (beq_vat v X) ; intros ; simpl ; f_equal ; auto).
 destruct n0 ; simpl ; auto.
-case_eq (n ?= n0) ; auto ; intros.
-apply subs_closed ; auto.
+rnow case_eq (n ?= n0).
 Qed.
+
+Hint Rewrite subs_z_nsubs_com using assumption.
 
 Lemma nsubs_z_fup : forall F A, nsubs 0 F (fup 0 A) = A.
 Proof.
-induction A ; simpl ; f_equal ; auto.
+now induction A ; simpl ; f_equal.
 Qed.
 
-Hint Resolve nsubs_z_fup.
+Hint Rewrite nsubs_z_fup.
 
 Lemma nsubs_z_subs_fup : forall F X A,
   nsubs 0 F (subs X (dvar 0) (fup 0 A)) = subs X F A.
 Proof.
-induction A ; simpl ; f_equal ; auto ;
-  case_eq (beq_vat v X) ; intros ; simpl ; f_equal ; auto.
+rnow induction A ; simpl ; f_equal ; auto ;
+  case_eq (beq_vat v X) ; intros ; simpl ; f_equal.
 Qed.
+
+Hint Rewrite nsubs_z_subs_fup.
 
 
 
@@ -229,6 +259,8 @@ Inductive prove : formula -> formula -> Type :=
 | frlr { X C A } : prove (fup 0 C) (subs X (dvar 0) (fup 0 A)) -> prove C (frl X A)
 | frll { X A C } : forall F, freevars F = nil -> prove (subs X F A) C -> prove (frl X A) C.
 
+Hint Constructors prove.
+
 (** height of proofs *)
 Fixpoint psize {A B} (pi : prove A B) :=
 match pi with
@@ -244,7 +276,7 @@ end.
 (** substitutes [cterm] [u] for index [n] in proof [pi] and decreases indexes above [n] *)
 Theorem psubs k F (Hc : freevars F = nil) {C A} (pi : prove C A) :
   { pi' : prove (nsubs k F C) (nsubs k F A) | psize pi' = psize pi }.
-Proof with try assumption.
+Proof with autorewrite_all.
 revert k F Hc ; induction pi ; intros k F' Hc ;
   try (destruct (IHpi k F' Hc) as [pi' Hs]) ;
   try (destruct (IHpi1 k F' Hc) as [pi1' Hs1]) ;
@@ -258,20 +290,18 @@ revert k F Hc ; induction pi ; intros k F' Hc ;
   rewrite <- (freevars_fup 0) in Hc.
   destruct (IHpi (S k) _ Hc) as [pi' Hs].
   simpl ; rewrite <- Hs ; clear Hs.
-  revert pi'.
-  rewrite <- subs_z_nsubs_com...
-  rewrite 2 nsubs_fup_com.
+  revert pi'...
   intros pi' ; exists (frlr pi') ; reflexivity.
 - simpl ; rewrite <- Hs ; clear Hs.
-  revert pi' ; rewrite nsubs_subs_com...
-  rewrite <- (freevars_nsubs k F') in e...
+  revert pi'...
+  rewrite <- (freevars_nsubs k F' Hc) in e.
   intros pi' ; exists (frll _ e pi') ; reflexivity.
 Qed.
 
 (** lift indexes above [k] in proof [pi] *)
 Theorem pup k {C A} (pi : prove C A) :
   { pi' : prove (fup k C) (fup k A) | psize pi' = psize pi }.
-Proof.
+Proof with autorewrite_all.
 revert k ; induction pi ; intros k ;
   try (destruct (IHpi k) as [pi' Hs]) ;
   try (destruct (IHpi1 k) as [pi1' Hs1]) ;
@@ -285,14 +315,11 @@ revert k ; induction pi ; intros k ;
   destruct (IHpi (S k)) as [pi' Hs].
   simpl ; rewrite <- Hs ; clear Hs.
   revert pi'.
-  change (dvar 0) with (fup (S k) (dvar 0)).
-  rewrite fup_subs_com.
-  rewrite 2 fup_fup_com.
+  change (dvar 0) with (fup (S k) (dvar 0))...
   intros pi' ; exists (frlr pi') ; reflexivity.
 - simpl ; rewrite <- Hs ; clear Hs.
+  revert pi'...
   rewrite <- (freevars_fup k) in e.
-  revert pi'.
-  rewrite fup_subs_com.
   intros pi' ; exists (frll _ e pi') ; reflexivity.
 Qed.
 
@@ -309,9 +336,7 @@ induction n using (well_founded_induction_type lt_wf) ; intros ; subst.
 assert (IH : forall A B C (pi1' : prove A B) (pi2' : prove B C),
                psize pi1' + psize pi2' < psize pi1 + psize pi2 -> prove A C)
   by (intros ; eapply H ; eauto) ; clear H.
-destruct pi2.
-- assumption.
-- apply topr.
+destruct pi2 ; intuition.
 - apply wdgr.
   + apply (IH _ _ _ pi1 pi2_1) ; simpl ; lia.
   + apply (IH _ _ _ pi1 pi2_2) ; simpl ; lia.
@@ -319,9 +344,8 @@ destruct pi2.
             (IH : forall A1 B0 C0 (pi1' : prove A1 B0) (pi2' : prove B0 C0),
                    psize pi1' + psize pi2' < psize pi1 + psize (wdgll B pi2) -> prove A1 C0),
          D = wdg A0 B -> prove A C)
-    as IH2 by (eapply IH2 ; [ eassumption | reflexivity ]) ; clear.
-  intros A D pi1 ; destruct pi1 ; intros ; inversion H ; subst.
-  + apply wdgll ; assumption.
+    as IH2 by refine (IH2 _ _ _ _ _ _ _ IH eq_refl) ; clear.
+  intros A D pi1 ; destruct pi1 ; intros ; inversion H ; subst ; intuition.
   + apply (IH _ _ _ pi1_1 pi2) ; simpl ; lia.
   + apply wdgll.
     apply (IH _ _ _ pi1 (wdgll _ pi2)) ; simpl ; lia.
@@ -333,9 +357,8 @@ destruct pi2.
             (IH : forall A1 B0 C0 (pi1' : prove A1 B0) (pi2' : prove B0 C0),
                 psize pi1' + psize pi2' < psize pi1 + psize (wdglr B pi2) -> prove A1 C0),
          D = wdg B A0 -> prove A C)
-    as IH2 by (eapply IH2 ; [ eassumption | reflexivity ]) ; clear.
-  intros A D pi1 ; destruct pi1 ; intros ; inversion H ; subst.
-  + apply wdglr ; assumption.
+    as IH2 by refine (IH2 _ _ _ _ _ _ _ IH eq_refl) ; clear.
+  intros A D pi1 ; destruct pi1 ; intros ; inversion H ; subst ; intuition.
   + apply (IH _ _ _ pi1_2 pi2) ; simpl ; lia.
   + apply wdgll.
     apply (IH _ _ _ pi1 (wdglr _ pi2)) ; simpl ; lia.
@@ -343,14 +366,14 @@ destruct pi2.
     apply (IH _ _ _ pi1 (wdglr _ pi2)) ; simpl ; lia.
   + apply (frll F e).
     apply (IH _ _ _ pi1 (wdglr _ pi2)) ; simpl ; lia.
-- apply frlr.
-  destruct (pup 0 pi1) as [pi1' Hs].
+- destruct (pup 0 pi1) as [pi1' Hs].
+  apply frlr.
   apply (IH _ _ _ pi1' pi2) ; simpl ; lia.
 - enough (forall A D (pi1 : prove A D) X A0 C F e (pi2 : prove (subs X F A0) C)
             (IH : forall A1 B C0 (pi1' : prove A1 B) (pi2' : prove B C0),
                    psize pi1' + psize pi2' < psize pi1 + psize (frll F e pi2) -> prove A1 C0),
          D = frl X A0 -> prove A C)
-    as IH2 by (eapply IH2 ; [ eassumption | reflexivity ]) ; clear.
+    as IH2 by refine (IH2 _ _ _ _ _ _ _ _ _ IH eq_refl) ; clear.
   intros A D pi1 ; destruct pi1 ; intros ; inversion H ; subst.
   + apply (frll F e) ; assumption.
   + apply wdgll.
@@ -359,9 +382,7 @@ destruct pi2.
     apply (IH _ _ _ pi1 (frll F e pi2)) ; simpl ; lia.
   + destruct (psubs 0 F e pi1) as [pi1' Hs].
     simpl in IH ; rewrite <- Hs in IH ; clear Hs.
-    revert pi1' IH.
-    rewrite nsubs_z_subs_fup.
-    rewrite nsubs_z_fup.
+    revert pi1' IH ; autorewrite_all.
     intros pi1' IH ; apply (IH _ _ _ pi1' pi2) ; lia.
   + apply (frll F e).
     apply (IH _ _ _ pi1 (frll F0 e0 pi2)) ; simpl ; lia.
@@ -374,32 +395,22 @@ Qed.
 Lemma frl_elim : forall A F X, freevars F = nil -> prove (frl X A) (subs X F A).
 Proof.
 intros A F X Hf.
-apply (frll F Hf).
-apply ax.
+now apply (frll F).
 Qed.
 
 Lemma frl_wdg : forall A B X, prove (frl X (wdg A B)) (wdg (frl X A) (frl X B)).
 Proof.
 intros A B X.
-apply wdgr.
-- apply frlr ; simpl.
-  apply (frll (dvar 0)) ; auto.
-  simpl ; apply wdgll.
-  apply ax.
-- apply frlr ; simpl.
-  apply (frll (dvar 0)) ; auto.
-  simpl ; apply wdglr.
-  apply ax.
+repeat constructor ; simpl ;
+  now (apply (frll (dvar 0)) ; constructor).
 Qed.
+
 
 Lemma frl_nfree : forall A X, ~ In X (freevars A) -> prove A (frl X A).
 Proof.
 intros A X Hnf.
-apply frlr.
-rewrite nfree_subs.
-- apply ax.
-- intros Hf ; apply Hnf.
-  rewrite freevars_fup in Hf ; assumption.
+rewrite <- (freevars_fup 0) in Hnf.
+rnow apply frlr.
 Qed.
 
 
@@ -409,19 +420,17 @@ Qed.
 Lemma ax_exp : forall A, prove A A.
 Proof.
 enough (Hn : forall n A, fsize A = n -> prove A A)
-  by (intros A ; eapply Hn ; reflexivity).
+  by (intros A ; refine (Hn _ _ eq_refl)).
 induction n using (well_founded_induction_type lt_wf) ; intros ; subst.
-(* destruct A ; try now constructor. *)
 destruct A.
 - apply ax.
 - apply ax.
 - apply ax.
 - apply topr.
-- apply wdgr ; [ apply wdgll | apply wdglr ] ; (eapply H ; [ | reflexivity ]) ; simpl ; lia.
+- apply wdgr ; [ apply wdgll | apply wdglr ] ; refine (H _ _ _ eq_refl) ; simpl ; lia.
 - apply frlr.
-  simpl ; apply (frll (dvar 0)) ; auto.
-  eapply H ; [ | reflexivity ].
-  rewrite fsize_subs_dvar ; rewrite fsize_fup ; simpl ; lia.
+  simpl ; apply (frll (dvar 0) eq_refl).
+  refine (H _ _ _ eq_refl) ; autorewrite_all ; simpl ; lia.
 Qed.
 
 
