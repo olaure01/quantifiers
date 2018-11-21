@@ -505,6 +505,13 @@ match pi with
 | rfrli pi0 => S (rsize pi0)
 end.
 
+Theorem denormalization {l A} :
+   (nprove l A -> prove l A) * (rprove l A -> prove l A).
+Proof.
+revert l A ; apply rnprove_mutrect ; intros ; try (econstructor ; eassumption).
+assumption.
+Qed.
+
 
 (** substitutes [term] [u] for index [n] in normal form and decreases indexes above [n] *)
 Theorem rnpsubs n u (Hc : freevars u = nil) {l A} :
@@ -795,5 +802,37 @@ rewrite nfree_subs.
 - intros Hf ; apply Hnf.
   rewrite ffreevars_fup in Hf ; assumption.
 Qed.
+
+Lemma Kcombi : forall A B, rprove nil (imp A (imp B A)).
+Proof.
+intros.
+repeat apply rimpi ; apply rninj.
+change (B :: A :: nil) with ((B :: nil) ++ A :: nil).
+apply nax.
+Qed.
+
+Lemma Scombi : forall A B C, rprove nil (imp (imp A (imp B C)) (imp (imp A B) (imp A C))).
+Proof.
+intros.
+repeat apply rimpi ; apply rninj.
+apply (nimpe B).
+- apply (nimpe A).
+  + change (A :: imp A B :: imp A (imp B C) :: nil)
+      with ((A :: imp A B :: nil) ++ imp A (imp B C) :: nil).
+    apply nax.
+  + apply rninj.
+    rewrite <- (app_nil_l (A :: _)).
+    apply nax.
+- apply rninj.
+  apply (nimpe A).
+  + change (A :: imp A B :: imp A (imp B C) :: nil)
+      with ((A :: nil) ++ imp A B :: imp A (imp B C) :: nil).
+    apply nax.
+  + apply rninj.
+    rewrite <- (app_nil_l (A :: _)).
+    apply nax.
+Qed.
+
+
 
 
