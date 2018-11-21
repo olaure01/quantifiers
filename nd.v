@@ -2,17 +2,13 @@ Require Import PeanoNat.
 Require Import Wf_nat.
 Require Import Lia.
 Require Import List.
-Require Import Equalities.
-
 
 (** * Preliminaries *)
 
 Lemma Forall_eq_map {A B : Type} : forall (f g : A -> B) l,
   Forall (fun x => f x = g x) l -> map f l = map g l.
 Proof.
-intros f g l HF.
-apply map_ext_in.
-apply Forall_forall ; assumption.
+intros ; apply map_ext_in ; apply Forall_forall ; assumption.
 Qed.
 
 
@@ -27,14 +23,14 @@ Parameter beq_eq_vat : forall a b, beq_vat a b = true <-> a = b.
    (* equality specification for [vatom] *)
 
 (* [vatom] presented as a type with Boolean equality *)
-Module vatomBoolEq <: UsualBoolEq.
+Module vatomBoolEq <: Equalities.UsualBoolEq.
 Definition t := vatom.
 Definition eq := @eq vatom.
 Definition eqb := beq_vat.
 Definition eqb_eq := beq_eq_vat.
 End vatomBoolEq.
-Module vatomEq := Make_UDTF vatomBoolEq.
-Module vatomFacts := BoolEqualityFacts vatomEq.
+Module vatomEq := Equalities.Make_UDTF vatomBoolEq.
+Module vatomFacts := Equalities.BoolEqualityFacts vatomEq.
 Import vatomFacts.
 
 
@@ -50,43 +46,26 @@ Inductive term : Set :=
 | tconstr : tatom -> list term -> term.
 
 (** appropriate induction for [term] (with list inside): so called "nested fix" *)
-Fixpoint term_ind_list t :
+Fixpoint term_ind_list_Forall t :
   forall P : term -> Prop,
-  forall Pl : list term -> Prop,
-  (Pl nil) ->
-  (forall t l, P t -> Pl l -> Pl (t :: l)) ->
   (forall n, P (dvar n)) ->
   (forall x, P (tvar x)) ->
-  (forall f l, Pl l -> P (tconstr f l)) -> P t :=
-fun P Pl Plnil Plcons Pdvar Ptvar Pconstr =>
+  (forall f l, Forall P l -> P (tconstr f l)) -> P t :=
+fun P Pdvar Ptvar Pconstr =>
 match t with
 | dvar n => Pdvar n
 | tvar x => Ptvar x
 | tconstr c l => Pconstr c l
-    ((fix l_ind l' : Pl l' :=
+    ((fix l_ind l' : Forall P l' :=
       match l' with
-     | nil => Plnil
-     | cons t1 l1 => Plcons t1 l1
-                       (term_ind_list t1 P Pl Plnil Plcons Pdvar Ptvar Pconstr)
-                       (l_ind l1)
-     end) l)
+      | nil => Forall_nil P
+      | cons t1 l1 => Forall_cons t1
+                        (term_ind_list_Forall t1 P Pdvar Ptvar Pconstr)
+                        (l_ind l1)
+      end) l)
 end.
-Definition term_ind_list_Forall u :
-  forall P : term -> Prop,
-  (forall n, P (dvar n)) ->
-  (forall x, P (tvar x)) ->
-  (forall f l, Forall P l -> P (tconstr f l)) -> P u.
-Proof.
-intros P Pdvar Ptvar Pconstr.
-eapply term_ind_list.
-- apply Forall_nil.
-- apply Forall_cons.
-- apply Pdvar.
-- apply Ptvar.
-- apply Pconstr.
-Defined.
 Ltac term_induction t :=
-  intros until t ;
+  (try intros until t) ;
   let nn := fresh "n" in
   let xx := fresh "x" in
   let cc := fresh "c" in
@@ -110,9 +89,8 @@ end.
 
 Lemma tup_tup_com : forall k t,
   tup (S k) (tup 0 t) = tup 0 (tup k t).
-Proof.
-term_induction t.
-change (S n <? S k) with (n <? k) ; case_eq (n <? k) ; auto.
+Proof. term_induction t.
+change (S n <? S k) with (n <? k) ; now case_eq (n <? k).
 Qed.
 
 (** * Term substitutions *)
@@ -122,10 +100,10 @@ Fixpoint ntsubs n u v :=
 match v with
 | tvar x => tvar x
 | dvar k => match n ?= k with
-             | Eq => u
-             | Lt => dvar (pred k)
-             | Gt => dvar k
-             end
+            | Eq => u
+            | Lt => dvar (pred k)
+            | Gt => dvar k
+            end
 | tconstr f l => tconstr f (map (ntsubs n u) l)
 end.
 
@@ -139,16 +117,14 @@ end.
 
 Lemma tup_tsubs_com : forall k x u t,
   tup k (tsubs x u t) = tsubs x (tup k u) (tup k t).
-Proof.
-term_induction t.
-- case_eq (n <? k) ; auto.
-- case_eq (beq_vat x0 x) ; auto.
+Proof. term_induction t.
+- now case_eq (n <? k).
+- now case_eq (beq_vat x0 x).
 Qed.
 
 Lemma ntsubs_tup_com : forall k u t,
   ntsubs (S k) (tup 0 u) (tup 0 t) = tup 0 (ntsubs k u t).
-Proof.
-term_induction t.
+Proof. term_induction t.
 case_eq (k ?= n) ; auto.
 intros Heq ; destruct n ; auto.
 exfalso ; destruct k ; inversion Heq.
@@ -156,8 +132,7 @@ Qed.
 
 
 Lemma ntsubs_z_tup : forall u t, ntsubs 0 u (tup 0 t) = t.
-Proof.
-term_induction t.
+Proof. term_induction t.
 induction l ; auto.
 inversion IHl ; subst ; simpl ; f_equal ; auto.
 Qed.
@@ -165,9 +140,8 @@ Qed.
 
 Lemma ntsubs_z_tsubs_tup : forall u x t,
   ntsubs 0 u (tsubs x (dvar 0) (tup 0 t)) = tsubs x u t.
-Proof.
-term_induction t.
-case_eq (beq_vat x0 x) ; simpl ; auto.
+Proof. term_induction t.
+now case_eq (beq_vat x0 x).
 Qed.
 
 Hint Resolve tup_tup_com tup_tsubs_com ntsubs_tup_com ntsubs_z_tup ntsubs_z_tsubs_tup.
@@ -182,23 +156,21 @@ match t with
 | dvar _ => nil
 | tconstr f l => flat_map freevars l
 end.
+Definition closed t := freevars t = nil.
 
 Lemma freevars_tup : forall k t, freevars (tup k t) = freevars t.
-Proof.
-term_induction t.
+Proof. term_induction t.
 now case_eq (n <? k).
 Qed.
 
-Lemma freevars_ntsubs : forall n u, freevars u = nil -> forall t,
+Lemma freevars_ntsubs : forall n u, closed u -> forall t,
   freevars (ntsubs n u t) = freevars t.
-Proof.
-term_induction t.
+Proof. term_induction t.
 now case_eq (n ?= n0).
 Qed.
 
 Lemma nfree_tsubs : forall x u t, ~ In x (freevars t) -> tsubs x u t = t.
-Proof.
-term_induction t.
+Proof. term_induction t.
 - case_eq (beq_vat x0 x) ; intuition.
   now apply vatomEq.eqb_eq in H.
 - intros Hn ; f_equal ; revert IHl Hn ; induction l ; intros ; auto.
@@ -212,22 +184,19 @@ Hint Rewrite freevars_ntsubs nfree_tsubs using assumption.
 
 Lemma ntsubs_tsubs_com : forall x v n u, ~ In x (freevars u) -> forall t,
   ntsubs n u (tsubs x v t) = tsubs x (ntsubs n u v) (ntsubs n u t).
-Proof.
-term_induction t.
-- case_eq (n ?= n0) ; intros ; auto ; autorewrite with core ; auto.
-- case_eq (beq_vat x0 x) ; auto.
+Proof. term_induction t.
+- case_eq (n ?= n0) ; intros ; auto ; now autorewrite with core.
+- now case_eq (beq_vat x0 x).
 Qed.
 
 Hint Rewrite ntsubs_tsubs_com using assumption.
 
 Lemma ntsubs_tsubs_z_com : forall x n u t, ~ In x (freevars u) ->
   ntsubs (S n) u (tsubs x (dvar 0) t) = tsubs x (dvar 0) (ntsubs (S n) u t).
-Proof.
-intros x n u t Hn ; revert t.
-term_induction t ; intros.
+Proof. intros x n u t Hn. term_induction t.
 - destruct n0 ; auto.
   case_eq (n ?= n0) ; auto.
-  rewrite nfree_tsubs ; auto.
+  now rewrite nfree_tsubs.
 - now (case_eq (beq_vat x0 x)).
 Qed.
 
@@ -249,6 +218,7 @@ Inductive formula : Set :=
 | frl : vatom -> formula -> formula.
 
 Ltac formula_induction A :=
+  (try intros until A) ;
   let XX := fresh "X" in
   let xx := fresh "x" in
   let A1 := fresh A in
@@ -282,15 +252,11 @@ match A with
 end.
 
 Lemma fsize_fup : forall k A, fsize (fup k A) = fsize A.
-Proof.
-formula_induction A.
-Qed.
+Proof. formula_induction A. Qed.
 
 Lemma fup_fup_com : forall k A,
   fup (S k) (fup 0 A) = fup 0 (fup k A).
-Proof.
-intros ; formula_induction A.
-Qed.
+Proof. formula_induction A. Qed.
 
 
 (** substitutes [term] [u] for variable [x] in [formula] [A] *)
@@ -303,14 +269,13 @@ end.
 
 Lemma fsize_subs : forall u x A, fsize (subs x u A) = fsize A.
 Proof.
-intros u x ; formula_induction A.
+formula_induction A.
 case_eq (beq_vat x0 x) ; simpl ; auto.
 Qed.
 
 Lemma fup_subs_com : forall k x u A,
   fup k (subs x u A) = subs x (tup k u) (fup k A).
-Proof.
-intros ; formula_induction A.
+Proof. formula_induction A.
 case_eq (beq_vat x0 x) ; intros ; simpl ; f_equal ; auto.
 Qed.
 
@@ -324,46 +289,36 @@ end.
 
 Lemma nsubs_fup_com : forall k u A,
   nsubs (S k) (tup 0 u) (fup 0 A) = fup 0 (nsubs k u A).
-Proof.
-intros ; formula_induction A.
-Qed.
+Proof. formula_induction A. Qed.
 
 Lemma nsubs_z_fup : forall u A, nsubs 0 u (fup 0 A) = A.
-Proof.
-intros ; formula_induction A.
-Qed.
+Proof. formula_induction A. Qed.
 
 Hint Resolve nsubs_z_fup.
 
 Lemma nsubs_z_subs_fup : forall u x A,
   nsubs 0 u (subs x (dvar 0) (fup 0 A)) = subs x u A.
-Proof.
-intros ; formula_induction A.
+Proof. formula_induction A.
 case_eq (beq_vat x0 x) ; intros ; simpl ; f_equal ; auto.
 Qed.
 
-
-
-Lemma nsubs_subs_com : forall x u n v, freevars v = nil -> forall A,
-  nsubs n v (subs x u A) = subs x (ntsubs n v u) (nsubs n v A).
+Lemma nsubs_subs_com : forall x v n u, closed u -> forall A,
+  nsubs n u (subs x v A) = subs x (ntsubs n u v) (nsubs n u A).
 Proof.
-intros ; induction A ; simpl ; f_equal ; intuition.
-- rewrite ? map_map.
-  apply map_ext ; intros t.
-  rewrite ntsubs_tsubs_com ; intuition.
-  rewrite H in H0 ; inversion H0.
+induction A ; simpl ; f_equal ; intuition.
+- rewrite ? map_map ; apply map_ext ; intros t.
+  rewrite ntsubs_tsubs_com ; auto.
+  now rewrite H.
 - case_eq (beq_vat v0 x) ; intros ; simpl ; f_equal ; auto.
 Qed.
 
-Lemma nsubs_subs_z_com : forall x n u, freevars u = nil -> forall A,
+Lemma nsubs_subs_z_com : forall x n u, closed u -> forall A,
   nsubs (S n) u (subs x (dvar 0) A) = subs x (dvar 0) (nsubs (S n) u A).
 Proof.
 intros ; induction A ; simpl ; f_equal ; intuition.
-- repeat rewrite map_map ; apply Forall_eq_map.
-  induction l ; auto.
-  constructor ; auto.
-  rewrite ntsubs_tsubs_z_com ; auto.
-  rewrite H ; intuition.
+- repeat rewrite map_map ; apply map_ext.
+  intros ; rewrite ntsubs_tsubs_z_com ; auto.
+  now rewrite H.
 - case_eq (beq_vat v x) ; intros ; simpl ; f_equal ; auto.
 Qed.
 
@@ -383,80 +338,14 @@ Inductive prove : list formula -> formula -> Set :=
 | impi { l A B } : prove (A :: l) B -> prove l (imp A B)
 | impe { l B } : forall A, prove l (imp A B) -> prove l A -> prove l B
 | frli { x l A } : prove (map (fup 0) l) (subs x (dvar 0) (fup 0 A)) -> prove l (frl x A)
-| frle { x l A } : forall u, freevars u = nil -> prove l (frl x A) -> prove l (subs x u A).
-
-(*
-(** height of proofs *)
-Fixpoint psize {l A} (pi : prove l A) : nat :=
-match pi with
-| ax _ _ _ => 1
-| impi pi1 => S (psize pi1)
-| impe _ pi1 pi2 => S (max (psize pi1) (psize pi2))
-| frli pi1 => S (psize pi1)
-| frle _ _ pi1 => S (psize pi1)
-end.
-
-(** substitutes [term] [u] for index [n] in proof [pi] and decreases indexes above [n] *)
-Theorem psubs n u (Hc : freevars u = nil) {l A} (pi : prove l A) :
-  { pi' : prove (map (nsubs n u) l) (nsubs n u A) | psize pi' = psize pi }.
-Proof with try assumption.
-revert n u Hc ; induction pi ; intros n u' Hc ;
-  try (destruct (IHpi n u') as [pi' Hs]) ;
-  try (destruct (IHpi1 n u') as [pi1' Hs1]) ;
-  try (destruct (IHpi2 n u') as [pi2' Hs2])...
-- rewrite map_app ; exists (ax _ _ _) ; auto.
-- exists (impi pi') ; simpl ; auto.
-- exists (impe _ pi1' pi2') ; simpl ; auto.
-- clear pi' Hs.
-  rewrite <- (freevars_tup 0) in Hc.
-  destruct (IHpi (S n) (tup 0 u')) as [pi' Hs]...
-  simpl ; rewrite <- Hs ; clear Hs.
-  revert pi'.
-  rewrite nsubs_subs_z_com...
-  rewrite nsubs_fup_com.
-  rewrite map_map ; rewrite (map_ext _ _ (nsubs_fup_com _ _)) ; rewrite <- map_map.
-  intros pi' ; exists (frli pi') ; reflexivity.
-- simpl ; rewrite <- Hs ; clear Hs.
-  revert pi' ; rewrite nsubs_subs_com...
-  rewrite <- (freevars_ntsubs n u') in e...
-  intros pi' ; exists (frle (ntsubs n u' u) e pi') ; reflexivity.
-Qed.
-
-(** lift indexes above [k] in proof [pi] *)
-Theorem pup k {l A} (pi : prove l A) :
-  { pi' : prove (map (fup k) l) (fup k A) | psize pi' = psize pi }.
-Proof.
-revert k ; induction pi ; intros k ;
-  try (destruct (IHpi k) as [pi' Hs]) ;
-  try (destruct (IHpi1 k) as [pi1' Hs1]) ;
-  try (destruct (IHpi2 k) as [pi2' Hs2]).
-- rewrite map_app ; exists (ax _ _ _) ; auto.
-- exists (impi pi') ; simpl ; auto.
-- exists (impe _ pi1' pi2') ; simpl ; auto.
-- clear pi' Hs.
-  destruct (IHpi (S k)) as [pi' Hs].
-  simpl ; rewrite <- Hs ; clear Hs.
-  revert pi'.
-  change (dvar 0) with (tup (S k) (dvar 0)).
-  rewrite fup_subs_com.
-  rewrite fup_fup_com.
-  rewrite map_map ; rewrite (map_ext _ _ (fup_fup_com _)) ; rewrite <- map_map.
-  intros pi' ; exists (frli pi') ; reflexivity.
-- simpl ; rewrite <- Hs ; clear Hs.
-  revert pi'.
-  rewrite fup_subs_com.
-  rewrite <- (freevars_tup k) in e.
-  intros pi' ; exists (frle (tup k u) e pi') ; reflexivity.
-Qed.
-*)
-
+| frle { x l A } : forall u, closed u -> prove l (frl x A) -> prove l (subs x u A).
 
 
 (** Normal Forms *)
 Inductive nprove : list formula -> formula -> Set :=
 | nax : forall l1 l2 A, nprove (l1 ++ A :: l2) A
 | nimpe { l B } : forall A, nprove l (imp A B) -> rprove l A -> nprove l B
-| nfrle { x l A } : forall u, freevars u = nil -> nprove l (frl x A) -> nprove l (subs x u A)
+| nfrle { x l A } : forall u, closed u -> nprove l (frl x A) -> nprove l (subs x u A)
 with rprove : list formula -> formula -> Set :=
 | rninj { l A } : nprove l A -> rprove l A
 | rimpi { l A B } : rprove (A :: l) B -> rprove l (imp A B)
@@ -474,7 +363,7 @@ Lemma rnprove_mutrect :
        (forall (l1 l2 : list formula) (A : formula), P (l1 ++ A :: l2) A (nax l1 l2 A)) ->
        (forall (l : list formula) (B A : formula) (n : nprove l (imp A B)),
         P l (imp A B) n -> forall r : rprove l A, P0 l A r -> P l B (nimpe A n r)) ->
-       (forall (x : vatom) (l : list formula) (A : formula) (u : term) (e : freevars u = nil)
+       (forall (x : vatom) (l : list formula) (A : formula) (u : term) (e : closed u)
           (n : nprove l (frl x A)), P l (frl x A) n -> P l (subs x u A) (nfrle u e n)) ->
        (forall (l : list formula) (A : formula) (n : nprove l A), P l A n -> P0 l A (rninj n)) ->
        (forall (l : list formula) (A B : formula) (r : rprove (A :: l) B),
@@ -505,21 +394,19 @@ match pi with
 | rfrli pi0 => S (rsize pi0)
 end.
 
-Theorem denormalization {l A} :
-   (nprove l A -> prove l A) * (rprove l A -> prove l A).
+Theorem denormalization {l A} : (nprove l A -> prove l A) * (rprove l A -> prove l A).
 Proof.
-revert l A ; apply rnprove_mutrect ; intros ; try (econstructor ; eassumption).
-assumption.
+revert l A ; apply rnprove_mutrect ; intros ; try (econstructor ; eassumption) ; assumption.
 Qed.
 
 
 (** substitutes [term] [u] for index [n] in normal form and decreases indexes above [n] *)
-Theorem rnpsubs n u (Hc : freevars u = nil) {l A} :
+Theorem rnpsubs n u (Hc : closed u) {l A} :
    (nprove l A -> nprove (map (nsubs n u) l) (nsubs n u A))
  * (rprove l A -> rprove (map (nsubs n u) l) (nsubs n u A)).
 Proof with try eassumption.
-enough ((nprove l A -> forall n u, freevars u = nil -> nprove (map (nsubs n u) l) (nsubs n u A))
-      * (rprove l A -> forall n u, freevars u = nil -> rprove (map (nsubs n u) l) (nsubs n u A)))
+enough ((nprove l A -> forall n u, closed u -> nprove (map (nsubs n u) l) (nsubs n u A))
+      * (rprove l A -> forall n u, closed u -> rprove (map (nsubs n u) l) (nsubs n u A)))
   as He by (split ; intros ; apply He ; assumption).
 clear n u Hc ; revert l A ; apply rnprove_mutrect ;
   intros ; simpl in H ; (try assert (IH1 := H n0 u H1)) ; (try assert (IH2 := H0 n0 u H1)) ; 
@@ -527,8 +414,8 @@ clear n u Hc ; revert l A ; apply rnprove_mutrect ;
 - rewrite map_app ; apply nax.
 - rewrite nsubs_subs_com...
   eapply nfrle ; intuition.
-  rewrite freevars_ntsubs...
-- rewrite <- (freevars_tup 0) in H0.
+  unfold closed ; rewrite freevars_ntsubs...
+- unfold closed in H0 ; rewrite <- (freevars_tup 0) in H0.
   specialize H with (S n) (tup 0 u).
   rewrite nsubs_subs_z_com in H...
   rewrite nsubs_fup_com in H.
@@ -550,7 +437,7 @@ clear k ; revert l A ; apply rnprove_mutrect ;
 - rewrite map_app ; apply nax.
 - rewrite fup_subs_com.
   apply nfrle...
-  rewrite freevars_tup...
+  unfold closed ; rewrite freevars_tup...
 - clear IH1 ; assert (IH := H (S k)).
   change (dvar 0) with (tup (S k) (dvar 0)) in H.
   rewrite fup_subs_com in IH.
@@ -758,10 +645,12 @@ Qed.
 
 (** * Hilbert style properties *)
 
-Lemma frl_elim : forall A u x, freevars u = nil -> rprove (frl x A :: nil) (subs x u A).
+(* Apply all reversible intro rules *)
+Ltac rev_intros := repeat (repeat apply rimpi ; repeat apply rfrli) ; apply rninj.
+
+Lemma frl_elim : forall A u x, closed u -> rprove (frl x A :: nil) (subs x u A).
 Proof.
-intros A u x Hf.
-apply rninj.
+intros A u x Hf ; rev_intros.
 apply (nfrle u) ; [ assumption | ].
 rewrite <- (app_nil_l (frl x A :: nil)).
 apply nax.
@@ -769,10 +658,7 @@ Qed.
 
 Lemma frl_imp : forall A B x, rprove (frl x (imp A B) :: nil) (imp (frl x A) (frl x B)).
 Proof.
-intros A B x.
-apply rimpi.
-apply rfrli.
-apply rninj.
+intros A B x ; rev_intros.
 apply (nimpe (subs x (dvar 0) (fup 0 A))).
 - change (imp (subs x (dvar 0) (fup 0 A)) (subs x (dvar 0) (fup 0 B)))
     with (subs x (dvar 0) (imp (fup 0 A) (fup 0 B))).
@@ -783,54 +669,43 @@ apply (nimpe (subs x (dvar 0) (fup 0 A))).
   change (frl x A :: frl x (imp A B) :: nil)
     with ((frl x A :: nil) ++ frl x (imp A B) :: nil).
   apply nax.
-- apply rninj.
-  apply nfrle ; [ reflexivity | ].
-  simpl.
-  rewrite <- (app_nil_l (frl x _ :: _)).
+- apply rninj ; apply nfrle ; [ reflexivity | ].
+  simpl ; rewrite <- (app_nil_l (frl x _ :: _)).
   apply nax.
 Qed.
 
 Lemma frl_nfree : forall A x, ~ In x (ffreevars A) -> rprove (A :: nil) (frl x A).
 Proof.
-intros A x Hnf.
-apply rfrli.
+intros A x Hnf ; rev_intros.
 rewrite nfree_subs.
-- simpl.
-  rewrite <- (app_nil_l (fup 0 A :: nil)).
-  apply rninj.
+- simpl ; rewrite <- (app_nil_l (fup 0 A :: nil)).
   apply nax.
-- intros Hf ; apply Hnf.
-  rewrite ffreevars_fup in Hf ; assumption.
+- now rewrite ffreevars_fup.
 Qed.
 
 Lemma Kcombi : forall A B, rprove nil (imp A (imp B A)).
 Proof.
-intros.
-repeat apply rimpi ; apply rninj.
+intros ; rev_intros.
 change (B :: A :: nil) with ((B :: nil) ++ A :: nil).
 apply nax.
 Qed.
 
 Lemma Scombi : forall A B C, rprove nil (imp (imp A (imp B C)) (imp (imp A B) (imp A C))).
 Proof.
-intros.
-repeat apply rimpi ; apply rninj.
+intros ; rev_intros.
 apply (nimpe B).
 - apply (nimpe A).
   + change (A :: imp A B :: imp A (imp B C) :: nil)
       with ((A :: imp A B :: nil) ++ imp A (imp B C) :: nil).
     apply nax.
-  + apply rninj.
-    rewrite <- (app_nil_l (A :: _)).
-    apply nax.
-- apply rninj.
-  apply (nimpe A).
+  + rewrite <- (app_nil_l (A :: _)).
+    apply rninj ; apply nax.
+- apply rninj ; apply (nimpe A).
   + change (A :: imp A B :: imp A (imp B C) :: nil)
       with ((A :: nil) ++ imp A B :: imp A (imp B C) :: nil).
     apply nax.
-  + apply rninj.
-    rewrite <- (app_nil_l (A :: _)).
-    apply nax.
+  + rewrite <- (app_nil_l (A :: _)).
+    apply rninj ; apply nax.
 Qed.
 
 
