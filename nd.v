@@ -154,7 +154,25 @@ intros Heq ; destruct n ; auto.
 exfalso ; destruct k ; inversion Heq.
 Qed.
 
-Hint Resolve tup_tup_com tup_tsubs_com ntsubs_tup_com.
+
+Lemma ntsubs_z_tup : forall u t, ntsubs 0 u (tup 0 t) = t.
+Proof.
+term_induction t.
+induction l ; auto.
+inversion IHl ; subst ; simpl ; f_equal ; auto.
+Qed.
+
+
+Lemma ntsubs_z_tsubs_tup : forall u x t,
+  ntsubs 0 u (tsubs x (dvar 0) (tup 0 t)) = tsubs x u t.
+Proof.
+term_induction t.
+case_eq (beq_vat x0 x) ; simpl ; auto.
+Qed.
+
+Hint Resolve tup_tup_com tup_tsubs_com ntsubs_tup_com ntsubs_z_tup ntsubs_z_tsubs_tup.
+
+
 
 (** ** Free variables *)
 
@@ -310,28 +328,12 @@ Proof.
 intros ; formula_induction A.
 Qed.
 
-Lemma ntsubs_z_tup : forall u t, ntsubs 0 u (tup 0 t) = t.
-Proof.
-term_induction t.
-induction l ; auto.
-inversion IHl ; subst ; simpl ; f_equal ; auto.
-Qed.
-
-Hint Resolve ntsubs_z_tup.
-
 Lemma nsubs_z_fup : forall u A, nsubs 0 u (fup 0 A) = A.
 Proof.
 intros ; formula_induction A.
 Qed.
 
-Lemma ntsubs_z_tsubs_tup : forall u x t,
-  ntsubs 0 u (tsubs x (dvar 0) (tup 0 t)) = tsubs x u t.
-Proof.
-term_induction t.
-case_eq (beq_vat x0 x) ; simpl ; auto.
-Qed.
-
-Hint Resolve nsubs_z_fup ntsubs_z_tsubs_tup.
+Hint Resolve nsubs_z_fup.
 
 Lemma nsubs_z_subs_fup : forall u x A,
   nsubs 0 u (subs x (dvar 0) (fup 0 A)) = subs x u A.
@@ -450,7 +452,7 @@ Qed.
 
 
 
-(** * Normal Forms *)
+(** Normal Forms *)
 Inductive nprove : list formula -> formula -> Set :=
 | nax : forall l1 l2 A, nprove (l1 ++ A :: l2) A
 | nimpe { l B } : forall A, nprove l (imp A B) -> rprove l A -> nprove l B
@@ -464,7 +466,7 @@ Scheme nrprove_rect := Induction for nprove Sort Type
   with rnprove_rect := Induction for rprove Sort Type.
 
 (* to be automatically generated in more recent Coq versions with:
-Combined Scheme rprove_mutrect from nrprove_rect, rnprove_rect.
+Combined Scheme rnprove_mutrect from nrprove_rect, rnprove_rect.
 *)
 Lemma rnprove_mutrect :
       forall (P : forall (l : list formula) (f : formula), nprove l f -> Type)
@@ -557,8 +559,9 @@ Qed.
 
 
 (** * Cut Elimination *)
-Lemma weakening : forall l A, (nprove l A -> forall l0 l1 l2, l = l1 ++ l2 -> nprove (l1 ++ l0 ++ l2) A)
-                            * (rprove l A -> forall l0 l1 l2, l = l1 ++ l2 -> rprove (l1 ++ l0 ++ l2) A).
+Lemma weakening : forall l A,
+   (nprove l A -> forall l0 l1 l2, l = l1 ++ l2 -> nprove (l1 ++ l0 ++ l2) A)
+ * (rprove l A -> forall l0 l1 l2, l = l1 ++ l2 -> rprove (l1 ++ l0 ++ l2) A).
 Proof.
 apply rnprove_mutrect ; intros ; try (econstructor ; intuition ; fail) ; subst.
 - enough (forall l l3, l1 ++ A :: l2 = l3 ++ l4 -> nprove (l ++ l3 ++ l0 ++ l4) A)
@@ -579,16 +582,19 @@ Qed.
 Lemma substitution : forall n m l A, fsize A = n -> rprove l A ->
    (forall B l0 l1 l2 (pi : nprove (l1 ++ A :: l2) B), l0 ++ l = l1 ++ l2 ->
       nsize pi < m -> fsize A < fsize B -> nprove (l1 ++ l2) B)
- * (forall B l0 l1 l2 (pi : nprove (l1 ++ A :: l2) B), l0 ++ l = l1 ++ l2 -> nsize pi < m -> rprove (l1 ++ l2) B)
- * (forall B l0 l1 l2 (pi : rprove (l1 ++ A :: l2) B), l0 ++ l = l1 ++ l2 -> rsize pi < m -> rprove (l1 ++ l2) B).
+ * (forall B l0 l1 l2 (pi : nprove (l1 ++ A :: l2) B), l0 ++ l = l1 ++ l2 ->
+      nsize pi < m -> rprove (l1 ++ l2) B)
+ * (forall B l0 l1 l2 (pi : rprove (l1 ++ A :: l2) B), l0 ++ l = l1 ++ l2 ->
+     rsize pi < m -> rprove (l1 ++ l2) B).
 Proof with try eassumption ; try reflexivity ; try lia.
 apply (lt_wf_double_rec (fun n m => 
  forall l A, fsize A = n -> rprove l A ->
    (forall B l0 l1 l2 (pi : nprove (l1 ++ A :: l2) B), l0 ++ l = l1 ++ l2 ->
       nsize pi < m -> fsize A < fsize B -> nprove (l1 ++ l2) B)
- * (forall B l0 l1 l2 (pi : nprove (l1 ++ A :: l2) B), l0 ++ l = l1 ++ l2 -> nsize pi < m -> rprove (l1 ++ l2) B)
- * (forall B l0 l1 l2 (pi : rprove (l1 ++ A :: l2) B),
-      l0 ++ l = l1 ++ l2 -> rsize pi < m -> rprove (l1 ++ l2) B))) ;
+ * (forall B l0 l1 l2 (pi : nprove (l1 ++ A :: l2) B), l0 ++ l = l1 ++ l2 ->
+      nsize pi < m -> rprove (l1 ++ l2) B)
+ * (forall B l0 l1 l2 (pi : rprove (l1 ++ A :: l2) B), l0 ++ l = l1 ++ l2 ->
+      rsize pi < m -> rprove (l1 ++ l2) B))) ;
   intros n m IHn IHm l A HA pi1 ; (split ; [ split | ] ) ; subst ;
   intros B l0 l1 l2 pi2 Hl Hpi ; [ intros HF | | ] ;
   remember (l1 ++ A :: l2) as ll ; destruct pi2 ; subst ;
@@ -611,7 +617,8 @@ apply (lt_wf_double_rec (fun n m =>
   rewrite fsize_subs in HF.
   eapply (fst (fst pi1) _ _ _ _ pi2) ; simpl...
 - enough (forall ll l l0 l1,
-    rprove l A -> l0 ++ l = ll ++ l1 ++ l2 -> l3 ++ A0 :: l4 = l1 ++ A :: l2 -> rprove (ll ++ l1 ++ l2) A0)
+    rprove l A -> l0 ++ l = ll ++ l1 ++ l2 -> l3 ++ A0 :: l4 = l1 ++ A :: l2 ->
+      rprove (ll ++ l1 ++ l2) A0)
     as HI by (eapply (HI nil) ; eassumption) ; clear.
   induction l3 ; intros ll l l0 l1 pi1 Hl Heqll ; destruct l1 ; inversion Heqll ; subst.
   + rewrite <- Hl.
@@ -707,19 +714,19 @@ match A with
 | frl x B => remove vatomEq.eq_dec x (ffreevars B)
 end.
 
-Lemma in_freevars_frl : forall x y, beq_vat y x = false -> forall A,
+Lemma in_ffreevars_frl : forall x y, beq_vat y x = false -> forall A,
   In x (ffreevars A) -> In x (ffreevars (frl y A)).
 Proof.
 intros ; simpl.
 remember (ffreevars A) as l.
 revert H0 ; clear - H ; induction l ; intros Hi ; auto.
-inversion Hi ; subst.
-- simpl ; destruct (vatomEq.eq_dec y x) ; intuition.
+inversion Hi ; subst ; simpl.
+- destruct (vatomEq.eq_dec y x) ; intuition.
   subst ; rewrite eqb_refl in H ; inversion H.
-- simpl ; destruct (vatomEq.eq_dec y a) ; intuition.
+- destruct (vatomEq.eq_dec y a) ; intuition.
 Qed.
 
-Lemma freevars_fup : forall k A, ffreevars (fup k A) = ffreevars A.
+Lemma ffreevars_fup : forall k A, ffreevars (fup k A) = ffreevars A.
 Proof.
 intros k A ; revert k ; formula_induction A. 
 - apply freevars_tup.
@@ -737,7 +744,7 @@ induction A ; simpl ; intuition ; f_equal ; intuition.
   + apply IHl ; intros Hf ; apply H ; simpl ; intuition.
 - case_eq (beq_vat v x) ; intuition.
   f_equal ; apply IHA.
-  intros Hf ; apply H ; apply in_freevars_frl ; assumption.
+  intros Hf ; apply H ; apply in_ffreevars_frl ; assumption.
 Qed.
 
 
@@ -786,7 +793,7 @@ rewrite nfree_subs.
   apply rninj.
   apply nax.
 - intros Hf ; apply Hnf.
-  rewrite freevars_fup in Hf ; assumption.
+  rewrite ffreevars_fup in Hf ; assumption.
 Qed.
 
 
