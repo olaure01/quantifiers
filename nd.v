@@ -324,12 +324,14 @@ Hint Rewrite nsubs_subs_z_com using unfold closed ; intuition ; fail.
 
 (** * Proofs *)
 
+Definition fupz := fup 0.
+
 (** Proofs *)
 Inductive prove : list formula -> formula -> Set :=
 | ax : forall l1 l2 A, prove (l1 ++ A :: l2) A
 | impi { l A B } : prove (A :: l) B -> prove l (imp A B)
 | impe { l B } : forall A, prove l (imp A B) -> prove l A -> prove l B
-| frli { x l A } : prove (map (fup 0) l) (subs x (dvar 0) (fup 0 A)) -> prove l (frl x A)
+| frli { x l A } : prove (map fupz l) (subs x (dvar 0) (fupz A)) -> prove l (frl x A)
 | frle { x l A } : forall u, closed u -> prove l (frl x A) -> prove l (subs x u A).
 
 
@@ -341,7 +343,7 @@ Inductive nprove : list formula -> formula -> Set :=
 with rprove : list formula -> formula -> Set :=
 | rninj { l A } : nprove l A -> rprove l A
 | rimpi { l A B } : rprove (A :: l) B -> rprove l (imp A B)
-| rfrli { x l A } : rprove (map (fup 0) l) (subs x (dvar 0) (fup 0 A)) -> rprove l (frl x A).
+| rfrli { x l A } : rprove (map fupz l) (subs x (dvar 0) (fupz A)) -> rprove l (frl x A).
 
 Scheme nrprove_rect := Induction for nprove Sort Type
   with rnprove_rect := Induction for rprove Sort Type.
@@ -361,8 +363,8 @@ Lemma rnprove_mutrect :
        (forall (l : list formula) (A B : formula) (r : rprove (A :: l) B),
         P0 (A :: l) B r -> P0 l (imp A B) (rimpi r)) ->
        (forall (x : vatom) (l : list formula) (A : formula)
-          (r : rprove (map (fup 0) l) (subs x (dvar 0) (fup 0 A))),
-        P0 (map (fup 0) l) (subs x (dvar 0) (fup 0 A)) r -> P0 l (frl x A) (rfrli r)) ->
+          (r : rprove (map fupz l) (subs x (dvar 0) (fupz A))),
+        P0 (map fupz l) (subs x (dvar 0) (fupz A)) r -> P0 l (frl x A) (rfrli r)) ->
 (*
        (forall (l : list formula) (f5 : formula) (n : nprove l f5), P l f5 n) *
        forall (l : list formula) (f5 : formula) (r : rprove l f5), P0 l f5 r.
@@ -529,7 +531,8 @@ apply (lt_wf_double_rec (fun n m =>
     inversion IH1 ; subst.
     * apply rninj ; eapply nfrle ; simpl...
     * apply (rnpsubs 0 u) in H1...
-      rnow rewrite map_map in H1 ; rewrite (map_ext _ _ (nsubs_z_fup _)) in H1 ; rewrite map_id in H1.
+      rnow rewrite map_map in H1 ; rewrite (map_ext _ _ (nsubs_z_fup _)) in H1 ;
+           rewrite map_id in H1.
   + apply rninj ; eapply nfrle...
     eapply pi1...
 - refine (snd (fst (IHm _ Hpi _ _ _ pi1)) _ _ _ _ n _ _)...
@@ -617,12 +620,12 @@ Qed.
 
 Lemma frl_imp : forall A B x, rprove (frl x (imp A B) :: nil) (imp (frl x A) (frl x B)).
 Proof. intros A B x ; rev_intros.
-apply (nimpe (subs x (dvar 0) (fup 0 A))).
-- change (imp (subs x (dvar 0) (fup 0 A)) (subs x (dvar 0) (fup 0 B)))
-    with (subs x (dvar 0) (imp (fup 0 A) (fup 0 B))).
+apply (nimpe (subs x (dvar 0) (fupz A))).
+- change (imp (subs x (dvar 0) (fupz A)) (subs x (dvar 0) (fupz B)))
+    with (subs x (dvar 0) (imp (fupz A) (fupz B))).
   apply nfrle ; [ reflexivity | ].
-  change (frl x (imp (fup 0 A) (fup 0 B)))
-    with (fup 0 (frl x (imp A B))).
+  change (frl x (imp (fupz A) (fupz B)))
+    with (fupz (frl x (imp A B))).
   apply rnpup.
   change (frl x A :: frl x (imp A B) :: nil)
     with ((frl x A :: nil) ++ frl x (imp A B) :: nil).
