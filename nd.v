@@ -3,15 +3,6 @@ Require Import Wf_nat.
 Require Import Lia.
 Require Import List.
 
-(** * Preliminaries *)
-
-Lemma Forall_eq_map {A B : Type} : forall (f g : A -> B) l,
-  Forall (fun x => f x = g x) l -> map f l = map g l.
-Proof.
-intros ; apply map_ext_in ; apply Forall_forall ; assumption.
-Qed.
-
-
 
 (** * Different kinds of atoms *)
 
@@ -76,7 +67,7 @@ Ltac term_induction t :=
   | intros xx ; try reflexivity ; try assumption ; simpl
   | intros cc ll IHll ; simpl ;
     repeat (rewrite flat_map_concat_map) ; repeat (rewrite map_map) ;
-    try f_equal ; try apply Forall_eq_map ; try assumption ].
+    try f_equal ; try (apply map_ext_in ; apply Forall_forall) ;try assumption ].
 
 
 (** lift indexes above [k] in [term] [t] *)
@@ -130,20 +121,17 @@ intros Heq ; destruct n ; auto.
 exfalso ; destruct k ; inversion Heq.
 Qed.
 
-
 Lemma ntsubs_z_tup : forall u t, ntsubs 0 u (tup 0 t) = t.
 Proof. term_induction t.
 induction l ; auto.
 inversion IHl ; subst ; simpl ; f_equal ; auto.
 Qed.
 
-
 Lemma ntsubs_z_tsubs_tup : forall u x t,
   ntsubs 0 u (tsubs x (dvar 0) (tup 0 t)) = tsubs x u t.
 Proof. term_induction t.
 now case_eq (beq_vat x0 x).
 Qed.
-
 Hint Resolve tup_tup_com tup_tsubs_com ntsubs_tup_com ntsubs_z_tup ntsubs_z_tsubs_tup.
 
 
@@ -162,6 +150,8 @@ Lemma freevars_tup : forall k t, freevars (tup k t) = freevars t.
 Proof. term_induction t.
 now case_eq (n <? k).
 Qed.
+Hint Rewrite freevars_tup.
+Hint Resolve freevars_tup.
 
 Lemma freevars_ntsubs : forall n u, closed u -> forall t,
   freevars (ntsubs n u t) = freevars t.
@@ -178,8 +168,6 @@ Proof. term_induction t.
   simpl in Hn ; simpl.
   rewrite H1 ; [ f_equal | ] ; intuition.
 Qed.
-
-Hint Rewrite freevars_tup.
 Hint Rewrite freevars_ntsubs nfree_tsubs using assumption.
 
 Lemma ntsubs_tsubs_com : forall x v n u, ~ In x (freevars u) -> forall t,
@@ -188,7 +176,6 @@ Proof. term_induction t.
 - case_eq (n ?= n0) ; intros ; auto ; now autorewrite with core.
 - now case_eq (beq_vat x0 x).
 Qed.
-
 Hint Rewrite ntsubs_tsubs_com using assumption.
 
 Lemma ntsubs_tsubs_z_com : forall x n u t, ~ In x (freevars u) ->
@@ -199,7 +186,6 @@ Proof. intros x n u t Hn. term_induction t.
   now rewrite nfree_tsubs.
 - now (case_eq (beq_vat x0 x)).
 Qed.
-
 Hint Resolve ntsubs_tsubs_z_com.
 
 
@@ -293,7 +279,6 @@ Proof. formula_induction A. Qed.
 
 Lemma nsubs_z_fup : forall u A, nsubs 0 u (fup 0 A) = A.
 Proof. formula_induction A. Qed.
-
 Hint Resolve nsubs_z_fup.
 
 Lemma nsubs_z_subs_fup : forall u x A,
@@ -321,7 +306,6 @@ intros ; induction A ; simpl ; f_equal ; intuition.
   now rewrite H.
 - case_eq (beq_vat v x) ; intros ; simpl ; f_equal ; auto.
 Qed.
-
 Hint Rewrite nsubs_subs_z_com using assumption.
 
 
@@ -394,11 +378,6 @@ match pi with
 | rfrli pi0 => S (rsize pi0)
 end.
 
-Theorem denormalization {l A} : (nprove l A -> prove l A) * (rprove l A -> prove l A).
-Proof.
-revert l A ; apply rnprove_mutrect ; intros ; try (econstructor ; eassumption) ; assumption.
-Qed.
-
 
 (** substitutes [term] [u] for index [n] in normal form and decreases indexes above [n] *)
 Theorem rnpsubs n u (Hc : closed u) {l A} :
@@ -450,9 +429,13 @@ Qed.
 
 
 
+(** * Normalization *)
 
+Theorem denormalization {l A} : (nprove l A -> prove l A) * (rprove l A -> prove l A).
+Proof.
+revert l A ; apply rnprove_mutrect ; intros ; try (econstructor ; eassumption) ; assumption.
+Qed.
 
-(** * Cut Elimination *)
 Lemma weakening : forall l A,
    (nprove l A -> forall l0 l1 l2, l = l1 ++ l2 -> nprove (l1 ++ l0 ++ l2) A)
  * (rprove l A -> forall l0 l1 l2, l = l1 ++ l2 -> rprove (l1 ++ l0 ++ l2) A).
@@ -568,8 +551,6 @@ apply (lt_wf_double_rec (fun n m =>
   + rewrite <- ? map_app ; f_equal ; rewrite <- Hl...
 Qed.
 
-
-
 Lemma smp_substitution : forall l A B, rprove l A -> rprove (A :: l) B -> rprove l B.
 Proof with try eassumption ; try reflexivity ; try lia.
 intros l A B pi1 pi2.
@@ -582,13 +563,12 @@ Qed.
 
 Theorem normalization : forall l A, prove l A -> rprove l A.
 Proof with try eassumption.
-intros l A pi ; induction pi.
-- apply rninj ; apply nax.
-- apply rimpi...
+intros l A pi ; induction pi ;
+  try (constructor ; assumption) ;
+  try (do 2 constructor ; assumption).
 - inversion IHpi1 ; subst.
   + apply rninj ; eapply nimpe...
   + eapply smp_substitution...
-- apply rfrli...
 - inversion IHpi ; subst.
   + apply rninj ; eapply nfrle...
   + apply (rnpsubs 0 u) in H1...
@@ -611,19 +591,17 @@ end.
 Lemma in_ffreevars_frl : forall x y, beq_vat y x = false -> forall A,
   In x (ffreevars A) -> In x (ffreevars (frl y A)).
 Proof.
-intros ; simpl.
-remember (ffreevars A) as l.
-revert H0 ; clear - H ; induction l ; intros Hi ; auto.
+intros x y Heq A Hi ; simpl ; remember (ffreevars A) as l.
+revert Hi ; clear - Heq ; induction l ; intros Hi ; auto.
 inversion Hi ; subst ; simpl.
-- destruct (vatomEq.eq_dec y x) ; intuition.
-  subst ; rewrite eqb_refl in H ; inversion H.
+- destruct (vatomEq.eq_dec y x) ; intuition ; subst.
+  rewrite eqb_refl in Heq ; inversion Heq.
 - destruct (vatomEq.eq_dec y a) ; intuition.
 Qed.
 
 Lemma ffreevars_fup : forall k A, ffreevars (fup k A) = ffreevars A.
 Proof.
-intros k A ; revert k ; formula_induction A. 
-- apply freevars_tup.
+intros k A ; revert k ; formula_induction A.
 - f_equal ; intuition.
 - rewrite IHA ; reflexivity.
 Qed.
@@ -645,7 +623,7 @@ Qed.
 
 (** * Hilbert style properties *)
 
-(* Apply all reversible intro rules *)
+(* Apply all (reversible) introduction rules *)
 Ltac rev_intros := repeat (repeat apply rimpi ; repeat apply rfrli) ; apply rninj.
 
 Lemma frl_elim : forall A u x, closed u -> rprove (frl x A :: nil) (subs x u A).
