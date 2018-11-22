@@ -185,16 +185,6 @@ Proof. term_induction t.
 Qed.
 Hint Rewrite ntsubs_tsubs_com using intuition ; fail.
 
-Lemma ntsubs_tsubs_z_com : forall x n u t, ~ In x (freevars u) ->
-  ntsubs (S n) u (tsubs x (dvar 0) t) = tsubs x (dvar 0) (ntsubs (S n) u t).
-Proof. intros x n u t Hn. term_induction t.
-- rnow destruct n0 ; try case_eq (n ?= n0).
-- now (case_eq (beq_vat x0 x)).
-Qed.
-Hint Rewrite ntsubs_tsubs_z_com using intuition ; fail.
-
-
-
 
 
 
@@ -306,18 +296,6 @@ induction A ; simpl ; f_equal ; intuition.
 - rnow case_eq (beq_vat v0 x) ; intros ; simpl ; f_equal.
 Qed.
 Hint Rewrite nsubs_subs_com using unfold closed ; intuition ; fail.
-
-Lemma nsubs_subs_z_com : forall x n u, closed u -> forall A,
-  nsubs (S n) u (subs x (dvar 0) A) = subs x (dvar 0) (nsubs (S n) u A).
-Proof.
-intros ; induction A ; simpl ; f_equal ; intuition.
-- repeat rewrite map_map ; apply map_ext ; intros.
-  rnow assert (~ In x (freevars u)) by now rewrite H.
-- now case_eq (beq_vat v x) ; intros ; simpl ; f_equal.
-Qed.
-Hint Rewrite nsubs_subs_z_com using unfold closed ; intuition ; fail.
-
-
 
 
 
@@ -636,7 +614,7 @@ Qed.
 
 Lemma frl_nfree : forall A x, ~ In x (ffreevars A) -> rprove (A :: nil) (frl x A).
 Proof. intros A x Hnf ; rev_intros.
-rnow rewrite nfree_subs then apply nax_hd.
+rnow unfold fupz ; rewrite nfree_subs then apply nax_hd.
 Qed.
 
 Lemma Kcombi : forall A B, rprove nil (imp A (imp B A)).
