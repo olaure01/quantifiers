@@ -136,12 +136,6 @@ rnow inversion IHl ; subst ; simpl ; f_equal.
 Qed.
 Hint Rewrite ntsubs_z_tup.
 
-Lemma ntsubs_z_tsubs_tup : forall u x t,
-  ntsubs 0 u (tsubs x (dvar 0) (tup 0 t)) = tsubs x u t.
-Proof. term_induction t.
-now case_eq (beq_vat x0 x).
-Qed.
-Hint Rewrite ntsubs_z_tsubs_tup.
 
 
 (** ** Free variables *)
@@ -177,15 +171,14 @@ Proof. term_induction t.
 Qed.
 Hint Rewrite nfree_tsubs using intuition ; fail.
 
-Lemma ntsubs_tsubs_com : forall x v n u, ~ In x (freevars u) -> forall t,
+Lemma ntsubs_tsubs_com : forall x v n u, closed u -> forall t,
   ntsubs n u (tsubs x v t) = tsubs x (ntsubs n u v) (ntsubs n u t).
 Proof. term_induction t.
-- rnow case_eq (n ?= n0).
+- assert (~ In x (freevars u)) by (rewrite H ; intuition).
+  rnow case_eq (n ?= n0).
 - now case_eq (beq_vat x0 x).
 Qed.
 Hint Rewrite ntsubs_tsubs_com using intuition ; fail.
-
-
 
 
 
@@ -215,15 +208,6 @@ Ltac formula_induction A :=
   | try (f_equal ; intuition)
   | try (f_equal ; intuition) ] ; try ((rnow idtac) ; fail).
 
-(** size of formulas *)
-Fixpoint fsize A :=
-match A with
-| var _ _ => 1
-| imp B C => S (fsize B + fsize C)
-| frl _ B => S (fsize B)
-end.
-
-
 (** lift indexes above [k] in [formula] [A] *)
 Fixpoint fup k A :=
 match A with
@@ -231,10 +215,6 @@ match A with
 | imp B C => imp (fup k B) (fup k C)
 | frl x B => frl x (fup k B)
 end.
-
-Lemma fsize_fup : forall k A, fsize (fup k A) = fsize A.
-Proof. formula_induction A. Qed.
-Hint Rewrite fsize_fup.
 
 Lemma fup_fup_com : forall k A,
   fup (S k) (fup 0 A) = fup 0 (fup k A).
@@ -249,12 +229,6 @@ match A with
 | imp B C => imp (subs x u B) (subs x u C)
 | frl y B as C => if (beq_vat y x) then C else frl y (subs x u B)
 end.
-
-Lemma fsize_subs : forall u x A, fsize (subs x u A) = fsize A.
-Proof. formula_induction A.
-rnow case_eq (beq_vat x0 x).
-Qed.
-Hint Rewrite fsize_subs.
 
 Lemma fup_subs_com : forall k x u A,
   fup k (subs x u A) = subs x (tup k u) (fup k A).
@@ -280,13 +254,6 @@ Lemma nsubs_z_fup : forall u A, nsubs 0 u (fup 0 A) = A.
 Proof. formula_induction A. Qed.
 Hint Rewrite nsubs_z_fup.
 
-Lemma nsubs_z_subs_fup : forall u x A,
-  nsubs 0 u (subs x (dvar 0) (fup 0 A)) = subs x u A.
-Proof. formula_induction A.
-rnow case_eq (beq_vat x0 x) ; intros ; simpl ; f_equal.
-Qed.
-Hint Rewrite nsubs_z_subs_fup.
-
 Lemma nsubs_subs_com : forall x v n u, closed u -> forall A,
   nsubs n u (subs x v A) = subs x (ntsubs n u v) (nsubs n u A).
 Proof.
@@ -296,6 +263,25 @@ induction A ; simpl ; f_equal ; intuition.
 - rnow case_eq (beq_vat v0 x) ; intros ; simpl ; f_equal.
 Qed.
 Hint Rewrite nsubs_subs_com using unfold closed ; intuition ; fail.
+
+
+(** size of formulas *)
+Fixpoint fsize A :=
+match A with
+| var _ _ => 1
+| imp B C => S (fsize B + fsize C)
+| frl _ B => S (fsize B)
+end.
+
+Lemma fsize_fup : forall k A, fsize (fup k A) = fsize A.
+Proof. formula_induction A. Qed.
+Hint Rewrite fsize_fup.
+
+Lemma fsize_subs : forall u x A, fsize (subs x u A) = fsize A.
+Proof. formula_induction A.
+rnow case_eq (beq_vat x0 x).
+Qed.
+Hint Rewrite fsize_subs.
 
 
 
