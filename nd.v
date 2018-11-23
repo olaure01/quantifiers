@@ -4,9 +4,9 @@ Require Import Lia.
 Require Import List.
 
 Tactic Notation "rnow" tactic(t) :=
-  t ; autorewrite with core in * ; simpl ; intuition.
+  t ; simpl ; autorewrite with core in * ; simpl ; intuition.
 Tactic Notation "rnow" tactic(t) "then" tactic(t1) :=
-  t ; autorewrite with core in * ; simpl ; intuition t1 ; simpl ; intuition.
+  t ; simpl ; autorewrite with core in * ; simpl ; intuition t1 ; simpl ; intuition.
 
 
 (** * Different kinds of atoms *)
@@ -146,7 +146,7 @@ match t with
 | dvar _ => nil
 | tconstr f l => flat_map freevars l
 end.
-Definition closed t := freevars t = nil.
+Notation closed t := (freevars t = nil).
 
 Lemma freevars_tup : forall k t, freevars (tup k t) = freevars t.
 Proof. term_induction t.
@@ -159,7 +159,7 @@ Lemma freevars_ntsubs : forall n u, closed u -> forall t,
 Proof. term_induction t.
 now case_eq (n ?= n0).
 Qed.
-Hint Rewrite freevars_ntsubs using unfold closed ; intuition ; fail.
+Hint Rewrite freevars_ntsubs using intuition ; fail.
 
 Lemma nfree_tsubs : forall x u t, ~ In x (freevars t) -> tsubs x u t = t.
 Proof. term_induction t.
@@ -258,11 +258,10 @@ Lemma nsubs_subs_com : forall x v n u, closed u -> forall A,
   nsubs n u (subs x v A) = subs x (ntsubs n u v) (nsubs n u A).
 Proof.
 induction A ; simpl ; f_equal ; intuition.
-- rewrite ? map_map ; apply map_ext ; intros t.
-  rnow assert (~ In x (freevars u)) by now rewrite H.
+- rnow rewrite ? map_map ; apply map_ext ; intros.
 - rnow case_eq (beq_vat v0 x) ; intros ; simpl ; f_equal.
 Qed.
-Hint Rewrite nsubs_subs_com using unfold closed ; intuition ; fail.
+Hint Rewrite nsubs_subs_com using intuition ; fail.
 
 
 (** size of formulas *)
@@ -288,7 +287,7 @@ Hint Rewrite fsize_subs.
 
 (** * Proofs *)
 
-Definition fupz := fup 0.
+Notation fupz := (fup 0).
 
 (** Proofs *)
 Inductive prove : list formula -> formula -> Set :=
@@ -370,12 +369,11 @@ clear n u Hc ; revert l A ; apply rnprove_mutrect ;
   intros ; simpl in H ; (try assert (IH1 := H n0 u H1)) ; (try assert (IH2 := H0 n0 u H1)) ; 
   (try (econstructor ; (eassumption + intuition) ; fail)).
 - rewrite map_app ; apply nax.
-- rnow idtac then (rnow eapply nfrle then rnow unfold closed).
-- unfold closed in H0 ; rewrite <- (freevars_tup 0) in H0.
-  specialize H with (S n) (tup 0 u).
-  autorewrite with core in H.
+- rnow idtac then rnow eapply nfrle.
+- assert (closed (tup 0 u)) by rnow idtac.
+  specialize H with (S n) (tup 0 u). 
   rewrite map_map in H ; rewrite (map_ext _ _ (nsubs_fup_com _ _)) in H ; rewrite <- map_map in H.
-  apply rfrli ; intuition.
+  rnow autorewrite with core in H ; apply rfrli.
 Qed.
 
 (** lift indexes above [k] in normal form *)
@@ -390,8 +388,7 @@ clear k ; revert l A ; apply rnprove_mutrect ;
   intros ; (try assert (IH1 := H k)) ; (try assert (IH2 := H0 k)) ;
   (try (econstructor ; eassumption ; fail)).
 - rewrite map_app ; apply nax.
-- rnow idtac then apply nfrle.
-  rnow unfold closed.
+- rnow idtac then rnow apply nfrle.
 - clear IH1 ; assert (IH := H (S k)).
   rnow change (dvar 0) with (tup (S k) (dvar 0)) in H.
   rewrite map_map in IH ; rewrite (map_ext _ _ (fup_fup_com _)) in IH ; rewrite <- map_map in IH.
@@ -600,7 +597,7 @@ Qed.
 
 Lemma frl_nfree : forall A x, ~ In x (ffreevars A) -> rprove (A :: nil) (frl x A).
 Proof. intros A x Hnf ; rev_intros.
-rnow unfold fupz ; rewrite nfree_subs then apply nax_hd.
+rnow rewrite nfree_subs then apply nax_hd.
 Qed.
 
 Lemma Kcombi : forall A B, rprove nil (imp A (imp B A)).
