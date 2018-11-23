@@ -626,3 +626,70 @@ Qed.
 
 
 
+(** * Examples *)
+Section Examples.
+
+Lemma tsubs_tsubs_com : forall x v y u, beq_vat x y = false -> closed u -> forall t,
+  tsubs y u (tsubs x v t) = tsubs x (tsubs y u v) (tsubs y u t).
+Proof. term_induction t.
+rnow case_eq (beq_vat x0 x) ; case_eq (beq_vat x0 y) then try rewrite H1 ; try rewrite H2.
+- exfalso.
+  rewrite eqb_neq in H ; rewrite beq_eq_vat in H1 ; rewrite beq_eq_vat in H2 ; subst.
+  intuition.
+- rnow rewrite nfree_tsubs then rewrite H0 in H3.
+Qed.
+Hint Rewrite tsubs_tsubs_com using intuition ; fail.
+
+Lemma subs_subs_com : forall x v y u, beq_vat x y = false -> closed u -> closed v ->
+  forall A, subs y u (subs x v A) = subs x (tsubs y u v) (subs y u A).
+Proof. induction A.
+- simpl ; f_equal ; rnow rewrite 2 map_map ; apply map_ext then rnow idtac.
+- rnow idtac then f_equal.
+- (rnow case_eq (beq_vat v0 x) ; case_eq (beq_vat v0 y)) ;
+    rnow rewrite H2 ; rewrite H3 ; simpl ; rewrite H2 ; rewrite H3 then f_equal.
+  rnow rewrite nfree_tsubs then rewrite H1 in H4.
+Qed.
+Hint Rewrite subs_subs_com using intuition ; fail.
+
+
+Variable f : tatom.
+Variable x y : vatom.
+Variable P : atom.
+
+Hint Rewrite eqb_refl.
+Hint Rewrite (beq_eq_vat x y).
+
+Goal forall A, rprove nil (imp (frl x (frl y A)) (frl y (frl x A))).
+Proof.
+intros ; apply rimpi ; repeat apply rfrli.
+rnow (case_eq (beq_vat x y)) then rewrite H ; rev_intros.
+- rnow apply nfrle.
+  replace (frl x (fupz (fupz A)))
+     with (subs x (dvar 0) (frl x (fupz (fupz A))))
+    by rnow idtac.
+  rnow apply nfrle then subst ; apply nax_hd.
+- rnow idtac then rewrite subs_subs_com ; try rewrite eqb_sym.
+  rnow apply nfrle.
+  rewrite eqb_sym in H.
+  replace (frl y (subs x (dvar 0) (fupz (fupz A))))
+    with (subs x (dvar 0) (frl y (fupz (fupz A))))
+    by (simpl ; rewrite H ; reflexivity).
+  rnow apply nfrle then apply nax_hd.
+Qed.
+
+Goal rprove nil (imp (frl x (var P (tconstr f (tvar x :: nil) :: nil)))
+                     (frl x (var P (tconstr f (tconstr f (tvar x :: nil) :: nil) :: nil)))).
+Proof.
+intros ; rev_intros ; rnow idtac.
+replace (var P (tconstr f (tconstr f (dvar 0 :: nil) :: nil) :: nil))
+   with (subs x (tconstr f (dvar 0 :: nil)) (var P (tconstr f (tvar x :: nil) :: nil)))
+  by (rnow idtac).
+apply nfrle ; [ reflexivity | ].
+apply nax_hd.
+Qed.
+
+
+End Examples.
+
+
+
