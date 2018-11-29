@@ -8,6 +8,9 @@ Tactic Notation "rnow" tactic(t) :=
 Tactic Notation "rnow" tactic(t) "then" tactic(t1) :=
   t ; simpl ; autorewrite with core in * ; simpl ; intuition t1 ; simpl ; intuition.
 
+Lemma ltb_S : forall n m, (S n <? S m) = (n <? m).
+Proof. reflexivity. Qed.
+Hint Rewrite ltb_S.
 
 (** * Different kinds of atoms *)
 
@@ -28,6 +31,17 @@ End vatomBoolEq.
 Module vatomEq := Equalities.Make_UDTF vatomBoolEq.
 Module vatomFacts := Equalities.BoolEqualityFacts vatomEq.
 Import vatomFacts.
+
+Ltac case_analysis :=
+match goal with
+| |- context f [?x =? ?y] => case_eq (x =? y)
+| |- context f [?x <? ?y] => case_eq (x <? y)
+| |- context f [?x ?= ?y] => case_eq (x ?= y)
+| |- context f [beq_vat ?x ?y] => case_eq (beq_vat x y)
+| |- context f [vatomEq.eq_dec ?x  ?y] => case_eq (vatomEq.eq_dec x y)
+end.
+Ltac rcauto := simpl ; autorewrite with core in * ; simpl ; rnow case_analysis.
+
 
 
 (** * Terms *)
@@ -86,9 +100,7 @@ end.
 
 Lemma tup_tup_com : forall k t,
   tup (S k) (tup 0 t) = tup 0 (tup k t).
-Proof. term_induction t.
-now change (S n <? S k) with (n <? k) ; case_eq (n <? k).
-Qed.
+Proof. term_induction t ; rcauto. Qed.
 Hint Rewrite tup_tup_com.
 
 (** * Term substitutions *)
@@ -115,24 +127,19 @@ end.
 
 Lemma tup_tsubs_com : forall k x u t,
   tup k (tsubs x u t) = tsubs x (tup k u) (tup k t).
-Proof. term_induction t.
-- now case_eq (n <? k).
-- now case_eq (beq_vat x0 x).
-Qed.
+Proof. term_induction t ; rcauto. Qed.
 Hint Rewrite tup_tsubs_com.
 
 Lemma ntsubs_tup_com : forall k u t,
   ntsubs (S k) (tup 0 u) (tup 0 t) = tup 0 (ntsubs k u t).
-Proof. term_induction t.
-rnow case_eq (k ?= n).
-rnow destruct n then destruct k ; inversion H.
+Proof. term_induction t ; rcauto.
+now destruct n ; destruct k ; inversion H.
 Qed.
 Hint Rewrite ntsubs_tup_com.
 
 Lemma ntsubs_z_tup : forall u t, ntsubs 0 u (tup 0 t) = t.
 Proof. term_induction t.
-rnow induction l.
-rnow inversion IHl ; subst ; simpl ; f_equal.
+now rewrite <- (map_id l) at 2 ; apply map_ext_in ; apply Forall_forall.
 Qed.
 Hint Rewrite ntsubs_z_tup.
 
@@ -148,37 +155,32 @@ match t with
 end.
 Notation closed t := (freevars t = nil).
 
+Lemma closed_nofreevars : forall t x, closed t -> ~ In x (freevars t).
+Proof. intros t X Hc Hin ; now rewrite Hc in Hin. Qed.
+
 Lemma freevars_tup : forall k t, freevars (tup k t) = freevars t.
-Proof. term_induction t.
-now case_eq (n <? k).
-Qed.
+Proof. term_induction t ; rcauto. Qed.
 Hint Rewrite freevars_tup.
 
 Lemma freevars_ntsubs : forall n u, closed u -> forall t,
   freevars (ntsubs n u t) = freevars t.
-Proof. term_induction t.
-now case_eq (n ?= n0).
-Qed.
+Proof. term_induction t ; rcauto. Qed.
 Hint Rewrite freevars_ntsubs using intuition ; fail.
 
 Lemma nfree_tsubs : forall x u t, ~ In x (freevars t) -> tsubs x u t = t.
-Proof. term_induction t.
-- case_eq (beq_vat x0 x) ; intuition.
-  now apply vatomEq.eqb_eq in H.
+Proof. term_induction t ; try rcauto.
+- now apply vatomEq.eqb_eq in H.
 - rnow intros Heq ; f_equal ; revert IHl Heq ; induction l ; intros.
-  inversion IHl0 ; subst.
-  rnow rewrite H1 ; [ f_equal | ] ; simpl in Heq.
+  rnow inversion IHl0 ; subst ; rewrite H1 ; [ f_equal | ] ; simpl in Heq.
 Qed.
-Hint Rewrite nfree_tsubs using intuition ; fail.
+Hint Rewrite nfree_tsubs using try (intuition ; fail) ;
+                               (try apply closed_nofreevars) ; intuition ; fail.
 
-Lemma ntsubs_tsubs_com : forall x v n u, closed u -> forall t,
+Lemma ntsubs_tsubs_com : forall x v n u, ~ In x (freevars u) -> forall t,
   ntsubs n u (tsubs x v t) = tsubs x (ntsubs n u v) (ntsubs n u t).
-Proof. term_induction t.
-- assert (~ In x (freevars u)) by (rewrite H ; intuition).
-  rnow case_eq (n ?= n0).
-- now case_eq (beq_vat x0 x).
-Qed.
-Hint Rewrite ntsubs_tsubs_com using intuition ; fail.
+Proof. term_induction t ; rcauto. Qed.
+Hint Rewrite ntsubs_tsubs_com using try (intuition ; fail) ;
+                                    (try apply closed_nofreevars) ; intuition ; fail.
 
 
 
@@ -254,14 +256,11 @@ Lemma nsubs_z_fup : forall u A, nsubs 0 u (fup 0 A) = A.
 Proof. formula_induction A. Qed.
 Hint Rewrite nsubs_z_fup.
 
-Lemma nsubs_subs_com : forall x v n u, closed u -> forall A,
+Lemma nsubs_subs_com : forall x v n u, ~ In x (freevars u) -> forall A,
   nsubs n u (subs x v A) = subs x (ntsubs n u v) (nsubs n u A).
-Proof.
-induction A ; simpl ; f_equal ; intuition.
-- rnow rewrite ? map_map ; apply map_ext ; intros.
-- rnow case_eq (beq_vat v0 x) ; intros ; simpl ; f_equal.
-Qed.
-Hint Rewrite nsubs_subs_com using intuition ; fail.
+Proof. now formula_induction A ; rcauto ; f_equal. Qed.
+Hint Rewrite nsubs_subs_com using try (intuition ; fail) ;
+                                  (try apply closed_nofreevars) ; intuition ; fail.
 
 
 (** size of formulas *)
@@ -277,9 +276,7 @@ Proof. formula_induction A. Qed.
 Hint Rewrite fsize_fup.
 
 Lemma fsize_subs : forall u x A, fsize (subs x u A) = fsize A.
-Proof. formula_induction A.
-rnow case_eq (beq_vat x0 x).
-Qed.
+Proof. formula_induction A ; rcauto. Qed.
 Hint Rewrite fsize_subs.
 
 
@@ -339,9 +336,7 @@ intros ; split ; [ eapply nrprove_rect | eapply rnprove_rect ] ; eassumption.
 Qed.
 
 Lemma nax_hd {l A} : nprove (A :: l) A.
-Proof.
-rewrite <- (app_nil_l (A :: l)) ; apply nax.
-Qed.
+Proof. rewrite <- (app_nil_l (A :: l)) ; apply nax. Qed.
 
 Fixpoint nsize {l A} (pi : nprove l A) : nat :=
 match pi with
@@ -547,10 +542,8 @@ Lemma in_ffreevars_frl : forall x y, beq_vat y x = false -> forall A,
 Proof.
 intros x y Heq A Hi ; simpl ; remember (ffreevars A) as l.
 revert Hi ; clear - Heq ; induction l ; intros Hi ; auto.
-inversion Hi ; subst ; simpl.
-- rnow destruct (vatomEq.eq_dec y x).
-  exfalso ; subst ; rewrite eqb_refl in Heq ; inversion Heq.
-- rnow destruct (vatomEq.eq_dec y a).
+inversion Hi ; subst ; simpl ; rcauto.
+exfalso ; subst ; rewrite eqb_refl in Heq ; inversion Heq.
 Qed.
 
 Lemma ffreevars_fup : forall k A, ffreevars (fup k A) = ffreevars A.
@@ -558,10 +551,10 @@ Proof. formula_induction A. Qed.
 Hint Rewrite ffreevars_fup.
 
 Lemma nfree_subs : forall x u A, ~ In x (ffreevars A) -> subs x u A = A.
-Proof. formula_induction A.
+Proof. formula_induction A ; try rcauto.
 - rnow apply nfree_tsubs then apply H.
 - rnow apply H.
-- rnow case_eq (beq_vat x0 x) then rewrite IHA.
+- rnow rewrite IHA.
   now apply H ; apply in_ffreevars_frl.
 Qed.
 Hint Rewrite nfree_subs using intuition ; fail.
@@ -626,31 +619,32 @@ Qed.
 
 
 
-(** * Examples *)
-Section Examples.
+(** * More Lemmas *)
 
-Lemma tsubs_tsubs_com : forall x v y u, beq_vat x y = false -> closed u -> forall t,
+Lemma tsubs_tsubs_com : forall x v y u, beq_vat x y = false -> ~ In x (freevars u) -> forall t,
   tsubs y u (tsubs x v t) = tsubs x (tsubs y u v) (tsubs y u t).
 Proof. term_induction t.
 rnow case_eq (beq_vat x0 x) ; case_eq (beq_vat x0 y) then try rewrite H1 ; try rewrite H2.
-- exfalso.
-  rewrite eqb_neq in H ; rewrite beq_eq_vat in H1 ; rewrite beq_eq_vat in H2 ; subst.
-  intuition.
-- rnow rewrite nfree_tsubs then rewrite H0 in H3.
+exfalso.
+now rewrite eqb_neq in H ; rewrite beq_eq_vat in H1 ; rewrite beq_eq_vat in H2 ; subst.
 Qed.
-Hint Rewrite tsubs_tsubs_com using intuition ; fail.
+Hint Rewrite tsubs_tsubs_com using try (intuition ; fail) ;
+                                   (try apply closed_nofreevars) ; intuition ; fail.
 
 Lemma subs_subs_com : forall x v y u, beq_vat x y = false -> closed u -> closed v ->
   forall A, subs y u (subs x v A) = subs x (tsubs y u v) (subs y u A).
 Proof. induction A.
-- simpl ; f_equal ; rnow rewrite 2 map_map ; apply map_ext then rnow idtac.
+- simpl ; f_equal ; rnow rewrite 2 map_map ; apply map_ext.
+  rnow idtac then rewrite (nfree_tsubs _ _ v) ; try now apply closed_nofreevars.
 - rnow idtac then f_equal.
 - (rnow case_eq (beq_vat v0 x) ; case_eq (beq_vat v0 y)) ;
     rnow rewrite H2 ; rewrite H3 ; simpl ; rewrite H2 ; rewrite H3 then f_equal.
-  rnow rewrite nfree_tsubs then rewrite H1 in H4.
 Qed.
 Hint Rewrite subs_subs_com using intuition ; fail.
 
+
+(** * Examples *)
+Section Examples.
 
 Variable f : tatom.
 Variable x y : vatom.
