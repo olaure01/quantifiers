@@ -149,7 +149,7 @@ Hint Rewrite ntsubs_z_tup.
 
 Fixpoint freevars t :=
 match t with
-| tvar X => X :: nil
+| tvar x => x :: nil
 | dvar _ => nil
 | tconstr f l => flat_map freevars l
 end.
@@ -225,6 +225,7 @@ Hint Rewrite fup_fup_com.
 
 
 (** substitutes [term] [u] for variable [x] in [formula] [A] *)
+(* capture is not avoided *)
 Fixpoint subs x u A :=
 match A with
 | var X l => var X (map (tsubs x u) l)
@@ -240,11 +241,12 @@ Qed.
 Hint Rewrite fup_subs_com.
 
 (** substitutes [term] [u] for index [n] in [formula] [A] *)
+(* capture is not avoided *)
 Fixpoint nsubs n u A :=
 match A with
 | var X l => var X (map (ntsubs n u) l)
 | imp B C => imp (nsubs n u B) (nsubs n u C)
-| frl x B as C => frl x (nsubs n u B)
+| frl x B => frl x (nsubs n u B)
 end.
 
 Lemma nsubs_fup_com : forall k u A,
@@ -577,12 +579,9 @@ Proof. intros A B x ; rev_intros.
 apply (nimpe (subs x (dvar 0) (fupz A))).
 - change (imp (subs x (dvar 0) (fupz A)) (subs x (dvar 0) (fupz B)))
     with (subs x (dvar 0) (imp (fupz A) (fupz B))).
-  apply nfrle ; [ reflexivity | ].
-  change (frl x (imp (fupz A) (fupz B)))
-    with (fupz (frl x (imp A B))).
-  apply rnpup.
-  change (frl x A :: frl x (imp A B) :: nil)
-    with ((frl x A :: nil) ++ frl x (imp A B) :: nil).
+  apply nfrle ; [ reflexivity | ] ; simpl.
+  change (frl x (fupz A) :: frl x (imp (fupz A) (fupz B)) :: nil)
+    with ((frl x (fupz A) :: nil) ++ frl x (imp (fupz A) (fupz B)) :: nil).
   apply nax.
 - apply rninj ; apply nfrle ; [ reflexivity | ].
   apply nax_hd.
