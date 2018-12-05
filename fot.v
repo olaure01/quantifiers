@@ -1,8 +1,8 @@
 (* Definitions and properties of first-order terms *)
 (*   with holes in [nat] for de Bruijn indices *)
 
-Require Import PeanoNat.
-Require Import List.
+Require Export PeanoNat.
+Require Export List.
 
 Tactic Notation "rnow" tactic(t) :=
   t ; simpl ; autorewrite with core in * ; simpl ; intuition.
@@ -31,7 +31,7 @@ Definition eqb_eq := beq_eq_vat.
 End vatomBoolEq.
 Module vatomEq := Equalities.Make_UDTF vatomBoolEq.
 Module vatomFacts := Equalities.BoolEqualityFacts vatomEq.
-Import vatomFacts.
+Export vatomFacts.
 
 Ltac case_analysis :=
 match goal with
