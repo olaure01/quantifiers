@@ -18,3 +18,6 @@ Examples files:
 
 With **cut-elimination/normalization** proofs as main result in each case.
 
+Current examples are developed in Coq, but formalization does not depend on the surrounding meta-theory and should be adaptable to (any?) proof assistant.
+
+
