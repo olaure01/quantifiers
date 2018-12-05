@@ -87,7 +87,7 @@ Ltac term_induction t :=
   | intros cc ll IHll ; simpl ;
     repeat (rewrite flat_map_concat_map) ; repeat (rewrite map_map) ;
     try f_equal ; try (apply map_ext_in ; apply Forall_forall) ; try assumption ] ;
-  try ((rnow idtac) ; fail).
+  try ((rnow idtac) ; fail) ; try (rcauto ; fail).
 
 
 (** lift indexes above [k] in [term] [t] *)
@@ -100,7 +100,7 @@ end.
 
 Lemma tup_tup_com : forall k t,
   tup (S k) (tup 0 t) = tup 0 (tup k t).
-Proof. term_induction t ; rcauto. Qed.
+Proof. term_induction t. Qed.
 Hint Rewrite tup_tup_com.
 
 (** * Term substitutions *)
@@ -127,7 +127,7 @@ end.
 
 Lemma tup_tsubs_com : forall k x u t,
   tup k (tsubs x u t) = tsubs x (tup k u) (tup k t).
-Proof. term_induction t ; rcauto. Qed.
+Proof. term_induction t. Qed.
 Hint Rewrite tup_tsubs_com.
 
 Lemma ntsubs_tup_com : forall k u t,
@@ -156,15 +156,15 @@ end.
 Notation closed t := (freevars t = nil).
 
 Lemma closed_nofreevars : forall t x, closed t -> ~ In x (freevars t).
-Proof. intros t X Hc Hin ; now rewrite Hc in Hin. Qed.
+Proof. intros t x Hc Hin ; now rewrite Hc in Hin. Qed.
 
 Lemma freevars_tup : forall k t, freevars (tup k t) = freevars t.
-Proof. term_induction t ; rcauto. Qed.
+Proof. term_induction t. Qed.
 Hint Rewrite freevars_tup.
 
 Lemma freevars_ntsubs : forall n u, closed u -> forall t,
   freevars (ntsubs n u t) = freevars t.
-Proof. term_induction t ; rcauto. Qed.
+Proof. term_induction t. Qed.
 Hint Rewrite freevars_ntsubs using intuition ; fail.
 
 Lemma nfree_tsubs : forall x u t, ~ In x (freevars t) -> tsubs x u t = t.
@@ -178,7 +178,7 @@ Hint Rewrite nfree_tsubs using try (intuition ; fail) ;
 
 Lemma ntsubs_tsubs_com : forall x v n u, ~ In x (freevars u) -> forall t,
   ntsubs n u (tsubs x v t) = tsubs x (ntsubs n u v) (ntsubs n u t).
-Proof. term_induction t ; rcauto. Qed.
+Proof. term_induction t. Qed.
 Hint Rewrite ntsubs_tsubs_com using try (intuition ; fail) ;
                                     (try apply closed_nofreevars) ; intuition ; fail.
 
@@ -200,7 +200,6 @@ Ltac formula_induction A :=
   let A1 := fresh A in
   let A2 := fresh A in
   let ll := fresh "l" in
-  let ll2 := fresh "l" in
   let lll := fresh "l" in
   let tt := fresh "t" in
   let IHll := fresh "IHl" in
@@ -208,7 +207,7 @@ Ltac formula_induction A :=
   [ try f_equal ; try (induction ll as [ | tt lll IHll ] ; simpl ; intuition ;
                        rewrite IHll ; f_equal ; intuition)
   | try (f_equal ; intuition)
-  | try (f_equal ; intuition) ] ; try ((rnow idtac) ; fail).
+  | try (f_equal ; intuition) ] ; try ((rnow idtac) ; fail) ; try (rcauto ; fail).
 
 (** lift indexes above [k] in [formula] [A] *)
 Fixpoint fup k A :=
@@ -278,7 +277,7 @@ Proof. formula_induction A. Qed.
 Hint Rewrite fsize_fup.
 
 Lemma fsize_subs : forall u x A, fsize (subs x u A) = fsize A.
-Proof. formula_induction A ; rcauto. Qed.
+Proof. formula_induction A. Qed.
 Hint Rewrite fsize_subs.
 
 
@@ -295,7 +294,7 @@ Inductive prove : list formula -> formula -> Set :=
 | impe { l B } : forall A, prove l (imp A B) -> prove l A -> prove l B
 | frli { x l A } : prove (map fupz l) (subs x (dvar 0) (fupz A)) -> prove l (frl x A)
 | frle { x l A } : forall u, closed u -> prove l (frl x A) -> prove l (subs x u A).
-
+Hint Constructors prove.
 
 (** Normal Forms *)
 Inductive nprove : list formula -> formula -> Set :=
@@ -306,6 +305,7 @@ with rprove : list formula -> formula -> Set :=
 | rninj { l A } : nprove l A -> rprove l A
 | rimpi { l A B } : rprove (A :: l) B -> rprove l (imp A B)
 | rfrli { x l A } : rprove (map fupz l) (subs x (dvar 0) (fupz A)) -> rprove l (frl x A).
+Hint Constructors nprove rprove.
 
 Scheme nrprove_rect := Induction for nprove Sort Type
   with rnprove_rect := Induction for rprove Sort Type.
@@ -339,6 +339,7 @@ Qed.
 
 Lemma nax_hd {l A} : nprove (A :: l) A.
 Proof. rewrite <- (app_nil_l (A :: l)) ; apply nax. Qed.
+Hint Resolve nax_hd.
 
 Fixpoint nsize {l A} (pi : nprove l A) : nat :=
 match pi with
@@ -370,7 +371,7 @@ clear n u Hc ; revert l A ; apply rnprove_mutrect ;
 - assert (closed (tup 0 u)) by rnow idtac.
   specialize H with (S n) (tup 0 u). 
   rewrite map_map in H ; rewrite (map_ext _ _ (nsubs_fup_com _ _)) in H ; rewrite <- map_map in H.
-  rnow autorewrite with core in H ; apply rfrli.
+  rnow autorewrite with core in H.
 Qed.
 
 (** lift indexes above [k] in normal form *)
@@ -570,8 +571,7 @@ Ltac rev_intros := repeat (repeat apply rimpi ; repeat apply rfrli) ; apply rnin
 
 Lemma frl_elim : forall A u x, closed u -> rprove (frl x A :: nil) (subs x u A).
 Proof. intros A u x Hf ; rev_intros.
-apply (nfrle u) ; [ assumption | ].
-apply nax_hd.
+now apply (nfrle u).
 Qed.
 
 Lemma frl_imp : forall A B x, rprove (frl x (imp A B) :: nil) (imp (frl x A) (frl x B)).
@@ -589,30 +589,25 @@ Qed.
 
 Lemma frl_nfree : forall A x, ~ In x (ffreevars A) -> rprove (A :: nil) (frl x A).
 Proof. intros A x Hnf ; rev_intros.
-rnow rewrite nfree_subs then apply nax_hd.
+rnow rewrite nfree_subs.
 Qed.
 
 Lemma Kcombi : forall A B, rprove nil (imp A (imp B A)).
 Proof.
 intros ; rev_intros.
-change (B :: A :: nil) with ((B :: nil) ++ A :: nil).
-apply nax.
+now change (B :: A :: nil) with ((B :: nil) ++ A :: nil).
 Qed.
 
 Lemma Scombi : forall A B C, rprove nil (imp (imp A (imp B C)) (imp (imp A B) (imp A C))).
 Proof.
 intros ; rev_intros.
 apply (nimpe B).
-- apply (nimpe A).
-  + change (A :: imp A B :: imp A (imp B C) :: nil)
-      with ((A :: imp A B :: nil) ++ imp A (imp B C) :: nil).
-    apply nax.
-  + apply rninj ; apply nax_hd.
-- apply rninj ; apply (nimpe A).
-  + change (A :: imp A B :: imp A (imp B C) :: nil)
-      with ((A :: nil) ++ imp A B :: imp A (imp B C) :: nil).
-    apply nax.
-  + apply rninj ; apply nax_hd.
+- apply (nimpe A) ; auto.
+  now change (A :: imp A B :: imp A (imp B C) :: nil)
+        with ((A :: imp A B :: nil) ++ imp A (imp B C) :: nil).
+- apply rninj ; apply (nimpe A) ; auto.
+  now change (A :: imp A B :: imp A (imp B C) :: nil)
+        with ((A :: nil) ++ imp A B :: imp A (imp B C) :: nil).
 Qed.
 
 
@@ -660,14 +655,14 @@ rnow (case_eq (beq_vat x y)) then rewrite H ; rev_intros.
   replace (frl x (fupz (fupz A)))
      with (subs x (dvar 0) (frl x (fupz (fupz A))))
     by rnow idtac.
-  rnow apply nfrle then subst ; apply nax_hd.
+  rnow apply nfrle then subst.
 - rnow idtac then rewrite subs_subs_com ; try rewrite eqb_sym.
   rnow apply nfrle.
   rewrite eqb_sym in H.
   replace (frl y (subs x (dvar 0) (fupz (fupz A))))
     with (subs x (dvar 0) (frl y (fupz (fupz A))))
     by (simpl ; rewrite H ; reflexivity).
-  rnow apply nfrle then apply nax_hd.
+  rnow apply nfrle.
 Qed.
 
 Goal rprove nil (imp (frl x (var P (tconstr f (tvar x :: nil) :: nil)))
@@ -677,10 +672,8 @@ intros ; rev_intros ; rnow idtac.
 replace (var P (tconstr f (tconstr f (dvar 0 :: nil) :: nil) :: nil))
    with (subs x (tconstr f (dvar 0 :: nil)) (var P (tconstr f (tvar x :: nil) :: nil)))
   by (rnow idtac).
-apply nfrle ; [ reflexivity | ].
-apply nax_hd.
+now apply nfrle.
 Qed.
-
 
 End Examples.
 
