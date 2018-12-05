@@ -235,7 +235,7 @@ end.
 (** substitutes [cterm] [u] for index [n] in proof [pi] and decreases indexes above [n] *)
 Theorem psubs k F (Hc : closed F) {C A} (pi : prove C A) :
   { pi' : prove (nsubs k F C) (nsubs k F A) | psize pi' = psize pi }.
-Proof with autorewrite with core in *.
+Proof with autorewrite with core.
 revert k F Hc ; induction pi ; intros k F' Hc ;
   try (destruct (IHpi k F' Hc) as [pi' Hs]) ;
   try (destruct (IHpi1 k F' Hc) as [pi1' Hs1]) ;
@@ -260,7 +260,7 @@ Qed.
 (** lift indexes above [k] in proof [pi] *)
 Theorem pup k {C A} (pi : prove C A) :
   { pi' : prove (fup k C) (fup k A) | psize pi' = psize pi }.
-Proof with autorewrite with core in *.
+Proof with autorewrite with core.
 revert k ; induction pi ; intros k ;
   try (destruct (IHpi k) as [pi' Hs]) ;
   try (destruct (IHpi1 k) as [pi1' Hs1]) ;
@@ -328,11 +328,11 @@ destruct pi2 ; intuition.
          D = frl X A0 -> prove A C)
     as IH2 by refine (IH2 _ _ _ _ _ _ _ _ _ IH eq_refl) ; clear.
   intros A D pi1 ; destruct pi1 ; intros ; inversion H ; subst ;
-    try (constructor ; apply (IH _ _ _ pi1 (frll F e pi2)) ; simpl ; lia).
+    try (constructor ; apply (IH _ _ _ pi1 (frll _ e pi2)) ; simpl ; lia).
   + apply (frll F e) ; assumption.
   + destruct (psubs 0 F e pi1) as [pi1' Hs].
     simpl in IH ; rewrite <- Hs in IH ; clear Hs.
-    revert pi1' IH ; autorewrite with core in *.
+    revert pi1' IH ; autorewrite with core.
     intros pi1' IH ; apply (IH _ _ _ pi1' pi2) ; simpl...
   + apply (frll F e).
     apply (IH _ _ _ pi1 (frll F0 e0 pi2)) ; simpl...
@@ -344,7 +344,7 @@ Qed.
 
 Lemma frl_elim : forall A F X, closed F -> prove (frl X A) (subs X F A).
 Proof.
-intros A F X Hf.
+intros A F X Hc.
 now apply (frll F).
 Qed.
 
@@ -378,8 +378,7 @@ destruct A.
 - apply topr.
 - apply wdgr ; [ apply wdgll | apply wdglr ] ; refine (H _ _ _ eq_refl) ; simpl ; lia.
 - apply frlr.
-  simpl ; apply (frll (dvar 0) eq_refl).
-  refine (H _ _ _ eq_refl) ; (rnow simpl) ; lia.
+  simpl ; apply (frll (dvar 0) eq_refl) ; auto.
 Qed.
 
 
