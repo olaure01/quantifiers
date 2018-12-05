@@ -12,6 +12,7 @@ It applies to:
 
 Examples files:
 
+* `fot.v`: definitions and properties of first-order terms
 * `all1.v`: sequent calculus for _first-order_ Additive Linear Logic
 * `all2.v`: sequent calculus for _second-order_ propositional Additive Linear Logic
 * `nj1.v`: natural deduction for _first-order_ Intuitionistic Logic
