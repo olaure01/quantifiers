@@ -439,16 +439,6 @@ Qed.
 
 (** * More Lemmas *)
 
-Lemma tsubs_tsubs_com : forall x v y u, beq_vat x y = false -> ~ In x (freevars u) -> forall t,
-  tsubs y u (tsubs x v t) = tsubs x (tsubs y u v) (tsubs y u t).
-Proof. term_induction t.
-rnow case_eq (beq_vat x0 x) ; case_eq (beq_vat x0 y) then try rewrite H1 ; try rewrite H2.
-exfalso.
-now rewrite eqb_neq in H ; rewrite beq_eq_vat in H1 ; rewrite beq_eq_vat in H2 ; subst.
-Qed.
-Hint Rewrite tsubs_tsubs_com using try (intuition ; fail) ;
-                                   (try apply closed_nofreevars) ; intuition ; fail.
-
 Lemma subs_subs_com : forall x v y u, beq_vat x y = false -> closed u -> closed v ->
   forall A, subs y u (subs x v A) = subs x (tsubs y u v) (subs y u A).
 Proof. induction A.
