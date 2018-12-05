@@ -1,3 +1,5 @@
+(* Sequent Calculus for Second-Order Propositional Additive Linear Logic *)
+
 Require Import PeanoNat.
 Require Import Wf_nat.
 Require Import Lia.
