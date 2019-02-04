@@ -1,6 +1,6 @@
 (* Natural Deduction for First-Order Intuitionistic Logic *)
 
-Require Import Wf_nat.
+Require Import Wf_nat_more. (* from ollibs *)
 Require Import Lia.
 
 Require Import fot.
@@ -8,11 +8,11 @@ Require Import fot.
 
 (** * Formulas *)
 
-Parameter atom : Set.  (* propositional variables for [formula] *)
+Parameter atom : Type.  (* propositional variables for [formula] *)
 
 (** formulas *)
 (** first-order formulas in the langage: implication, universal quantification *)
-Inductive formula : Set :=
+Inductive formula :=
 | var : atom -> list term -> formula
 | imp : formula -> formula -> formula
 | frl : vatom -> formula -> formula.
@@ -112,7 +112,7 @@ Hint Rewrite fsize_subs.
 Notation fupz := (fup 0).
 
 (** Proofs *)
-Inductive prove : list formula -> formula -> Set :=
+Inductive prove : list formula -> formula -> Type :=
 | ax : forall l1 l2 A, prove (l1 ++ A :: l2) A
 | impi { l A B } : prove (A :: l) B -> prove l (imp A B)
 | impe { l B } : forall A, prove l (imp A B) -> prove l A -> prove l B
@@ -121,11 +121,11 @@ Inductive prove : list formula -> formula -> Set :=
 Hint Constructors prove.
 
 (** Normal Forms *)
-Inductive nprove : list formula -> formula -> Set :=
+Inductive nprove : list formula -> formula -> Type :=
 | nax : forall l1 l2 A, nprove (l1 ++ A :: l2) A
 | nimpe { l B } : forall A, nprove l (imp A B) -> rprove l A -> nprove l B
 | nfrle { x l A } : forall u, closed u -> nprove l (frl x A) -> nprove l (subs x u A)
-with rprove : list formula -> formula -> Set :=
+with rprove : list formula -> formula -> Type :=
 | rninj { l A } : nprove l A -> rprove l A
 | rimpi { l A B } : rprove (A :: l) B -> rprove l (imp A B)
 | rfrli { x l A } : rprove (map fupz l) (subs x (dvar 0) (fupz A)) -> rprove l (frl x A).
@@ -188,14 +188,15 @@ enough ((nprove l A -> forall n u, closed u -> nprove (map (nsubs n u) l) (nsubs
       * (rprove l A -> forall n u, closed u -> rprove (map (nsubs n u) l) (nsubs n u A)))
   as He by (split ; intros ; apply He ; assumption).
 clear n u Hc ; revert l A ; apply rnprove_mutrect ;
-  intros ; simpl in H ; (try assert (IH1 := H n0 u H1)) ; (try assert (IH2 := H0 n0 u H1)) ; 
+  intros ; (try simpl in X) ;
+  (try assert (IH1 := X n0 u H)) ; (try assert (IH2 := X0 n0 u H)) ; 
   (try (econstructor ; (eassumption + intuition) ; fail)).
 - rewrite map_app ; apply nax.
 - rnow idtac then rnow eapply nfrle.
 - assert (closed (tup 0 u)) by rnow idtac.
-  specialize H with (S n) (tup 0 u). 
-  rewrite map_map in H ; rewrite (map_ext _ _ (nsubs_fup_com _ _)) in H ; rewrite <- map_map in H.
-  rnow autorewrite with core in H.
+  specialize X with (S n) (tup 0 u).
+  rewrite map_map in X ; rewrite (map_ext _ _ (nsubs_fup_com _ _)) in X ; rewrite <- map_map in X.
+  rnow autorewrite with core in X.
 Qed.
 
 (** lift indexes above [k] in normal form *)
@@ -207,12 +208,12 @@ enough ((nprove l A -> forall k, nprove (map (fup k) l) (fup k A))
       * (rprove l A -> forall k, rprove (map (fup k) l) (fup k A)))
   as He by (split ; intros ; apply He ; assumption).
 clear k ; revert l A ; apply rnprove_mutrect ;
-  intros ; (try assert (IH1 := H k)) ; (try assert (IH2 := H0 k)) ;
+  intros ; (try assert (IH1 := X k)) ; (try assert (IH2 := X0 k)) ;
   (try (econstructor ; eassumption ; fail)).
 - rewrite map_app ; apply nax.
 - rnow idtac then rnow apply nfrle.
-- clear IH1 ; assert (IH := H (S k)).
-  rnow change (dvar 0) with (tup (S k) (dvar 0)) in H.
+- clear IH1 ; assert (IH := X (S k)).
+  rnow change (dvar 0) with (tup (S k) (dvar 0)) in X.
   rewrite map_map in IH ; rewrite (map_ext _ _ (fup_fup_com _)) in IH ; rewrite <- map_map in IH.
   now apply rfrli.
 Qed.
@@ -243,7 +244,7 @@ apply rnprove_mutrect ; intros ; try (econstructor ; intuition ; fail) ; subst.
       by (rewrite <- app_assoc ; reflexivity).
     now apply IHl1.
 - apply rimpi ; rewrite app_comm_cons ; intuition.
-- apply rfrli ; rewrite ? map_app ; apply H ; rewrite map_app ; reflexivity.
+- apply rfrli ; rewrite ? map_app ; apply X ; rewrite map_app ; reflexivity.
 Qed.
 
 Lemma substitution : forall n m l A, fsize A = n -> rprove l A ->
@@ -252,9 +253,9 @@ Lemma substitution : forall n m l A, fsize A = n -> rprove l A ->
  * (forall B l0 l1 l2 (pi : nprove (l1 ++ A :: l2) B), l0 ++ l = l1 ++ l2 ->
       nsize pi < m -> rprove (l1 ++ l2) B)
  * (forall B l0 l1 l2 (pi : rprove (l1 ++ A :: l2) B), l0 ++ l = l1 ++ l2 ->
-     rsize pi < m -> rprove (l1 ++ l2) B).
+      rsize pi < m -> rprove (l1 ++ l2) B).
 Proof with try eassumption ; try reflexivity ; try lia.
-apply (lt_wf_double_rec (fun n m => 
+apply (lt_wf_double_rect (fun n m => 
  forall l A, fsize A = n -> rprove l A ->
    (forall B l0 l1 l2 (pi : nprove (l1 ++ A :: l2) B), l0 ++ l = l1 ++ l2 ->
       nsize pi < m -> fsize A < fsize B -> nprove (l1 ++ l2) B)
@@ -302,9 +303,9 @@ apply (lt_wf_double_rec (fun n m =>
   + eapply pi1 in IH1 ; eapply pi1 in IH2...
     inversion IH1 ; subst.
     * apply rninj ; eapply nimpe ; simpl...
-    * remember (rsize H1) as q.
+    * remember (rsize X) as q.
       eapply (IHn _ (S q)) in IH2 ; [ | simpl in l3 | reflexivity ]...
-      revert H1 Heqq ; rewrite <- (app_nil_l (A0 :: _)) ; intros H1 Heqq.
+      revert X Heqq ; rewrite <- (app_nil_l (A0 :: _)) ; intros H1 Heqq.
       refine (snd IH2 _ _ _ _ H1 eq_refl _)...
   + apply rninj ; eapply nimpe ; eapply pi1 ; simpl...
 - apply (IHm (S (nsize pi2))) in pi1...
@@ -313,9 +314,9 @@ apply (lt_wf_double_rec (fun n m =>
   + eapply pi1 in IH1...
     inversion IH1 ; subst.
     * apply rninj ; eapply nfrle ; simpl...
-    * apply (rnpsubs 0 u) in H1...
-      rnow rewrite map_map in H1 ; rewrite (map_ext _ _ (nsubs_z_fup _)) in H1 ;
-           rewrite map_id in H1.
+    * apply (rnpsubs 0 u) in X...
+      rnow rewrite map_map in X ; rewrite (map_ext _ _ (nsubs_z_fup _)) in X ;
+           rewrite map_id in X.
   + apply rninj ; eapply nfrle...
     eapply pi1...
 - refine (snd (fst (IHm _ Hpi _ _ _ pi1)) _ _ _ _ n _ _)...
@@ -328,7 +329,7 @@ apply (lt_wf_double_rec (fun n m =>
   revert pi2 Hpi ; rewrite map_app ; simpl ; intros pi2 Hpi.
   rewrite map_app.
   rnow refine (snd (IHm _ Hpi _ _ _ pi1) _ _ _ _ pi2 _ _)...
-  rewrite <- ? map_app ; f_equal ; rewrite <- Hl...
+  rewrite <- ? map_app ; apply (f_equal _ Hl).
 Qed.
 
 Lemma smp_substitution : forall l A B, rprove l A -> rprove (A :: l) B -> rprove l B.
@@ -349,9 +350,9 @@ intros l A pi ; induction pi ;
   + eapply smp_substitution...
 - inversion IHpi ; subst.
   + apply rninj ; eapply nfrle...
-  + apply (rnpsubs 0 u) in H1...
-    rnow rewrite map_map in H1 ; rewrite (map_ext _ _ (nsubs_z_fup _)) in H1 ;
-         rewrite map_id in H1.
+  + apply (rnpsubs 0 u) in X...
+    rnow rewrite map_map in X ; rewrite (map_ext _ _ (nsubs_z_fup _)) in X ;
+         rewrite map_id in X.
 Qed.
 
 

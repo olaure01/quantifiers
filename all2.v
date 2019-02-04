@@ -17,8 +17,8 @@ Hint Rewrite ltb_S.
 
 (** * Different kinds of atoms *)
 
-Parameter atom : Set. (* second-order constants *)
-Parameter vatom : Set. (* variables for quantification *)
+Parameter atom : Type. (* second-order constants *)
+Parameter vatom : Type. (* variables for quantification *)
 Parameter beq_vat : vatom -> vatom -> bool. (* boolean equality on [vatom] *)
 Parameter beq_eq_vat : forall a b, beq_vat a b = true <-> a = b.
    (* equality specification for [vatom] *)
@@ -288,13 +288,13 @@ Qed.
 
 Theorem cutr : forall A B C (pi1 : prove A B) (pi2 : prove B C), prove A C.
 Proof with try lia.
-enough (forall n, forall A B C (pi1 : prove A B) (pi2 : prove B C),
-          n = psize pi1 + psize pi2 -> prove A C)
+enough (H : forall n, forall A B C (pi1 : prove A B) (pi2 : prove B C),
+              n = psize pi1 + psize pi2 -> prove A C)
   by (intros ; apply (H _ _ _ _ pi1 pi2 eq_refl)).
-induction n using (well_founded_induction_type lt_wf) ; intros ; subst.
+induction n as [n IH0] using (well_founded_induction_type lt_wf) ; intros ; subst.
 assert (IH : forall A B C (pi1' : prove A B) (pi2' : prove B C),
                psize pi1' + psize pi2' < psize pi1 + psize pi2 -> prove A C)
-  by (intros ; eapply H ; eauto) ; clear H.
+  by (intros ; eapply IH0 ; eauto) ; clear IH0.
 destruct pi2 ; intuition.
 - apply wdgr.
   + apply (IH _ _ _ pi1 pi2_1) ; simpl...
@@ -370,13 +370,13 @@ Lemma ax_exp : forall A, prove A A.
 Proof.
 enough (Hn : forall n A, fsize A = n -> prove A A)
   by (intros A ; refine (Hn _ _ eq_refl)).
-induction n using (well_founded_induction_type lt_wf) ; intros ; subst.
+induction n as [n IH] using (well_founded_induction_type lt_wf) ; intros ; subst.
 destruct A.
 - apply ax.
 - apply ax.
 - apply ax.
 - apply topr.
-- apply wdgr ; [ apply wdgll | apply wdglr ] ; refine (H _ _ _ eq_refl) ; simpl ; lia.
+- apply wdgr ; [ apply wdgll | apply wdglr ] ; refine (IH _ _ _ eq_refl) ; simpl ; lia.
 - apply frlr.
   simpl ; apply (frll (dvar 0) eq_refl) ; auto.
 Qed.

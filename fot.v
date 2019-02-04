@@ -16,8 +16,8 @@ Hint Rewrite ltb_S.
 
 (** * Different kinds of atoms *)
 
-Parameter tatom : Set. (* function symbols for [term] *)
-Parameter vatom : Set. (* variables for quantification *)
+Parameter tatom : Type. (* function symbols for [term] *)
+Parameter vatom : Type. (* variables for quantification *)
 Parameter beq_vat : vatom -> vatom -> bool. (* boolean equality on [vatom] *)
 Parameter beq_eq_vat : forall a b, beq_vat a b = true <-> a = b.
    (* equality specification for [vatom] *)
@@ -51,7 +51,7 @@ Ltac rcauto := simpl ; autorewrite with core in * ; simpl ; rnow case_analysis.
 (** arity not given meaning that we have a copy of each function name for each arity *)
 (** [dvar] for De Bruijn style eigen variables in proofs *)
 (** [tvar] for quantified variables in formulas *)
-Inductive term : Set :=
+Inductive term :=
 | dvar : nat -> term
 | tvar : vatom -> term
 | tconstr : tatom -> list term -> term.

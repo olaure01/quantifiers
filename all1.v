@@ -1,17 +1,17 @@
 (* Sequent Calculus for First-Order Additive Linear Logic *)
 
-Require Import Wf_nat.
+Require Import Wf_nat_more.
 Require Import Lia.
 
 Require Import fot.
 
 (** * Formulas *)
 
-Parameter atom : Set.  (* propositional variables for [formula] *)
+Parameter atom : Type.  (* propositional variables for [formula] *)
 
 (** formulas *)
 (** first-order formulas in the langage: true, conjunction, universal quantification *)
-Inductive formula : Set :=
+Inductive formula :=
 | var : atom -> list term -> formula
 | top : formula
 | wdg : formula -> formula -> formula
@@ -119,7 +119,7 @@ Notation fupz := (fup 0).
 (** Proofs *)
 (** two-sided sequent calculus for first-order (additive) linear logic with connectives: 
     top, with, forall *)
-Inductive prove : formula -> formula -> Set :=
+Inductive prove : formula -> formula -> Type :=
 | ax : forall A, prove A A
 | topr : forall C, prove C top
 | wdgr { C A B } : prove C A -> prove C B -> prove C (wdg A B)
@@ -196,13 +196,13 @@ Qed.
 
 Theorem cutr : forall A B C (pi1 : prove A B) (pi2 : prove B C), prove A C.
 Proof with try assumption ; try lia.
-enough (forall n, forall A B C (pi1 : prove A B) (pi2 : prove B C),
+enough (IH : forall n, forall A B C (pi1 : prove A B) (pi2 : prove B C),
           n = psize pi1 + psize pi2 -> prove A C)
-  by (intros ; apply (H _ _ _ _ pi1 pi2 eq_refl)).
-induction n using (well_founded_induction lt_wf) ; intros ; subst.
+  by (intros ; apply (IH _ _ _ _ pi1 pi2 eq_refl)).
+induction n as [n IH0] using lt_wf_rect ; intros ; subst.
 assert (IH : forall A B C (pi1' : prove A B) (pi2' : prove B C),
                psize pi1' + psize pi2' < psize pi1 + psize pi2 -> prove A C)
-  by (intros ; eapply H ; [ eassumption | reflexivity ]) ; clear H.
+  by (intros ; eapply IH0 ; [ eassumption | reflexivity ]) ; clear IH0.
 destruct pi2 ; intuition.
 - apply wdgr.
   + apply (IH _ _ _ pi1 pi2_1) ; simpl...
@@ -311,11 +311,11 @@ Lemma ax_exp : forall A, prove A A.
 Proof.
 enough (Hn : forall n A, fsize A = n -> prove A A)
   by (intros A ; eapply Hn ; reflexivity).
-induction n using (well_founded_induction lt_wf) ; intros ; subst.
+induction n as [n IH] using lt_wf_rect ; intros ; subst.
 destruct A.
 - apply ax.
 - apply topr.
-- apply wdgr ; [ apply wdgll | apply wdglr ] ; (eapply H ; [ | reflexivity ]) ; simpl ; lia.
+- apply wdgr ; [ apply wdgll | apply wdglr ] ; (eapply IH ; [ | reflexivity ]) ; simpl ; lia.
 - apply frlr.
   simpl ; apply (frll (dvar 0)) ; auto.
 Qed.

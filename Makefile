@@ -33,6 +33,6 @@ clean:
 
 all: $(VFILES:.v=.vo)
 
-nj1.vo: nj1.v fot.vo
-all1.vo: all1.v fot.vo
+nj1.vo: nj1.v fot.vo Wf_nat_more.vo
+all1.vo: all1.v fot.vo Wf_nat_more.vo
 
