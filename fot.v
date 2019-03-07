@@ -70,7 +70,7 @@ match t with
     ((fix l_ind l' : Forall P l' :=
       match l' with
       | nil => Forall_nil P
-      | cons t1 l1 => Forall_cons t1
+      | cons t1 l1 => Forall_cons _
                         (term_ind_list_Forall t1 P Pdvar Ptvar Pconstr)
                         (l_ind l1)
       end) l)

@@ -8,7 +8,7 @@ Require Import fot.
 
 (** * Formulas *)
 
-Parameter atom : Type.  (* propositional variables for [formula] *)
+Parameter atom : Type.  (* relation symbols for [formula] *)
 
 (** formulas *)
 (** first-order formulas in the langage: implication, universal quantification *)
