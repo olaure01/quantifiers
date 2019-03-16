@@ -15,7 +15,8 @@ Parameter atom : Type.  (* relation symbols for [formula] *)
 Inductive formula :=
 | var : atom -> list term -> formula
 | imp : formula -> formula -> formula
-| frl : vatom -> formula -> formula.
+| frl : vatom -> formula -> formula
+| exs : vatom -> formula -> formula.
 
 Ltac formula_induction A :=
   (try intros until A) ;
@@ -27,9 +28,10 @@ Ltac formula_induction A :=
   let lll := fresh "l" in
   let tt := fresh "t" in
   let IHll := fresh "IHl" in
-  induction A as [ XX ll | A1 A2 | xx A ] ; simpl ; intros ;
+  induction A as [ XX ll | A1 A2 | xx A | xx A ] ; simpl ; intros ;
   [ try f_equal ; try (induction ll as [ | tt lll IHll ] ; simpl ; intuition ;
                        rewrite IHll ; f_equal ; intuition)
+  | try (f_equal ; intuition)
   | try (f_equal ; intuition)
   | try (f_equal ; intuition) ] ; try ((rnow idtac) ; fail) ; try (rcauto ; fail).
 
@@ -39,6 +41,7 @@ match A with
 | var X l => var X (map (tup k) l)
 | imp B C => imp (fup k B) (fup k C)
 | frl x B => frl x (fup k B)
+| exs x B => exs x (fup k B)
 end.
 
 Lemma fup_fup_com : forall k A,
@@ -54,12 +57,13 @@ match A with
 | var X l => var X (map (tsubs x u) l)
 | imp B C => imp (subs x u B) (subs x u C)
 | frl y B as C => if (beq_vat y x) then C else frl y (subs x u B)
+| exs y B as C => if (beq_vat y x) then C else exs y (subs x u B)
 end.
 
 Lemma fup_subs_com : forall k x u A,
   fup k (subs x u A) = subs x (tup k u) (fup k A).
 Proof. formula_induction A.
-rnow case_eq (beq_vat x0 x) ; intros ; simpl ; f_equal.
+all: rnow case_eq (beq_vat x0 x) ; intros ; simpl ; f_equal.
 Qed.
 Hint Rewrite fup_subs_com.
 
@@ -70,6 +74,7 @@ match A with
 | var X l => var X (map (ntsubs n u) l)
 | imp B C => imp (nsubs n u B) (nsubs n u C)
 | frl x B => frl x (nsubs n u B)
+| exs x B => exs x (nsubs n u B)
 end.
 
 Lemma nsubs_fup_com : forall k u A,
@@ -94,6 +99,7 @@ match A with
 | var _ _ => 1
 | imp B C => S (fsize B + fsize C)
 | frl _ B => S (fsize B)
+| exs _ B => S (fsize B)
 end.
 
 Lemma fsize_fup : forall k A, fsize (fup k A) = fsize A.
@@ -103,6 +109,10 @@ Hint Rewrite fsize_fup.
 Lemma fsize_subs : forall u x A, fsize (subs x u A) = fsize A.
 Proof. formula_induction A. Qed.
 Hint Rewrite fsize_subs.
+
+Lemma fsize_nsubs : forall u n A, fsize (nsubs n u A) = fsize A.
+Proof. formula_induction A. Qed.
+Hint Rewrite fsize_nsubs.
 
 
 
@@ -117,18 +127,24 @@ Inductive prove : list formula -> formula -> Type :=
 | impi { l A B } : prove (A :: l) B -> prove l (imp A B)
 | impe { l B } : forall A, prove l (imp A B) -> prove l A -> prove l B
 | frli { x l A } : prove (map fupz l) (subs x (dvar 0) (fupz A)) -> prove l (frl x A)
-| frle { x l A } : forall u, closed u -> prove l (frl x A) -> prove l (subs x u A).
+| frle { x l A } : forall u, closed u -> prove l (frl x A) -> prove l (subs x u A)
+| exsi { x l A } : forall u, closed u -> prove l (subs x u A) -> prove l (exs x A)
+| exse { x l C } : forall A, prove l (exs x A) ->
+                             prove (subs x (dvar 0) (fupz A) :: map fupz l) (fupz C) -> prove l C.
 Hint Constructors prove.
 
 (** Normal Forms *)
-Inductive nprove : list formula -> formula -> Type :=
+Inductive nprove : list formula -> formula -> Type := (* neutral terms *)
 | nax : forall l1 l2 A, nprove (l1 ++ A :: l2) A
 | nimpe { l B } : forall A, nprove l (imp A B) -> rprove l A -> nprove l B
 | nfrle { x l A } : forall u, closed u -> nprove l (frl x A) -> nprove l (subs x u A)
-with rprove : list formula -> formula -> Type :=
+with rprove : list formula -> formula -> Type := (* normal forms *)
 | rninj { l A } : nprove l A -> rprove l A
 | rimpi { l A B } : rprove (A :: l) B -> rprove l (imp A B)
-| rfrli { x l A } : rprove (map fupz l) (subs x (dvar 0) (fupz A)) -> rprove l (frl x A).
+| rfrli { x l A } : rprove (map fupz l) (subs x (dvar 0) (fupz A)) -> rprove l (frl x A)
+| rexsi { x l A } : forall u, closed u -> rprove l (subs x u A) -> rprove l (exs x A)
+| rexse { l C } : forall x A, nprove l (exs x A) ->
+                              rprove (subs x (dvar 0) (fupz A) :: map fupz l) (fupz C) -> rprove l C.
 Hint Constructors nprove rprove.
 
 Scheme nrprove_rect := Induction for nprove Sort Type
@@ -138,25 +154,33 @@ Scheme nrprove_rect := Induction for nprove Sort Type
 Combined Scheme rnprove_mutrect from nrprove_rect, rnprove_rect.
 *)
 Lemma rnprove_mutrect :
-      forall (P : forall (l : list formula) (f : formula), nprove l f -> Type)
+     forall (P : forall (l : list formula) (f : formula), nprove l f -> Type)
          (P0 : forall (l : list formula) (f : formula), rprove l f -> Type),
        (forall (l1 l2 : list formula) (A : formula), P (l1 ++ A :: l2) A (nax l1 l2 A)) ->
        (forall (l : list formula) (B A : formula) (n : nprove l (imp A B)),
         P l (imp A B) n -> forall r : rprove l A, P0 l A r -> P l B (nimpe A n r)) ->
-       (forall (x : vatom) (l : list formula) (A : formula) (u : term) (e : closed u)
-          (n : nprove l (frl x A)), P l (frl x A) n -> P l (subs x u A) (nfrle u e n)) ->
+       (forall (x : vatom) (l : list formula) (A : formula) (u : term)
+         (e : closed u) (n : nprove l (frl x A)),
+        P l (frl x A) n -> P l (subs x u A) (nfrle u e n)) ->
        (forall (l : list formula) (A : formula) (n : nprove l A), P l A n -> P0 l A (rninj n)) ->
        (forall (l : list formula) (A B : formula) (r : rprove (A :: l) B),
         P0 (A :: l) B r -> P0 l (imp A B) (rimpi r)) ->
        (forall (x : vatom) (l : list formula) (A : formula)
           (r : rprove (map fupz l) (subs x (dvar 0) (fupz A))),
         P0 (map fupz l) (subs x (dvar 0) (fupz A)) r -> P0 l (frl x A) (rfrli r)) ->
+       (forall (x : vatom) (l : list formula) (A : formula) (u : term) (e : closed u)
+          (r : rprove l (subs x u A)),
+        P0 l (subs x u A) r -> P0 l (exs x A) (rexsi u e r)) ->
+       (forall (l : list formula) (C : formula) (x : vatom) (A : formula) (n : nprove l (exs x A)),
+        P l (exs x A) n ->
+        forall r : rprove (subs x (dvar 0) (fupz A) :: map fupz l) (fupz C),
+        P0 (subs x (dvar 0) (fupz A) :: map fupz l) (fupz C) r -> P0 l C (rexse x A n r)) ->
 (*
-       (forall (l : list formula) (f5 : formula) (n : nprove l f5), P l f5 n) *
-       forall (l : list formula) (f5 : formula) (r : rprove l f5), P0 l f5 r.
+       (forall (l : list formula) (f7 : formula) (n : nprove l f7), P l f7 n) /\
+       (forall (l : list formula) (f7 : formula) (r : rprove l f7), P0 l f7 r).
 *)
-       forall (l : list formula) (f5 : formula),
-         ((forall (n : nprove l f5), P l f5 n) * (forall (n : rprove l f5), P0 l f5 n)).
+       forall (l : list formula) (f7 : formula),
+         ((forall (n : nprove l f7), P l f7 n) * (forall (n : rprove l f7), P0 l f7 n)).
 Proof.
 intros ; split ; [ eapply nrprove_rect | eapply rnprove_rect ] ; eassumption.
 Qed.
@@ -176,6 +200,8 @@ match pi with
 | rninj pi0 => S (nsize pi0)
 | rimpi pi0 => S (rsize pi0)
 | rfrli pi0 => S (rsize pi0)
+| rexsi _ _ pi0 => S (rsize pi0)
+| rexse _ _ pi1 pi2 => S (nsize pi1 + rsize pi2)
 end.
 
 
@@ -197,6 +223,12 @@ clear n u Hc ; revert l A ; apply rnprove_mutrect ;
   specialize X with (S n) (tup 0 u).
   rewrite map_map in X ; rewrite (map_ext _ _ (nsubs_fup_com _ _)) in X ; rewrite <- map_map in X.
   rnow autorewrite with core in X.
+- rnow specialize X with n u0 then rnow eapply (rexsi (ntsubs n u0 u)).
+- rewrite <- (freevars_tup 0) in H.
+  clear IH2 ; assert (IH2 := X0 (S n0) (tup 0 u) H) ; simpl in IH2.
+  rewrite map_map in IH2 ; rewrite (map_ext _ _ (nsubs_fup_com _ _)) in IH2 ;
+    rewrite <- map_map in IH2.
+  rnow eapply rexse.
 Qed.
 
 (** lift indexes above [k] in normal form *)
@@ -216,6 +248,11 @@ clear k ; revert l A ; apply rnprove_mutrect ;
   rnow change (dvar 0) with (tup (S k) (dvar 0)) in X.
   rewrite map_map in IH ; rewrite (map_ext _ _ (fup_fup_com _)) in IH ; rewrite <- map_map in IH.
   now apply rfrli.
+- rnow idtac then rnow apply (rexsi (tup k u)).
+- clear IH2 ; assert (IH2 := X0 (S k)) ; simpl in IH2.
+  rnow change (dvar 0) with (tup (S k) (dvar 0)) in X.
+  rewrite map_map in IH2 ; rewrite (map_ext _ _ (fup_fup_com _)) in IH2 ; rewrite <- map_map in IH2.
+  rnow apply (rexse x (fup k A)).
 Qed.
 
 
@@ -245,6 +282,10 @@ apply rnprove_mutrect ; intros ; try (econstructor ; intuition ; fail) ; subst.
     now apply IHl1.
 - apply rimpi ; rewrite app_comm_cons ; intuition.
 - apply rfrli ; rewrite ? map_app ; apply X ; rewrite map_app ; reflexivity.
+- apply (rexsi u) ; [ assumption | apply X ; reflexivity ].
+- apply (rexse x A).
+  + apply X ; reflexivity.
+  + rewrite ? map_app ; rewrite app_comm_cons ; apply X0 ; rewrite map_app ; reflexivity.
 Qed.
 
 Lemma substitution : forall n m l A, fsize A = n -> rprove l A ->
@@ -255,7 +296,7 @@ Lemma substitution : forall n m l A, fsize A = n -> rprove l A ->
  * (forall B l0 l1 l2 (pi : rprove (l1 ++ A :: l2) B), l0 ++ l = l1 ++ l2 ->
       rsize pi < m -> rprove (l1 ++ l2) B).
 Proof with try eassumption ; try reflexivity ; try lia.
-apply (lt_wf_double_rect (fun n m => 
+apply (lt_wf_double_rect (fun n m =>
  forall l A, fsize A = n -> rprove l A ->
    (forall B l0 l1 l2 (pi : nprove (l1 ++ A :: l2) B), l0 ++ l = l1 ++ l2 ->
       nsize pi < m -> fsize A < fsize B -> nprove (l1 ++ l2) B)
@@ -301,35 +342,96 @@ apply (lt_wf_double_rect (fun n m =>
   assert (rsize r < S (nsize pi2 + rsize r)) as IH2 by lia.
   destruct (Compare_dec.le_lt_dec (fsize (imp A0 B)) (fsize A)).
   + eapply pi1 in IH1 ; eapply pi1 in IH2...
-    inversion IH1 ; subst.
-    * apply rninj ; eapply nimpe ; simpl...
-    * remember (rsize X) as q.
-      eapply (IHn _ (S q)) in IH2 ; [ | simpl in l3 | reflexivity ]...
-      revert X Heqq ; rewrite <- (app_nil_l (A0 :: _)) ; intros H1 Heqq.
-      refine (snd IH2 _ _ _ _ H1 eq_refl _)...
-  + apply rninj ; eapply nimpe ; eapply pi1 ; simpl...
+    remember (imp A0 B) as C.
+    clear r pi1 Hpi.
+    revert A0 B HeqC l3 IH2 ; clear - IHn IH1 ; induction IH1 ;
+      intros A1 B1 HeqC Hs IH2 ; inversion HeqC ; subst.
+    * apply rninj ; eapply nimpe...
+    * remember (rsize IH1) as q.
+      eapply (IHn _ (S q)) in IH2 ; [ | simpl in Hs | reflexivity ]...
+      revert IH1 Heqq ; rewrite <- (app_nil_l (A1 :: _)) ; intros IH1 Heqq.
+      refine (snd IH2 _ _ _ _ IH1 eq_refl _)...
+    * rnow simpl in IHIH1 then simpl in IH1.
+      eapply rexse...
+      eapply IHIH1 ; [ reflexivity | | ]...
+      rewrite <- (app_nil_l (map fupz l)) ; rewrite app_comm_cons ; rewrite <- (app_nil_l _).
+      eapply weakening ; [ | reflexivity ].
+      apply rnpup...
+  + apply rninj ; eapply nimpe ; eapply pi1...
 - apply (IHm (S (nsize pi2))) in pi1...
   assert (nsize pi2 < S (nsize pi2)) as IH1 by lia.
   destruct (Compare_dec.le_lt_dec (fsize (frl x A0)) (fsize A)).
   + eapply pi1 in IH1...
-    inversion IH1 ; subst.
-    * apply rninj ; eapply nfrle ; simpl...
-    * apply (rnpsubs 0 u) in X...
-      rnow rewrite map_map in X ; rewrite (map_ext _ _ (nsubs_z_fup _)) in X ;
-           rewrite map_id in X.
+    remember (frl x A0) as C.
+    revert u e A0 HeqC l3 ; clear - IHn IH1 ; induction IH1 ;
+      intros u' e' A1 HeqC Hs ; inversion HeqC ; subst.
+    * apply rninj ; eapply nfrle...
+    * apply (rnpsubs 0 u') in IH1...
+      rnow rewrite map_map in IH1 ; rewrite (map_ext _ _ (nsubs_z_fup _)) in IH1 ;
+           rewrite map_id in IH1.
+    * rnow simpl in IHIH1 then simpl in IH1.
+      eapply rexse...
+      rnow idtac then rnow (eapply IHIH1).
   + apply rninj ; eapply nfrle...
     eapply pi1...
 - refine (snd (fst (IHm _ Hpi _ _ _ pi1)) _ _ _ _ n _ _)...
 - revert pi2 Hpi ; rewrite app_comm_cons ; intros pi2 Hpi.
   apply rimpi.
   refine (snd (IHm _ Hpi _ _ _ pi1) _ _ _ _ pi2 _ _)...
-  simpl ; rewrite <- Hl ; rewrite app_comm_cons ; reflexivity.
-- apply rfrli.
+  simpl ; rewrite <- Hl ; rewrite app_comm_cons...
+- apply rfrli ; rewrite map_app.
   apply (rnpup 0) in pi1.
   revert pi2 Hpi ; rewrite map_app ; simpl ; intros pi2 Hpi.
-  rewrite map_app.
-  rnow refine (snd (IHm _ Hpi _ _ _ pi1) _ _ _ _ pi2 _ _)...
-  rewrite <- ? map_app ; apply (f_equal _ Hl).
+  rnow refine (snd (IHm _ Hpi _ _ _ pi1) _ (map fupz l0) _ _ pi2 _ _)...
+  rewrite <- ? map_app ; f_equal...
+- eapply rexsi...
+  refine (snd (IHm _ Hpi _ _ _ pi1) _ _ _ _ pi2 _ _)...
+- assert (nsize n < S (nsize n + rsize pi2)) as IH1 by lia.
+  assert (rsize pi2 < S (nsize n + rsize pi2)) as IH2 by lia.
+  destruct (Compare_dec.le_lt_dec (fsize (exs x A0)) (fsize A)).
+  + assert (pi1' := pi1).
+    apply (IHm (S (nsize n + rsize pi2))) in pi1'...
+    eapply pi1' in IH1 ; clear pi1'...
+    apply (rnpup 0) in pi1.
+    apply (IHm (S (nsize n + rsize pi2))) in pi1 ; autorewrite with core...
+    revert pi2 pi1 Hpi IH2 ; rewrite map_app ; simpl ; rewrite app_comm_cons ;
+      intros pi2 pi1 Hpi IH2.
+    eapply pi1 in IH2 ; simpl ;
+      [ | rewrite <- (map_app _ _ l2) ; rewrite <- Hl ; rewrite map_app ; rewrite app_comm_cons ]...
+    clear Hpi pi1 pi2 Hl n.
+    remember (l1 ++ l2) as ll.
+    remember (exs x A0) as D.
+    revert x A0 C HeqD l1 l2 Heqll l3 IH2 ; clear - IHn IH1 ; induction IH1 ;
+      intros x1 A1 C1 HeqD l1 l2 Heqll Hs IH2 ; inversion HeqD ; subst.
+    * simpl in IH2 ; rewrite <- map_app in IH2.
+      eapply rexse...
+    * apply (rnpsubs 0 u) in IH2...
+      rnow simpl in IH2 then simpl in IH2 ; rewrite map_app in IH2.
+      do 2 (rewrite map_map in IH2 ; rewrite (map_ext _ _ (nsubs_z_fup _)) in IH2 ;
+            rewrite map_id in IH2).
+      remember (rsize IH2) as q.
+      eapply (IHn (fsize _) (S q)) in IH1 ; [ | rnow simpl in Hs | autorewrite with core ]...
+      revert IH2 Heqq ; rewrite <- (app_nil_l (subs x1 u A1 :: _)) ; intros IH2 Heqq.
+      refine (snd IH1 _ _ _ _ IH2 eq_refl _)...
+    * rnow simpl in IHIH1 then simpl in IH1.
+      eapply rexse...
+      eapply IHIH1 ; [ reflexivity | rewrite map_app ; rewrite app_comm_cons | | ]...
+      simpl ; rewrite <- (app_nil_l (fupz _ :: _)) ; rewrite app_comm_cons ;
+        rewrite <- (app_nil_l (map fupz _)) ; rewrite <- app_assoc ; rewrite app_comm_cons.
+      eapply weakening ; [ | reflexivity ] ; simpl.
+      apply (rnpup 1) in IH2 ; rnow simpl in IH2 then simpl in IH2 ; rewrite map_app in IH2.
+      rewrite map_map in IH2 ; rewrite (map_ext _ _ (fup_fup_com _)) in IH2 ;
+        rewrite <- map_map in IH2.
+      rewrite (map_map _ _ l2) in IH2 ; rewrite (map_ext _ _ (fup_fup_com _)) in IH2 ;
+        rewrite <- (map_map _ _ l2) in IH2...
+  + eapply rexse.
+    * refine (fst (fst (IHm _ _ _ _ _ _)) _ _ _ _ _ _ _ l3)...
+    * clear IH1.
+      revert pi2 Hpi IH2 ; rewrite map_app ; simpl ; rewrite app_comm_cons ; intros pi2 Hpi IH2.
+      rewrite map_app ; rewrite app_comm_cons.
+      apply (rnpup 0) in pi1.
+      refine (snd (IHm _ _ _ _ _ _) _ _ _ _ _ _ IH2) ; [ | autorewrite with core | | ]...
+      simpl ; rewrite <- (map_app _ _ l2) ; rewrite <- Hl ; rewrite map_app ; rewrite app_comm_cons...
 Qed.
 
 Lemma smp_substitution : forall l A B, rprove l A -> rprove (A :: l) B -> rprove l B.
@@ -341,18 +443,47 @@ Qed.
 
 
 Theorem normalization : forall l A, prove l A -> rprove l A.
-Proof with try eassumption.
+Proof with try eassumption ; try reflexivity.
 intros l A pi ; induction pi ;
   try (constructor ; assumption) ;
   try (do 2 constructor ; assumption).
-- inversion IHpi1 ; subst.
+- remember (imp A B) as C.
+  clear pi1 pi2 ; revert A B HeqC IHpi2 ; induction IHpi1 ;
+    intros A1 B2 HeqC IHpi2 ; inversion HeqC ; subst.
   + apply rninj ; eapply nimpe...
   + eapply smp_substitution...
-- inversion IHpi ; subst.
+  + eapply rexse...
+    eapply IHIHpi1 ; [ simpl ; reflexivity | ].
+    apply (rnpup 0) in IHpi2.
+    rewrite <- (app_nil_l (map fupz _)) ; rewrite app_comm_cons ; rewrite <- (app_nil_l _).
+    eapply weakening...
+- remember (frl x A) as C.
+  clear pi ; revert x u e A HeqC ; induction IHpi ; intros x1 u1 e1 A1 HeqC ; inversion HeqC ; subst.
   + apply rninj ; eapply nfrle...
-  + apply (rnpsubs 0 u) in X...
-    rnow rewrite map_map in X ; rewrite (map_ext _ _ (nsubs_z_fup _)) in X ;
-         rewrite map_id in X.
+  + apply (rnpsubs 0 u1) in IHpi...
+    rnow rewrite map_map in IHpi ; rewrite (map_ext _ _ (nsubs_z_fup _)) in IHpi ;
+         rewrite map_id in IHpi.
+  + eapply rexse...
+    rnow idtac then rnow (eapply IHIHpi).
+- eapply rexsi...
+- remember (exs x A) as D.
+  clear pi1 pi2 ; revert A C HeqD IHpi2 ; induction IHpi1 ;
+    intros A1 C1 HeqD IHpi2 ; inversion HeqD ; subst.
+  + eapply rexse...
+  + apply (rnpsubs 0 u) in IHpi2...
+    rnow simpl in IHpi2 then simpl in IHpi2.
+    rewrite map_map in IHpi2 ; rewrite (map_ext _ _ (nsubs_z_fup _)) in IHpi2 ;
+      rewrite map_id in IHpi2.
+    eapply smp_substitution...
+  + rnow simpl in IHIHpi1 then simpl in IHpi1.
+    eapply rexse...
+    eapply IHIHpi1 ; [ reflexivity |  ]...
+    simpl ; rewrite <- (app_nil_l (subs x0 _ _ :: _)) ; rewrite app_comm_cons ;
+      rewrite <- (app_nil_l (map fupz _)) ; rewrite app_comm_cons.
+    eapply weakening ; [ | reflexivity ] ; simpl.
+    apply (rnpup 1) in IHpi2 ; rnow simpl in IHpi2 then simpl in IHpi2.
+    rewrite map_map in IHpi2 ; rewrite (map_ext _ _ (fup_fup_com _)) in IHpi2 ;
+      rewrite <- map_map in IHpi2...
 Qed.
 
 
@@ -363,6 +494,7 @@ match A with
 | var _ l => concat (map freevars l)
 | imp B C => (ffreevars B) ++ (ffreevars C)
 | frl x B => remove vatomEq.eq_dec x (ffreevars B)
+| exs x B => remove vatomEq.eq_dec x (ffreevars B)
 end.
 
 Lemma in_ffreevars_frl : forall x y, beq_vat y x = false -> forall A,
@@ -382,6 +514,8 @@ Lemma nfree_subs : forall x u A, ~ In x (ffreevars A) -> subs x u A = A.
 Proof. formula_induction A ; try rcauto.
 - rnow apply nfree_tsubs then apply H.
 - rnow apply H.
+- rnow rewrite IHA.
+  now apply H ; apply in_ffreevars_frl.
 - rnow rewrite IHA.
   now apply H ; apply in_ffreevars_frl.
 Qed.
@@ -446,6 +580,8 @@ Proof. induction A.
 - simpl ; f_equal ; rnow rewrite 2 map_map ; apply map_ext.
   rnow idtac then rewrite (nfree_tsubs _ _ v) ; try now apply closed_nofreevars.
 - rnow idtac then f_equal.
+- (rnow case_eq (beq_vat v0 x) ; case_eq (beq_vat v0 y)) ;
+    rnow rewrite H2 ; rewrite H3 ; simpl ; rewrite H2 ; rewrite H3 then f_equal.
 - (rnow case_eq (beq_vat v0 x) ; case_eq (beq_vat v0 y)) ;
     rnow rewrite H2 ; rewrite H3 ; simpl ; rewrite H2 ; rewrite H3 then f_equal.
 Qed.
