@@ -6,6 +6,20 @@ Require Import Lia.
 Require Import fot.
 
 
+(* * Preliminaries *)
+
+Lemma Exists_impl {A} : forall (P Q : A -> Prop), (forall a, P a -> Q a) ->
+  forall l, Exists P l -> Exists Q l.
+Proof.
+intros P Q Hi.
+induction l ; intros He ; inversion He ; subst.
+- apply Hi in H0 ; now constructor.
+- apply IHl in H0 ; now constructor.
+Qed.
+
+
+
+
 (** * Formulas *)
 
 Parameter atom : Type.  (* relation symbols for [formula] *)
@@ -115,6 +129,22 @@ Proof. formula_induction A. Qed.
 Hint Rewrite fsize_nsubs.
 
 
+(** Sub-formula Relation *)
+Inductive subform : formula -> formula -> Prop :=
+| sub_id : forall A, subform A A
+| sub_imp_l : forall A B C, subform A B -> subform A (imp B C)
+| sub_imp_r : forall A B C, subform A B -> subform A (imp C B)
+| sub_frl : forall A x u B, subform A (subs x u B) -> subform A (frl x B)
+| sub_ex : forall A x u B, subform A (subs x u B) -> subform A (exs x B)
+| sub_frl_n : forall A x B, subform A (subs x (dvar 0) (fup 0 B)) -> subform A (frl x B)
+| sub_ex_n : forall A x B, subform A (subs x (dvar 0) (fup 0 B)) -> subform A (exs x B)
+| sub_fup : forall A B, subform A (fup 0 B) -> subform A B.
+
+Lemma subform_trans : forall A B C, subform A B -> subform B C -> subform A C.
+Proof with try assumption.
+intros A B C Hl Hr ; revert A Hl ; induction Hr ; intros A' Hl ;
+  try (econstructor ; apply IHHr)...
+Qed.
 
 
 (** * Proofs *)
@@ -203,6 +233,155 @@ match pi with
 | rexsi _ _ pi0 => S (rsize pi0)
 | rexse _ _ pi1 pi2 => S (nsize pi1 + rsize pi2)
 end.
+
+
+(* property [P] holds for any formula in [pi] *)
+Fixpoint nprove_with_prop P {l A} (pi : nprove l A) : Prop :=
+match pi with
+| nax l1 l2 A  => Forall P l1 /\ Forall P l2 /\ P A
+| @nimpe _ B _ pi1 pi2 => P B /\ nprove_with_prop P pi1 /\ rprove_with_prop P pi2
+| @nfrle x _ A u _ pi0 => P (subs x u A) /\ nprove_with_prop P pi0
+end
+with rprove_with_prop P {l A} (pi : rprove l A) : Prop :=
+match pi with
+| rninj pi0 => nprove_with_prop P pi0
+| @rimpi _ A B pi0 => P (imp A B) /\ rprove_with_prop P pi0
+| @rfrli x _ A pi0 => P (frl x A) /\ rprove_with_prop P pi0
+| @rexsi x _ A _ _ pi0 => P (exs x A) /\ rprove_with_prop P pi0
+| @rexse _ C _ _ pi1 pi2 => P C /\ nprove_with_prop P pi1 /\ rprove_with_prop P pi2
+end.
+
+Lemma rnprove_stronger : forall (P Q : _ -> Prop), (forall x, P x -> Q x) -> forall l A,
+   (forall pi : nprove l A, nprove_with_prop P pi -> nprove_with_prop Q pi)
+ * (forall pi : rprove l A, rprove_with_prop P pi -> rprove_with_prop Q pi).
+Proof.
+intros P Q Hs l A.
+apply (rnprove_mutrect
+  (fun l' B (p : nprove l' B) => nprove_with_prop P p -> nprove_with_prop Q p)
+  (fun l' B (p : rprove l' B) => rprove_with_prop P p -> rprove_with_prop Q p)) ; simpl ; intuition.
+- eapply Forall_impl ; eassumption.
+- eapply Forall_impl ; eassumption.
+Qed.
+
+Theorem subformula_prop {l A} :
+   (forall pi : nprove l A, Exists (subform A) l /\ nprove_with_prop (fun B => Exists (subform B) (A :: l)) pi)
+ * (forall pi : rprove l A, rprove_with_prop (fun B => Exists (subform B) (A :: l)) pi).
+Proof.
+apply (rnprove_mutrect
+  (fun l' B (p : nprove l' B) => Exists (subform B) l'
+                            /\   nprove_with_prop (fun C => Exists (subform C) (B :: l')) p)
+  (fun l' B (p : rprove l' B) => rprove_with_prop (fun C => Exists (subform C) (B :: l')) p)) ; simpl.
+- intros l1 l2 B ; repeat split.
+  + apply Exists_exists ; exists B ; split ; [ | constructor ].
+    apply in_app_iff ; right ; constructor ; reflexivity.
+  + rewrite <- (app_nil_l l1) ; rewrite <- app_assoc ; rewrite app_comm_cons.
+    remember (B :: nil) as l0 ; clear Heql0 ; revert l0.
+    induction l1 ; intros l0 ; constructor.
+    * apply Exists_exists ; exists a ; split ; [ | constructor ].
+       apply in_app_iff ; right ; constructor ; reflexivity.
+    * rewrite <- app_comm_cons ; rewrite <- (app_nil_l l1) ; rewrite <- app_assoc ;
+        rewrite app_comm_cons ; rewrite app_assoc.
+      apply IHl1.
+  + rewrite <- (app_nil_l l2) ; rewrite 2 app_comm_cons ; rewrite app_assoc.
+    remember ((B :: l1) ++ B :: nil) as l0 ; clear Heql0 ; revert l0 ; simpl.
+    induction l2 ; intros l0 ; constructor.
+    * apply Exists_exists ; exists a ; split ; [ | constructor ].
+       apply in_app_iff ; right ; constructor ; reflexivity.
+    * rewrite <- (app_nil_l l2) ; rewrite app_comm_cons ; rewrite app_assoc.
+      apply IHl2.
+  + constructor ; constructor.
+- intros l' B' A' pi1 [Hn Hs1] pi2 Hs2 ; repeat split.
+  + eapply Exists_impl ; [ | eassumption ].
+    intros C HsC.
+    now eapply subform_trans ; [ constructor ; constructor | eassumption ].
+  + constructor ; constructor.
+  + eapply rnprove_stronger ; [ | eassumption ] ; simpl.
+    intros C HsC.
+    inversion HsC ; subst.
+    * apply Exists_cons_tl.
+      eapply Exists_impl ; [ | eassumption ].
+      intros D HsD.
+      eapply subform_trans ; eassumption.
+    * constructor ; assumption.
+  + eapply rnprove_stronger ; [ | eassumption ] ; simpl.
+    intros C HsC.
+    inversion HsC ; subst.
+    * apply Exists_cons_tl.
+      eapply Exists_impl ; [ | eassumption ].
+      intros D HsD.
+      eapply subform_trans ; [ eassumption | ].
+      eapply subform_trans ; [ constructor ; constructor | eassumption ].
+    * constructor ; assumption.
+- intros x l' A' u Hc pi [Hn Hs] ; repeat split.
+  + eapply Exists_impl ; [ | eassumption ].
+    intros C HsC.
+    eapply subform_trans ; [ econstructor ; constructor | eassumption ].
+  + constructor ; constructor.
+  + eapply rnprove_stronger ; [ | eassumption ] ; simpl.
+    intros C HsC.
+    inversion HsC ; subst.
+    * apply Exists_cons_tl.
+      eapply Exists_impl ; [ | eassumption ].
+      intros D HsD.
+      eapply subform_trans ; eassumption.
+    * constructor ; assumption.
+- intros.
+  apply H.
+- intros l' A' B' pi Hs ; split.
+  + constructor ; constructor.
+  + eapply rnprove_stronger ; [ | apply Hs ] ; simpl.
+    intros C P.
+    inversion P ; subst.
+    * constructor ; now constructor.
+    * inversion H0 ; subst.
+      -- constructor ; now constructor.
+      -- constructor ; assumption.
+- intros x l' A' pi Hs ; split.
+  + constructor ; constructor.
+  + eapply rnprove_stronger ; [ | apply Hs ] ; simpl.
+    intros C P.
+    inversion P ; subst.
+    * constructor.
+      eapply subform_trans ; [ eassumption | constructor ; constructor ].
+    * apply Exists_cons_tl.
+      revert H0 ; clear ; induction l' ; intros H ; inversion H ; subst.
+      -- constructor.
+         eapply subform_trans ; [ eassumption | constructor ; constructor ].
+      -- apply Exists_cons_tl ; intuition.
+- intros x l' A' u Hc pi Hs ; split.
+  + constructor ; constructor.
+  + eapply rnprove_stronger ; [ | apply Hs ] ; simpl.
+    intros C P.
+    inversion P ; subst.
+    * constructor.
+      eapply subform_trans ; [ eassumption | econstructor ; constructor ].
+    * constructor ; assumption.
+- intros l' C x A' pi1 [Hn Hs1] pi2 Hs2 ; repeat split.
+  + constructor ; constructor.
+  + eapply rnprove_stronger ; [ | eassumption ] ; simpl.
+    intros D HsD.
+    inversion HsD ; subst.
+    * apply Exists_cons_tl.
+      eapply Exists_impl ; [ | eassumption ].
+      intros E HsE.
+      eapply subform_trans ; eassumption.
+    * constructor ; assumption.
+  + eapply rnprove_stronger ; [ | eassumption ] ; simpl.
+    intros D HsD.
+    inversion HsD ; subst.
+    * constructor.
+      eapply subform_trans ; [ eassumption | constructor ; constructor ].
+    * inversion H0 ; subst ; apply Exists_cons_tl.
+      -- eapply Exists_impl ; [ | eassumption ].
+         intros E HsE.
+         eapply subform_trans ; [ eassumption | ].
+         eapply subform_trans ; [ constructor ; constructor | eassumption ].
+      -- revert H1 ; clear ; induction l' ; intros H ; inversion H ; subst.
+         ++ constructor.
+            eapply subform_trans ; [ eassumption | constructor ; constructor ].
+         ++ apply Exists_cons_tl ; intuition.
+Qed.
+
 
 
 (** substitutes [term] [u] for index [n] in normal form and decreases indexes above [n] *)
