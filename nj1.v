@@ -243,6 +243,25 @@ clear n u Hc ; revert l A ; apply rnprove_mutrect ;
   rnow eapply rexse.
 Qed.
 
+Lemma rpsubsz_r {l A x u} : closed u ->
+  rprove (map fupz l) (subs x (dvar 0) (fupz A)) -> rprove l (subs x u A).
+Proof with try assumption.
+intros Hc pi.
+apply (rnpsubs 0 u) in pi...
+rnow simpl in pi then simpl in pi.
+rewrite map_map in pi ; rewrite (map_ext _ _ (nsubs_z_fup _)) in pi ; rewrite map_id in pi...
+Qed.
+
+Lemma rpsubsz_l {l A x u C} : closed u ->
+  rprove (subs x (dvar 0) (fupz A) :: map fupz l) (fupz C) -> rprove (subs x u A :: l) C.
+Proof with try assumption.
+intros Hc pi.
+apply (rnpsubs 0 u) in pi...
+rnow simpl in pi then simpl in pi.
+rewrite map_map in pi ; rewrite (map_ext _ _ (nsubs_z_fup _)) in pi ; rewrite map_id in pi...
+Qed.
+
+
 (** lift indexes above [k] in normal form *)
 Theorem rnpup k {l A} :
    (nprove l A -> nprove (map (fup k) l) (fup k A))
@@ -365,9 +384,7 @@ apply (lt_wf_double_rect (fun n m =>
   revert u e A0 HeqC ; clear - IH1 ; induction IH1 ;
     intros u' e' A1 HeqC ; inversion HeqC ; subst.
   + apply rninj ; eapply nfrle...
-  + apply (rnpsubs 0 u') in IH1...
-    rnow rewrite map_map in IH1 ; rewrite (map_ext _ _ (nsubs_z_fup _)) in IH1 ;
-         rewrite map_id in IH1.
+  + eapply rpsubsz_r in IH1...
   + rnow simpl in IHIH1 then simpl in IH1.
     eapply rexse...
     rnow idtac then rnow (eapply IHIH1).
@@ -402,10 +419,9 @@ apply (lt_wf_double_rect (fun n m =>
       intros x1 A1 C1 HeqD l1 l2 Heqll Hs pi1' ; inversion HeqD ; subst.
     * simpl in pi1' ; rewrite <- map_app in pi1'.
       eapply rexse...
-    * apply (rnpsubs 0 u) in pi1'...
-      rnow simpl in pi1' then simpl in pi1' ; rewrite map_app in pi1'.
-      do 2 (rewrite map_map in pi1' ; rewrite (map_ext _ _ (nsubs_z_fup _)) in pi1' ;
-            rewrite map_id in pi1') ; rewrite <- (app_nil_l _) in pi1'.
+    * rewrite <- app_comm_cons in pi1' ; rewrite <- map_app in pi1'.
+      eapply rpsubsz_l in pi1'...
+      rewrite <- (app_nil_l _) in pi1'.
       rnow refine (snd (IHn (fsize _) _ _ _ _) _ _ _ pi1' _ _)...
     * rnow simpl in IHpi1 then simpl in pi1.
       eapply rexse...
@@ -432,8 +448,7 @@ Qed.
 Theorem normalization : forall l A, prove l A -> rprove l A.
 Proof with try eassumption ; try reflexivity.
 intros l A pi ; induction pi ;
-  try (constructor ; assumption) ;
-  try (do 2 constructor ; assumption).
+   try (econstructor ; (idtac + econstructor) ; eassumption).
 - remember (imp A B) as C.
   clear pi1 pi2 ; revert A B HeqC IHpi2 ; induction IHpi1 ;
     intros A1 B2 HeqC IHpi2 ; inversion HeqC ; subst.
@@ -441,26 +456,20 @@ intros l A pi ; induction pi ;
   + eapply smp_substitution...
   + eapply rexse...
     eapply IHIHpi1 ; [ simpl ; reflexivity | ].
-    apply (rnpup 0) in IHpi2.
     rewrite <- (app_nil_l (map fupz _)) ; rewrite app_comm_cons ; rewrite <- (app_nil_l _).
     eapply weakening...
+    eapply rnpup...
 - remember (frl x A) as C.
   clear pi ; revert x u e A HeqC ; induction IHpi ; intros x1 u1 e1 A1 HeqC ; inversion HeqC ; subst.
   + apply rninj ; eapply nfrle...
-  + apply (rnpsubs 0 u1) in IHpi...
-    rnow rewrite map_map in IHpi ; rewrite (map_ext _ _ (nsubs_z_fup _)) in IHpi ;
-         rewrite map_id in IHpi.
+  + eapply rpsubsz_r in IHpi...
   + eapply rexse...
     rnow idtac then rnow (eapply IHIHpi).
-- eapply rexsi...
 - remember (exs x A) as D.
   clear pi1 pi2 ; revert A C HeqD IHpi2 ; induction IHpi1 ;
     intros A1 C1 HeqD IHpi2 ; inversion HeqD ; subst.
   + eapply rexse...
-  + apply (rnpsubs 0 u) in IHpi2...
-    rnow simpl in IHpi2 then simpl in IHpi2.
-    rewrite map_map in IHpi2 ; rewrite (map_ext _ _ (nsubs_z_fup _)) in IHpi2 ;
-      rewrite map_id in IHpi2.
+  + eapply rpsubsz_l in IHpi2...
     eapply smp_substitution...
   + rnow simpl in IHIHpi1 then simpl in IHpi1.
     eapply rexse...
@@ -472,7 +481,6 @@ intros l A pi ; induction pi ;
     rewrite map_map in IHpi2 ; rewrite (map_ext _ _ (fup_fup_com _)) in IHpi2 ;
       rewrite <- map_map in IHpi2...
 Qed.
-
 
 
 (** * Free variables in [formula] *)
@@ -661,7 +669,8 @@ apply (rnprove_mutrect
 Qed.
 
 Theorem subformula_prop {l A} :
-   (forall pi : nprove l A, Exists (subform A) l /\ nprove_with_prop (fun B => Exists (subform B) (A :: l)) pi)
+   (forall pi : nprove l A, Exists (subform A) l
+                         /\ nprove_with_prop (fun B => Exists (subform B) (A :: l)) pi)
  * (forall pi : rprove l A, rprove_with_prop (fun B => Exists (subform B) (A :: l)) pi).
 Proof.
 apply (rnprove_mutrect
