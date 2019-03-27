@@ -36,8 +36,3 @@ all: $(VFILES:.v=.vo)
 nj1.vo: nj1.v fot.vo Wf_nat_more.vo
 nj2.vo: nj2.v
 all1.vo: all1.v fot.vo Wf_nat_more.vo
-
-fot_vec.vo: fot_vec.v Vector_more.vo
-nj1_vec.vo: nj1_vec.v fot_vec.vo Wf_nat_more.vo
-
-nj1_ar.vo: nj1_ar.v fot_ar.vo Wf_nat_more.vo
