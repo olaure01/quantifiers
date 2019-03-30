@@ -16,7 +16,7 @@ Examples files:
 * `all1.v`: sequent calculus for _first-order_ Additive Linear Logic
 * `all2.v`: sequent calculus for _second-order_ propositional Additive Linear Logic
 * `nj1.v`: natural deduction for _first-order_ Intuitionistic Logic
-* `nj1.v`: natural deduction for _second-order_ Intuitionistic Logic
+* `nj2.v`: natural deduction for _second-order_ Intuitionistic Logic
 
 Variations:
 
