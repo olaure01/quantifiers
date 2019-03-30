@@ -286,11 +286,11 @@ Qed.
 
 (** * Cut Elimination *)
 
-Theorem cutr : forall A B C (pi1 : prove A B) (pi2 : prove B C), prove A C.
+Theorem cutr : forall A B C, prove A B -> prove B C -> prove A C.
 Proof with try lia.
 enough (H : forall n, forall A B C (pi1 : prove A B) (pi2 : prove B C),
               n = psize pi1 + psize pi2 -> prove A C)
-  by (intros ; apply (H _ _ _ _ pi1 pi2 eq_refl)).
+  by (intros A B C pi1 pi2 ; apply (H _ _ _ _ pi1 pi2 eq_refl)).
 induction n as [n IH0] using (well_founded_induction_type lt_wf) ; intros ; subst.
 assert (IH : forall A B C (pi1' : prove A B) (pi2' : prove B C),
                psize pi1' + psize pi2' < psize pi1 + psize pi2 -> prove A C)
