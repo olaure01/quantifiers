@@ -16,8 +16,14 @@ Examples files:
 * `all1.v`: sequent calculus for _first-order_ Additive Linear Logic
 * `all2.v`: sequent calculus for _second-order_ propositional Additive Linear Logic
 * `nj1.v`: natural deduction for _first-order_ Intuitionistic Logic
+* `nj1.v`: natural deduction for _second-order_ Intuitionistic Logic
 
-With **cut-elimination/normalization** proofs as main result in each case.
+Variations:
+
+* `*_ar.v`: terms with arity checks
+* `*_vec.v`: terms with vector arguments to control arities
+
+With **cut-elimination/normalization** proofs as main results.
 
 Current examples are developed in Coq, but formalization does not depend on the surrounding meta-theory and should be adaptable to (any?) proof assistant.
 
