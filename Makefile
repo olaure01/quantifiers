@@ -34,5 +34,4 @@ clean:
 all: $(VFILES:.v=.vo)
 
 nj1.vo: nj1.v fot.vo Wf_nat_more.vo
-nj2.vo: nj2.v
 all1.vo: all1.v fot.vo Wf_nat_more.vo
