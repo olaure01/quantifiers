@@ -154,11 +154,12 @@ Qed.
 
 
 
+Create HintDb term_db.
 
 Tactic Notation "rnow" tactic(t) :=
-  t ; simpl ; autorewrite with core in * ; simpl ; intuition.
+  t ; simpl ; autorewrite with term_db in * ; simpl ; intuition.
 Tactic Notation "rnow" tactic(t) "then" tactic(t1) :=
-  t ; simpl ; autorewrite with core in * ; simpl ; intuition t1 ; simpl ; intuition.
+  t ; simpl ; autorewrite with term_db in * ; simpl ; intuition t1 ; simpl ; intuition.
 
 
 
@@ -187,7 +188,7 @@ match goal with
 | |- context f [beq_hat ?x ?y] => case_eq (beq_hat x y)
 | |- context f [hatomEq.eq_dec ?x ?y] => case_eq (hatomEq.eq_dec x y)
 end.
-Ltac rcauto := simpl ; autorewrite with core in * ; simpl ; rnow case_analysis.
+Ltac rcauto := simpl ; autorewrite with term_db in * ; simpl ; rnow case_analysis.
 
 (** * First-Order Terms *)
 
@@ -249,7 +250,7 @@ Notation hclosed t := (hfreevars t = nil).
 
 Lemma hclosed_nohfreevars : forall t x, hclosed t -> ~ In x (hfreevars t).
 Proof. intros t x Hc Hin ; now rewrite Hc in Hin. Qed.
-Hint Resolve hclosed_nohfreevars.
+Hint Resolve hclosed_nohfreevars : term_db.
 
 Lemma nfree_htsubs : forall x u t, ~ In x (hfreevars t) -> htsubs x u t = t.
 Proof. hterm_induction t; try rcauto; intros Heq.
@@ -266,7 +267,7 @@ Proof. hterm_induction t; try rcauto; intros Heq.
   + intros Hf; apply Heq, in_or_app; now left.
 Qed.
 Hint Rewrite nfree_htsubs using try (intuition ; fail) ;
-                               (try apply hclosed_nohfreevars) ; intuition ; fail.
+                               (try apply hclosed_nohfreevars) ; intuition ; fail : term_db.
 
 Lemma htsubs_htsubs_com : forall x v y u, beq_hat x y = false -> ~ In x (hfreevars u) -> forall t,
   htsubs y u (htsubs x v t) = htsubs x (htsubs y u v) (htsubs y u t).
@@ -276,7 +277,7 @@ exfalso.
 now rewrite eqb_neq in H ; rewrite beq_eq_hat in H1 ; rewrite beq_eq_hat in H2 ; subst.
 Qed.
 Hint Rewrite htsubs_htsubs_com using try (intuition ; fail) ;
-                                    (try apply hclosed_nohfreevars) ; intuition ; fail.
+                                    (try apply hclosed_nohfreevars) ; intuition ; fail : term_db.
 
 
 
@@ -329,14 +330,6 @@ match A with
 | himp B C => hgood_for x y B /\ hgood_for x y C
 | hfrl z B => hgood_for x y B /\ (y <> z \/ ~ In x (hffreevars (hfrl z B)))
 end.
-(*
-Fixpoint hbinds_for x y A :=
-match A with
-| hfvar X l => False
-| himp B C => hbinds_for x y B \/ hbinds_for x y C
-| hfrl z B => hbinds_for x y B \/ (y = z /\ In x (hffreevars (hfrl z B)))
-end.
-*)
 
 (** substitutes [hterm] [u] for variable [x] in [formula] [A] *)
 (* capture is not avoided *)
@@ -349,7 +342,7 @@ end.
 
 Lemma hfsize_subs : forall u x A, hfsize (hfsubs x u A) = hfsize A.
 Proof. hformula_induction A. Qed.
-Hint Rewrite hfsize_subs.
+Hint Rewrite hfsize_subs : term_db.
 
 Inductive hprove : hformula -> Type :=
 | hprove_K : forall A B, hprove (A ⟶ B ⟶ A)
@@ -590,17 +583,6 @@ Proof. induction A; intros Hb.
     apply Forall_forall with (x:=z) in Hb; [ | assumption ].
     apply Hb.
 Qed.
-
-(*
-Fixpoint binds_for x y A :=
-match A with
-| var X l => False
-| imp B C => binds_for x y B \/ binds_for x y C
-| frl z B => binds_for x y B \/ (y = z /\ In x (ffreevars (frl z B)))
-| exs z B => binds_for x y B \/ (y = z /\ In x (ffreevars (exs z B)))
-end.
-*)
-
 
 
 

@@ -139,7 +139,7 @@ induction v ; intros HP ; constructor ;
 Qed.
 
 Lemma Forall_forall {A} : forall P n (v : t A n),
-  Forall P v <-> forall a ,In a v -> P a.
+  Forall P v <-> forall a, In a v -> P a.
 Proof.
 intros P n v ; split.
 - intros HP a Hin.

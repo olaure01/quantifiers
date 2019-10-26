@@ -47,7 +47,7 @@ end.
 Lemma fup_fup_com : forall k A,
   fup (S k) (fup 0 A) = fup 0 (fup k A).
 Proof. formula_induction A. Qed.
-Hint Rewrite fup_fup_com.
+Hint Rewrite fup_fup_com : term_db.
 
 
 (** substitutes [term] [u] for variable [x] in [formula] [A] *)
@@ -65,7 +65,7 @@ Lemma fup_subs_com : forall k x u A,
 Proof. formula_induction A.
 rnow case_eq (beq_vat x0 x) ; intros ; simpl ; f_equal.
 Qed.
-Hint Rewrite fup_subs_com.
+Hint Rewrite fup_subs_com : term_db.
 
 (** substitutes [term] [u] for index [n] in [formula] [A] *)
 (* capture is not avoided *)
@@ -80,17 +80,17 @@ end.
 Lemma nsubs_fup_com : forall k u A,
   nsubs (S k) (tup 0 u) (fup 0 A) = fup 0 (nsubs k u A).
 Proof. formula_induction A. Qed.
-Hint Rewrite nsubs_fup_com.
+Hint Rewrite nsubs_fup_com : term_db.
 
 Lemma nsubs_z_fup : forall u A, nsubs 0 u (fup 0 A) = A.
 Proof. formula_induction A. Qed.
-Hint Rewrite nsubs_z_fup.
+Hint Rewrite nsubs_z_fup : term_db.
 
 Lemma nsubs_subs_com : forall x v n u, ~ In x (freevars u) -> forall A,
   nsubs n u (subs x v A) = subs x (ntsubs n u v) (nsubs n u A).
 Proof. now formula_induction A ; rcauto ; f_equal. Qed.
 Hint Rewrite nsubs_subs_com using try (intuition ; fail) ;
-                                  (try apply closed_nofreevars) ; intuition ; fail.
+                                  (try apply closed_nofreevars) ; intuition ; fail : term_db.
 
 
 (** size of formulas *)
@@ -104,11 +104,11 @@ end.
 
 Lemma fsize_fup : forall k A, fsize (fup k A) = fsize A.
 Proof. formula_induction A. Qed.
-Hint Rewrite fsize_fup.
+Hint Rewrite fsize_fup : term_db.
 
 Lemma fsize_subs : forall u x A, fsize (subs x u A) = fsize A.
 Proof. formula_induction A. Qed.
-Hint Rewrite fsize_subs.
+Hint Rewrite fsize_subs : term_db.
 
 
 
@@ -127,7 +127,7 @@ Inductive prove : formula -> formula -> Type :=
 | wdglr { A C } : forall B, prove A C -> prove (wdg B A) C
 | frlr { x C A } : prove (fupz C) (subs x (dvar 0) (fupz A)) -> prove C (frl x A)
 | frll { x A C } : forall u, closed u -> prove (subs x u A) C -> prove (frl x A) C.
-Hint Constructors prove.
+Hint Constructors prove : term_db.
 
 (** height of proofs *)
 Fixpoint psize {A B} (pi : prove A B) : nat :=
@@ -158,10 +158,10 @@ revert n u Hc ; induction pi ; intros n u' Hc ;
   rewrite <- (freevars_tup 0) in Hc.
   destruct (IHpi (S n) (tup 0 u')) as [pi' Hs]...
   simpl ; rewrite <- Hs ; clear Hs.
-  revert pi' ; autorewrite with core.
+  revert pi' ; autorewrite with term_db.
   intros pi' ; exists (frlr pi') ; reflexivity.
 - simpl ; rewrite <- Hs ; clear Hs.
-  revert pi' ; autorewrite with core.
+  revert pi' ; autorewrite with term_db.
   rewrite <- (freevars_ntsubs n u' Hc) in e.
   intros pi' ; exists (frll _ e pi') ; reflexivity.
 Qed.
@@ -169,7 +169,7 @@ Qed.
 (** lift indexes above [k] in proof [pi] *)
 Theorem pup k {C A} (pi : prove C A) :
   { pi' : prove (fup k C) (fup k A) | psize pi' = psize pi }.
-Proof with autorewrite with core.
+Proof with autorewrite with term_db.
 revert k ; induction pi ; intros k ;
   try (destruct (IHpi k) as [pi' Hs]) ;
   try (destruct (IHpi1 k) as [pi1' Hs1]) ;
@@ -242,7 +242,7 @@ destruct pi2 ; intuition.
   + apply (frll u) ; assumption.
   + destruct (psubs 0 u e pi1) as [pi1' Hs].
     simpl in IH ; rewrite <- Hs in IH ; clear Hs.
-    revert pi1' IH ; autorewrite with core.
+    revert pi1' IH ; autorewrite with term_db.
     intros pi1' IH ; apply (IH _ _ _ pi1' pi2) ; simpl...
   + apply (frll u)...
     apply (IH _ _ _ pi1 (frll _ e0 pi2)) ; simpl...
@@ -269,7 +269,7 @@ Qed.
 
 Lemma ffreevars_fup : forall k A, ffreevars (fup k A) = ffreevars A.
 Proof. formula_induction A. Qed.
-Hint Rewrite ffreevars_fup.
+Hint Rewrite ffreevars_fup : term_db.
 
 Lemma nfree_subs : forall x u A, ~ In x (ffreevars A) -> subs x u A = A.
 Proof. formula_induction A ; try rcauto.
@@ -278,22 +278,19 @@ Proof. formula_induction A ; try rcauto.
 - rnow rewrite IHA.
   now apply H ; apply in_ffreevars_frl.
 Qed.
-Hint Rewrite nfree_subs using intuition ; fail.
+Hint Rewrite nfree_subs using intuition ; fail : term_db.
 
 
 (** * Hilbert style properties *)
 
 Lemma frl_elim : forall A u x, closed u -> prove (frl x A) (subs x u A).
-Proof.
-intros A u x Hc.
-now apply (frll u).
-Qed.
+Proof. intros A u x Hc; apply (frll u); auto with term_db. Qed.
 
 Lemma frl_wdg : forall A B x, prove (frl x (wdg A B)) (wdg (frl x A) (frl x B)).
 Proof.
 intros A B x.
-repeat constructor ; simpl ;
-  now (apply (frll (dvar 0)) ; constructor).
+repeat constructor; simpl;
+  apply (frll (dvar 0)); simpl; do 2 constructor.
 Qed.
 
 Lemma frl_nfree : forall A x, ~ In x (ffreevars A) -> prove A (frl x A).
@@ -317,8 +314,6 @@ destruct A.
 - apply topr.
 - apply wdgr ; [ apply wdgll | apply wdglr ] ; (eapply IH ; [ | reflexivity ]) ; simpl ; lia.
 - apply frlr.
-  simpl ; apply (frll (dvar 0)) ; auto.
+  simpl ; apply (frll (dvar 0)) ; auto with term_db.
 Qed.
-
-
 

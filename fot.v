@@ -4,14 +4,16 @@
 Require Export PeanoNat.
 Require Export List.
 
+Create HintDb term_db.
+
 Tactic Notation "rnow" tactic(t) :=
-  t ; simpl ; autorewrite with core in * ; simpl ; intuition.
+  t ; simpl ; autorewrite with term_db in * ; simpl ; intuition.
 Tactic Notation "rnow" tactic(t) "then" tactic(t1) :=
-  t ; simpl ; autorewrite with core in * ; simpl ; intuition t1 ; simpl ; intuition.
+  t ; simpl ; autorewrite with term_db in * ; simpl ; intuition t1 ; simpl ; intuition.
 
 Lemma ltb_S : forall n m, (S n <? S m) = (n <? m).
 Proof. reflexivity. Qed.
-Hint Rewrite ltb_S.
+Hint Rewrite ltb_S : term_db.
 
 
 (** * Different kinds of atoms *)
@@ -41,7 +43,7 @@ match goal with
 | |- context f [beq_vat ?x ?y] => case_eq (beq_vat x y)
 | |- context f [vatomEq.eq_dec ?x  ?y] => case_eq (vatomEq.eq_dec x y)
 end.
-Ltac rcauto := simpl ; autorewrite with core in * ; simpl ; rnow case_analysis.
+Ltac rcauto := simpl ; autorewrite with term_db in * ; simpl ; rnow case_analysis.
 
 
 
@@ -102,7 +104,7 @@ end.
 Lemma tup_tup_com : forall k t,
   tup (S k) (tup 0 t) = tup 0 (tup k t).
 Proof. term_induction t. Qed.
-Hint Rewrite tup_tup_com.
+Hint Rewrite tup_tup_com: term_db.
 
 (** * Term substitutions *)
 
@@ -129,20 +131,20 @@ end.
 Lemma tup_tsubs_com : forall k x u t,
   tup k (tsubs x u t) = tsubs x (tup k u) (tup k t).
 Proof. term_induction t. Qed.
-Hint Rewrite tup_tsubs_com.
+Hint Rewrite tup_tsubs_com : term_db.
 
 Lemma ntsubs_tup_com : forall k u t,
   ntsubs (S k) (tup 0 u) (tup 0 t) = tup 0 (ntsubs k u t).
 Proof. term_induction t ; rcauto.
 now destruct n ; destruct k ; inversion H.
 Qed.
-Hint Rewrite ntsubs_tup_com.
+Hint Rewrite ntsubs_tup_com : term_db.
 
 Lemma ntsubs_z_tup : forall u t, ntsubs 0 u (tup 0 t) = t.
 Proof. term_induction t.
 now rewrite <- (map_id l) at 2 ; apply map_ext_in ; apply Forall_forall.
 Qed.
-Hint Rewrite ntsubs_z_tup.
+Hint Rewrite ntsubs_z_tup : term_db.
 
 
 
@@ -158,16 +160,16 @@ Notation closed t := (freevars t = nil).
 
 Lemma closed_nofreevars : forall t x, closed t -> ~ In x (freevars t).
 Proof. intros t x Hc Hin ; now rewrite Hc in Hin. Qed.
-Hint Resolve closed_nofreevars.
+Hint Resolve closed_nofreevars : term_db.
 
 Lemma freevars_tup : forall k t, freevars (tup k t) = freevars t.
 Proof. term_induction t. Qed.
-Hint Rewrite freevars_tup.
+Hint Rewrite freevars_tup : term_db.
 
 Lemma freevars_ntsubs : forall n u, closed u -> forall t,
   freevars (ntsubs n u t) = freevars t.
 Proof. term_induction t. Qed.
-Hint Rewrite freevars_ntsubs using intuition ; fail.
+Hint Rewrite freevars_ntsubs using intuition ; fail : term_db.
 
 Lemma nfree_tsubs : forall x u t, ~ In x (freevars t) -> tsubs x u t = t.
 Proof. term_induction t ; try rcauto.
@@ -176,13 +178,13 @@ Proof. term_induction t ; try rcauto.
   rnow inversion IHl0 ; subst ; rewrite H1 ; [ f_equal | ] ; simpl in Heq.
 Qed.
 Hint Rewrite nfree_tsubs using try (intuition ; fail) ;
-                               (try apply closed_nofreevars) ; intuition ; fail.
+                               (try apply closed_nofreevars) ; intuition ; fail : term_db.
 
 Lemma ntsubs_tsubs_com : forall x v n u, ~ In x (freevars u) -> forall t,
   ntsubs n u (tsubs x v t) = tsubs x (ntsubs n u v) (ntsubs n u t).
 Proof. term_induction t. Qed.
 Hint Rewrite ntsubs_tsubs_com using try (intuition ; fail) ;
-                                    (try apply closed_nofreevars) ; intuition ; fail.
+                                    (try apply closed_nofreevars) ; intuition ; fail : term_db.
 
 Lemma tsubs_tsubs_com : forall x v y u, beq_vat x y = false -> ~ In x (freevars u) -> forall t,
   tsubs y u (tsubs x v t) = tsubs x (tsubs y u v) (tsubs y u t).
@@ -192,6 +194,5 @@ exfalso.
 now rewrite eqb_neq in H ; rewrite beq_eq_vat in H1 ; rewrite beq_eq_vat in H2 ; subst.
 Qed.
 Hint Rewrite tsubs_tsubs_com using try (intuition ; fail) ;
-                                   (try apply closed_nofreevars) ; intuition ; fail.
-
+                                   (try apply closed_nofreevars) ; intuition ; fail : term_db.
 

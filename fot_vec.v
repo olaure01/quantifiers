@@ -8,14 +8,16 @@ Require Import Vector_more.
 Notation vec := Vector.t.
 Require List.
 
+Create HintDb term_db.
+
 Tactic Notation "rnow" tactic(T) :=
-  T ; simpl ; autorewrite with core in * ; simpl ; intuition.
+  T ; simpl ; autorewrite with term_db in * ; simpl ; intuition.
 Tactic Notation "rnow" tactic(T) "then" tactic(T1) :=
-  T ; simpl ; autorewrite with core in * ; simpl ; intuition T1 ; simpl ; intuition.
+  T ; simpl ; autorewrite with term_db in * ; simpl ; intuition T1 ; simpl ; intuition.
 
 Lemma ltb_S : forall n m, (S n <? S m) = (n <? m).
 Proof. reflexivity. Qed.
-Hint Rewrite ltb_S.
+Hint Rewrite ltb_S : term_db.
 
 
 (** * Different kinds of atoms *)
@@ -46,7 +48,7 @@ match goal with
 | |- context f [beq_vat ?x ?y] => case_eq (beq_vat x y)
 | |- context f [vatomEq.eq_dec ?x  ?y] => case_eq (vatomEq.eq_dec x y)
 end.
-Ltac rcauto := simpl ; autorewrite with core in * ; simpl ; rnow case_analysis.
+Ltac rcauto := simpl ; autorewrite with term_db in * ; simpl ; rnow case_analysis.
 
 
 
@@ -106,7 +108,7 @@ end.
 Lemma tup_tup_com : forall k u,
   tup (S k) (tup 0 u) = tup 0 (tup k u).
 Proof. term_induction u. Qed.
-Hint Rewrite tup_tup_com.
+Hint Rewrite tup_tup_com : term_db.
 
 (** * Term substitutions *)
 
@@ -133,20 +135,20 @@ end.
 Lemma tup_tsubs_com : forall k x u v,
   tup k (tsubs x u v) = tsubs x (tup k u) (tup k v).
 Proof. term_induction v. Qed.
-Hint Rewrite tup_tsubs_com.
+Hint Rewrite tup_tsubs_com : term_db.
 
 Lemma ntsubs_tup_com : forall k u v,
   ntsubs (S k) (tup 0 u) (tup 0 v) = tup 0 (ntsubs k u v).
 Proof. term_induction v ; rcauto.
 now destruct n ; destruct k ; inversion H.
 Qed.
-Hint Rewrite ntsubs_tup_com.
+Hint Rewrite ntsubs_tup_com : term_db.
 
 Lemma ntsubs_z_tup : forall u v, ntsubs 0 u (tup 0 v) = v.
 Proof. term_induction v.
 now rewrite <- (map_id l) at 2 ; apply map_ext_in ; apply Forall_forall.
 Qed.
-Hint Rewrite ntsubs_z_tup.
+Hint Rewrite ntsubs_z_tup : term_db.
 
 
 
@@ -162,7 +164,7 @@ Notation closed u := (freevars u = List.nil).
 
 Lemma closed_nofreevars : forall u x, closed u -> ~ List.In x (freevars u).
 Proof. intros ? ? Hc Hin ; now rewrite Hc in Hin. Qed.
-Hint Resolve closed_nofreevars.
+Hint Resolve closed_nofreevars : term_db.
 
 Lemma freevars_tup : forall k u, freevars (tup k u) = freevars u.
 Proof.
@@ -178,7 +180,7 @@ apply inj_pairT2_nat in H1 ; subst.
 apply IHll in H3.
 simpl ; rewrite H3 ; rewrite H2 ; reflexivity.
 Qed.
-Hint Rewrite freevars_tup.
+Hint Rewrite freevars_tup : term_db.
 
 Lemma freevars_ntsubs : forall n u, closed u -> forall v,
   freevars (ntsubs n u v) = freevars v.
@@ -195,7 +197,7 @@ apply inj_pairT2_nat in H2 ; subst.
 apply IHll in H4.
 simpl ; rewrite H4 ; rewrite H3 ; reflexivity.
 Qed.
-Hint Rewrite freevars_ntsubs using intuition ; fail.
+Hint Rewrite freevars_ntsubs using intuition ; fail : term_db.
 
 Lemma nfree_tsubs : forall x u v, ~ List.In x (freevars v) -> tsubs x u v = v.
 Proof. term_induction v ; try rcauto.
@@ -205,13 +207,13 @@ Proof. term_induction v ; try rcauto.
        rewrite H2 ; [ f_equal | ] ; simpl in Heq.
 Qed.
 Hint Rewrite nfree_tsubs using try (intuition ; fail) ;
-                               (try apply closed_nofreevars) ; intuition ; fail.
+                               (try apply closed_nofreevars) ; intuition ; fail : term_db.
 
 Lemma ntsubs_tsubs_com : forall x v n u, ~ List.In x (freevars u) -> forall w,
   ntsubs n u (tsubs x v w) = tsubs x (ntsubs n u v) (ntsubs n u w).
 Proof. term_induction w. Qed.
 Hint Rewrite ntsubs_tsubs_com using try (intuition ; fail) ;
-                                    (try apply closed_nofreevars) ; intuition ; fail.
+                                    (try apply closed_nofreevars) ; intuition ; fail : term_db.
 
 Lemma tsubs_tsubs_com : forall x v y u, beq_vat x y = false -> ~ List.In x (freevars u) ->
   forall w, tsubs y u (tsubs x v w) = tsubs x (tsubs y u v) (tsubs y u w).
@@ -221,6 +223,5 @@ exfalso.
 now rewrite eqb_neq in H ; rewrite beq_eq_vat in H1 ; rewrite beq_eq_vat in H2 ; subst.
 Qed.
 Hint Rewrite tsubs_tsubs_com using try (intuition ; fail) ;
-                                   (try apply closed_nofreevars) ; intuition ; fail.
-
+                                   (try apply closed_nofreevars) ; intuition ; fail : term_db.
 
