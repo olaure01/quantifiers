@@ -148,55 +148,17 @@ Qed.
 
 
 
+Require Import fot nj1.
 
 
-
-
-
-
-Create HintDb term_db.
-
-Tactic Notation "rnow" tactic(t) :=
-  t ; simpl ; autorewrite with term_db in * ; simpl ; intuition.
-Tactic Notation "rnow" tactic(t) "then" tactic(t1) :=
-  t ; simpl ; autorewrite with term_db in * ; simpl ; intuition t1 ; simpl ; intuition.
-
-
-
-(** * Atoms *)
-
-Parameter fatom : Type. (* function symbols for [term] *)
-Parameter hatom : Type. (* variables for quantification *)
-Parameter beq_hat : hatom -> hatom -> bool. (* boolean equality on [hatom] *)
-Parameter beq_eq_hat : forall a b, beq_hat a b = true <-> a = b.
-   (* equality specification for [hatom] *)
-
-(* [vatom] presented as a type with Boolean equality *)
-Module hatomBoolEq <: Equalities.UsualBoolEq.
-Definition t := hatom.
-Definition eq := @eq hatom.
-Definition eqb := beq_hat.
-Definition eqb_eq := beq_eq_hat.
-End hatomBoolEq.
-Module hatomEq := Equalities.Make_UDTF hatomBoolEq.
-Module hatomFacts := Equalities.BoolEqualityFacts hatomEq.
-Export hatomFacts.
-
-Ltac case_analysis :=
-match goal with
-| |- context f [?x =? ?y] => case_eq (x =? y)
-| |- context f [beq_hat ?x ?y] => case_eq (beq_hat x y)
-| |- context f [hatomEq.eq_dec ?x ?y] => case_eq (hatomEq.eq_dec x y)
-end.
-Ltac rcauto := simpl ; autorewrite with term_db in * ; simpl ; rnow case_analysis.
 
 (** * First-Order Terms *)
 
 (** terms with quantifiable variables *)
 (** arity not given meaning that we have a copy of each function name for each arity *)
 Inductive hterm :=
-| hvar : hatom -> hterm
-| hconstr : fatom -> list hterm -> hterm.
+| hvar : fot.vatom -> hterm
+| hconstr : fot.tatom -> list hterm -> hterm.
 
 (** appropriate induction for [term] (with list inside): so called "nested fix" *)
 Fixpoint hterm_ind_list_Forall t :
@@ -234,7 +196,7 @@ Ltac hterm_induction t :=
 (** substitutes [term] [u] for variable [x] in [term] [t] *)
 Fixpoint htsubs x u t :=
 match t with
-| hvar y => if (beq_hat y x) then u else hvar y
+| hvar y => if (fot.beq_vat y x) then u else hvar y
 | hconstr c l => hconstr c (map (htsubs x u) l)
 end.
 
@@ -253,28 +215,27 @@ Proof. intros t x Hc Hin ; now rewrite Hc in Hin. Qed.
 Hint Resolve hclosed_nohfreevars : term_db.
 
 Lemma nfree_htsubs : forall x u t, ~ In x (hfreevars t) -> htsubs x u t = t.
-Proof. hterm_induction t; try rcauto; intros Heq.
-- assert (beq_hat x0 x = false) as Hb.
-  { case_eq (beq_hat x0 x); [ intros Heq2 | reflexivity ].
-    exfalso; apply Heq; left.
-    now apply beq_eq_hat. }
-  now rewrite Hb.
-- f_equal ; revert IHl Heq ; induction l ; intros; [ reflexivity | ].
+Proof. hterm_induction t; try rcauto.
+- exfalso.
+  apply H1.
+  now apply beq_eq_vat.
+- intros Hin.
+  f_equal ; revert IHl Hin ; induction l ; intros; [ reflexivity | ].
   inversion IHl0 ; subst.
-  simpl in Heq; simpl; rewrite H1; [ f_equal | ].
+  simpl in Hin; simpl; rewrite H1; [ f_equal | ].
   + apply IHl; [ assumption | ].
-    intros Hf; apply Heq, in_or_app; now right.
-  + intros Hf; apply Heq, in_or_app; now left.
+    intros Hf; apply Hin, in_or_app; now right.
+  + intros Hf; apply Hin, in_or_app; now left.
 Qed.
 Hint Rewrite nfree_htsubs using try (intuition ; fail) ;
                                (try apply hclosed_nohfreevars) ; intuition ; fail : term_db.
 
-Lemma htsubs_htsubs_com : forall x v y u, beq_hat x y = false -> ~ In x (hfreevars u) -> forall t,
+Lemma htsubs_htsubs_com : forall x v y u, beq_vat x y = false -> ~ In x (hfreevars u) -> forall t,
   htsubs y u (htsubs x v t) = htsubs x (htsubs y u v) (htsubs y u t).
 Proof. hterm_induction t.
-rnow case_eq (beq_hat x0 x) ; case_eq (beq_hat x0 y) then try rewrite H1 ; try rewrite H2.
+rnow case_eq (beq_vat x0 x) ; case_eq (beq_vat x0 y) then try rewrite H1 ; try rewrite H2.
 exfalso.
-now rewrite eqb_neq in H ; rewrite beq_eq_hat in H1 ; rewrite beq_eq_hat in H2 ; subst.
+now rewrite eqb_neq in H ; rewrite beq_eq_vat in H1 ; rewrite beq_eq_vat in H2 ; subst.
 Qed.
 Hint Rewrite htsubs_htsubs_com using try (intuition ; fail) ;
                                     (try apply hclosed_nohfreevars) ; intuition ; fail : term_db.
@@ -283,14 +244,12 @@ Hint Rewrite htsubs_htsubs_com using try (intuition ; fail) ;
 
 (* Formulas *)
 
-Parameter hfatom : Type.  (* relation symbols for [formula] *)
-
 (** formulas *)
 (** first-order formulas in the langage: implication, universal quantification *)
 Inductive hformula :=
-| hfvar : hfatom -> list hterm -> hformula
+| hfvar : nj1.atom -> list hterm -> hformula
 | himp : hformula -> hformula -> hformula
-| hfrl : hatom -> hformula -> hformula.
+| hfrl : fot.vatom -> hformula -> hformula.
 
 Infix "⟶" := himp (at level 70, right associativity).
 
@@ -321,7 +280,7 @@ Fixpoint hffreevars A :=
 match A with
 | hfvar _ l => concat (map hfreevars l)
 | himp B C => (hffreevars B) ++ (hffreevars C)
-| hfrl x B => remove hatomEq.eq_dec x (hffreevars B)
+| hfrl x B => remove vatomEq.eq_dec x (hffreevars B)
 end.
 
 Fixpoint hgood_for x y A :=
@@ -337,7 +296,7 @@ Fixpoint hfsubs x u A :=
 match A with
 | hfvar X l => hfvar X (map (htsubs x u) l)
 | himp B C => himp (hfsubs x u B) (hfsubs x u C)
-| hfrl y B as C => if (beq_hat y x) then C else hfrl y (hfsubs x u B)
+| hfrl y B as C => if (beq_vat y x) then C else hfrl y (hfsubs x u B)
 end.
 
 Lemma hfsize_subs : forall u x A, hfsize (hfsubs x u A) = hfsize A.
@@ -408,10 +367,6 @@ Qed.
 
 
 
-
-
-
-Require Import fot nj1.
 
 Lemma tsubs_tsubs_eq : forall x u v t, tsubs x u (tsubs x v t) = tsubs x (tsubs x u v) t.
 Proof. term_induction t; now case_eq (beq_vat x0 x); simpl; intros Heq; [ | rewrite Heq ]. Qed.
@@ -591,13 +546,13 @@ Qed.
 
 
 Lemma hfreevars_tsubs_closed : forall x u, hclosed u -> forall t,
-  hfreevars (htsubs x u t) = remove hatomEq.eq_dec x (hfreevars t).
+  hfreevars (htsubs x u t) = remove vatomEq.eq_dec x (hfreevars t).
 Proof. hterm_induction t.
-- case_eq (beq_hat x0 x); intros Heq.
-  + apply beq_eq_hat in Heq; subst.
-    now destruct (hatomEq.eq_dec x x); [ | exfalso; apply n ].
-  + apply hatomFacts.eqb_neq in Heq.
-    destruct (hatomEq.eq_dec x x0).
+- case_eq (beq_vat x0 x); intros Heq.
+  + apply beq_eq_vat in Heq; subst.
+    now destruct (vatomEq.eq_dec x x); [ | exfalso; apply n ].
+  + apply vatomFacts.eqb_neq in Heq.
+    destruct (vatomEq.eq_dec x x0).
     * exfalso; now apply Heq.
     * reflexivity.
 - revert IHl; induction l; simpl; intros Hl; [ reflexivity | ].
@@ -626,7 +581,7 @@ Lemma hfreevars_to_tsubs : forall t a x u,
   In x (hfreevars t) -> In a (hfreevars u) -> In a (hfreevars (htsubs x u t)).
 Proof. hterm_induction t; intros a y u Hin1 Hin2.
 - destruct Hin1 as [Hin1|Hin1]; [ | inversion Hin1 ].
-  now apply beq_eq_hat in Hin1; rewrite Hin1.
+  now apply beq_eq_vat in Hin1; rewrite Hin1.
 - revert IHl Hin1; induction l; simpl; intros Hl Hin; [ inversion Hin | ].
   inversion Hl; subst.
   apply in_or_app; apply in_app_or in Hin; destruct Hin as [Hin|Hin]; [ left | right ].
@@ -648,23 +603,23 @@ Proof. hformula_induction A.
   apply in_or_app; apply in_app_or in H0; destruct H0 as [Hin|Hin]; [ left | right ].
   + now apply A1.
   + now apply IHA1.
-- case_eq (beq_hat x x0); intros Heq; simpl.
+- case_eq (beq_vat x x0); intros Heq; simpl.
   + exfalso.
-    apply beq_eq_hat in Heq; subst.
+    apply beq_eq_vat in Heq; subst.
     now apply remove_In in H0.
-  + case_eq (beq_hat a x); intros Heq2.
+  + case_eq (beq_vat a x); intros Heq2.
     * exfalso.
-      apply beq_eq_hat in Heq2; subst.
-      apply hatomFacts.eqb_neq in Heq.
+      apply beq_eq_vat in Heq2; subst.
+      apply vatomFacts.eqb_neq in Heq.
       apply in_remove in H0.
       apply Forall_forall with (x:=x) in H; [ | assumption ].
       destruct H as [_ [HF|HF]]; [ now apply HF | apply HF ].
       apply notin_remove; [ now intros Heq2; apply Heq | apply H0 ].
-    * apply hatomFacts.eqb_neq in Heq2.
+    * apply vatomFacts.eqb_neq in Heq2.
       apply notin_remove; [ assumption | ].
       apply IHA; try assumption.
       -- now apply Forall_and in H.
-      -- apply hatomFacts.eqb_neq in Heq.
+      -- apply vatomFacts.eqb_neq in Heq.
          now apply in_remove in H0.
 Qed.
 
@@ -675,40 +630,15 @@ Qed.
 
 (* From Hilbert to Natural Deduction *)
 
-Import EqNotations.
-Axiom h2n_funat : fatom = tatom.
-Axiom h2n_at : hatom = vatom.
-Axiom h2n_fat : hfatom = atom.
-
-Lemma beq_hat_vat : forall x0 x, beq_hat x0 x = beq_vat (rew [id] h2n_at in x0) (rew [id] h2n_at in x).
-Proof.
-intros x0 x.
-case_eq (beq_hat x0 x); intros Heq.
-- apply beq_eq_hat in Heq; subst.
-  now symmetry; apply beq_eq_vat.
-- apply hatomFacts.eqb_neq in Heq.
-  symmetry; apply vatomFacts.eqb_neq.
-  intros Heq2; apply Heq.
-  rewrite <- (rew_opp_l id h2n_at x0).
-  rewrite Heq2.
-  now rewrite rew_opp_l.
-Qed.
-
 Fixpoint h2n_term t :=
 match t with
-| hvar x => tvar (rew [id] h2n_at in x)
-| hconstr f l => tconstr (rew [id] h2n_funat in f) (map h2n_term l)
+| hvar x => tvar x
+| hconstr f l => tconstr f (map h2n_term l)
 end.
 
 
-Lemma h2n_freevars : forall t, freevars (h2n_term t) = map (fun x => rew [id] h2n_at in x) (hfreevars t).
-Proof.
-hterm_induction t.
-revert IHl; induction l; simpl; intros Hl; [ reflexivity | ].
-rewrite map_app.
-inversion Hl; subst.
-now rewrite IHl; f_equal.
-Qed.
+Lemma h2n_freevars : forall t, freevars (h2n_term t) = hfreevars t.
+Proof. hterm_induction t. Qed.
 
 Lemma h2n_closed : forall t, hclosed t <-> closed (h2n_term t).
 Proof.
@@ -717,7 +647,7 @@ intros t; rewrite h2n_freevars; destruct (hfreevars t); simpl; split; intros Heq
 Qed.
 
 Lemma h2n_tsubs : forall x u t,
-  h2n_term (htsubs x u t) = tsubs (rew [id] h2n_at in x) (h2n_term u) (h2n_term t).
+  h2n_term (htsubs x u t) = tsubs x (h2n_term u) (h2n_term t).
 Proof. hterm_induction t; rewrite <- beq_hat_vat; now case_eq (beq_hat x0 x); intros Heqb. Qed.
 
 Lemma h2n_tup : forall k t, tup k (h2n_term t) = h2n_term t.
@@ -726,25 +656,13 @@ Proof. hterm_induction t. Qed.
 
 Fixpoint h2n_formula A :=
 match A with
-| hfvar X l => var (rew [id] h2n_fat in X) (map h2n_term l)
+| hfvar X l => var X (map h2n_term l)
 | himp B C => imp (h2n_formula B) (h2n_formula C)
-| hfrl y B => frl (rew [id] h2n_at in y) (h2n_formula B)
+| hfrl y B => frl y (h2n_formula B)
 end.
 
-Lemma h2n_ffreevars : forall A, ffreevars (h2n_formula A) = map (fun x => rew [id] h2n_at in x) (hffreevars A).
-Proof.
-hformula_induction A; try rewrite map_app; f_equal; try assumption.
-- apply h2n_freevars.
-- rewrite IHA.
-  remember (hffreevars A) as l; clear; induction l; simpl; [ reflexivity | ].
-  case_eq (vatomEq.eq_dec (rew [id] h2n_at in x) (rew [id] h2n_at in a)); intros; simpl.
-  + rewrite IHl; f_equal.
-    case_eq (hatomEq.eq_dec x a); intros; subst; [ reflexivity | exfalso ].
-    apply n.
-    rewrite <- (rew_opp_l id h2n_at x); rewrite e; now rewrite rew_opp_l.
-  + rewrite IHl.
-    now case_eq (hatomEq.eq_dec x a); intros; subst; [ exfalso | reflexivity ].
-Qed.
+Lemma h2n_ffreevars : forall A, ffreevars (h2n_formula A) = hffreevars A.
+Proof. hformula_induction A; try rewrite map_app; f_equal; try assumption; apply h2n_freevars. Qed.
 
 Lemma h2n_fclosed : forall A, hffreevars A = nil <-> ffreevars (h2n_formula A) = nil.
 Proof.
@@ -753,28 +671,14 @@ intros A; rewrite h2n_ffreevars; destruct (hffreevars A); simpl; split; intros H
 Qed.
 
 Lemma h2n_fsubs : forall x u A,
-  h2n_formula (hfsubs x u A) = subs (rew [id] h2n_at in x) (h2n_term u) (h2n_formula A).
+  h2n_formula (hfsubs x u A) = subs x (h2n_term u) (h2n_formula A).
 Proof. hformula_induction A.
 - apply h2n_tsubs.
-- rewrite <- beq_hat_vat.
-  now case_eq (beq_hat x0 x); intros Heqb; simpl; [ | rewrite IHA ].
+- now case_eq (beq_vat x0 x); intros Heqb; simpl; [ | rewrite IHA ].
 Qed.
 
 Lemma h2n_fup : forall k A, fup k (h2n_formula A) = h2n_formula A.
 Proof. hformula_induction A; apply h2n_tup. Qed.
-
-Lemma h2n_remove : forall x l,
-   map (fun y => rew <- [id] h2n_at in y) (remove vatomEq.eq_dec (rew [id] h2n_at in x) l)
- = remove hatomEq.eq_dec x (map (fun y => rew <- [id] h2n_at in y) l).
-Proof.
-induction l; simpl; [ reflexivity | ].
-destruct (vatomEq.eq_dec (rew [id] h2n_at in x) a); subst; simpl.
-- rewrite ? rew_opp_l.
-  now destruct (hatomEq.eq_dec x x); [ subst | now exfalso ].
-- destruct (hatomEq.eq_dec x (rew <- [id] h2n_at in a));
-    [ exfalso; now apply n; subst; rewrite rew_opp_r | ].
-  now f_equal.
-Qed.
 
 Fixpoint remove_snd {T : Type} x (L : list (vatom * T)) :=
 match L with
@@ -1003,111 +907,6 @@ case_eq (beq_vat x v0); simpl; intros Heq; rewrite <- IHL; try assumption.
          ++ assumption.
 Qed.
 
-(*
-Lemma multi_subs_subs : forall L x v, ~ In x (map fst L) ->
-  Forall (fun z : term => closed z) (map snd L) ->
-  forall A, Forall (fun y => good_for x y A) (freevars v) ->
-  multi_subs L (subs x v A) = subs x (multi_tsubs L v) (multi_subs L A).
-Proof.
-induction L; simpl; intros x v Hin Hc A Hb; [ reflexivity | ].
-destruct a; simpl; simpl in Hc, Hin; inversion Hc; subst.
-rewrite <- IHL; try assumption.
-- f_equal; apply subs_subs_com_good; try assumption.
-  apply eqb_neq; intros Heq; apply Hin; now left.
-- intros Hin2; apply Hin; now right.
-- apply Forall_forall; intros z Hinz.
-  apply freevars_tsubs in Hinz.
-  destruct Hinz as [Hinz|Hinz].
-  { exfalso; rewrite H1 in Hinz; inversion Hinz. }
-  apply Forall_forall with (x := z) in Hb; [ | assumption ].
-  assert (v0 <> x) as Heq by (intros Heq; apply Hin; now left).
-  revert H1 Hb Heq; clear; induction A; simpl; intros Hc Hb Heq.
-  + constructor.
-  + now destruct Hb as [Hb1 Hb2]; split; [ apply IHA1 | apply IHA2 ].
-  + case_eq (beq_vat v v0); intros Heq2; simpl.
-    * assumption.
-    * destruct Hb as [Hb [nHneq | Hf]].
-      -- now split; [ apply IHA | left ].
-      -- split; [ now apply IHA | right ].
-         enough (In x (ffreevars (subs v0 t A)) -> In x (ffreevars A)) as Himp.
-         { intros Hin.
-           apply in_remove in Hin; destruct Hin as [Hin Hneq].
-           apply Himp in Hin.
-           apply notin_remove with vatomEq.eq_dec (ffreevars A) x v in Hin; [ | assumption ].
-           now revert Hin. }
-         intros Hin; apply ffreevars_subs in Hin.
-         destruct Hin as [Hin|Hin].
-         ++ rewrite Hc in Hin; inversion Hin.
-         ++ assumption.
-  + case_eq (beq_vat v v0); intros Heq2; simpl.
-    * assumption.
-    * destruct Hb as [Hb [nHneq | Hf]].
-      -- now split; [ apply IHA | left ].
-      -- split; [ now apply IHA | right ].
-         enough (In x (ffreevars (subs v0 t A)) -> In x (ffreevars A)) as Himp.
-         { intros Hin.
-           apply in_remove in Hin; destruct Hin as [Hin Hneq].
-           apply Himp in Hin.
-           apply notin_remove with vatomEq.eq_dec (ffreevars A) x v in Hin; [ | assumption ].
-           now revert Hin. }
-         intros Hin; apply ffreevars_subs in Hin.
-         destruct Hin as [Hin|Hin].
-         ++ rewrite Hc in Hin; inversion Hin.
-         ++ assumption.
-Qed.
-*)
-
-(*
-Lemma multi_subs_subs : forall A L x v, ~ In x (map fst L) ->
-  Forall (fun z : term => closed z) (map snd L) -> closed v ->
-  multi_subs L (subs x v A) = subs x (multi_tsubs L v) (multi_subs L A).
-Proof. formula_induction A.
-- simpl; rewrite 2 multi_subs_var; simpl; f_equal.
-  rewrite 2 map_map; apply map_ext.
-  apply multi_tsubs_tsubs; [ assumption | ].
-  revert H0; clear; induction L; constructor; inversion H0; subst.
-  + rewrite H2; intros Hin; inversion Hin.
-  + now apply IHL.
-- now simpl; rewrite 2 multi_subs_imp; rewrite A1, IHA1; simpl.
-- simpl; rewrite multi_subs_frl.
-  case_eq (beq_vat x x0); intros Heq; simpl; rewrite Heq; rewrite multi_subs_frl; try reflexivity; f_equal.
-  rewrite IHA; try assumption; f_equal.
-  + now rewrite 2 multi_tsubs_closed.
-  + apply eqb_neq in Heq.
-   intros Hin; apply H; revert Heq Hin; clear; induction L; simpl; intros Hneq Hin.
-   * assumption.
-   * destruct a; simpl in Hin; simpl.
-     case_eq (beq_vat x v); intros Heq; rewrite Heq in Hin.
-     -- right; now apply IHL.
-     -- now inversion Hin; [ left | right; apply IHL ].
-  + revert H0; clear; induction L; intros HF; simpl.
-    * constructor.
-    * destruct a; simpl; simpl in HF; inversion HF; subst.
-      case_eq (beq_vat x v); intros Heq.
-      -- now apply IHL.
-      -- simpl; constructor; try assumption.
-         now apply IHL.
-- simpl; rewrite multi_subs_exs.
-  case_eq (beq_vat x x0); intros Heq; simpl; rewrite Heq; rewrite multi_subs_exs; try reflexivity; f_equal.
-  rewrite IHA; try assumption; f_equal.
-  + now rewrite 2 multi_tsubs_closed.
-  + apply eqb_neq in Heq.
-   intros Hin; apply H; revert Heq Hin; clear; induction L; simpl; intros Hneq Hin.
-   * assumption.
-   * destruct a; simpl in Hin; simpl.
-     case_eq (beq_vat x v); intros Heq; rewrite Heq in Hin.
-     -- right; now apply IHL.
-     -- now inversion Hin; [ left | right; apply IHL ].
-  + revert H0; clear; induction L; intros HF; simpl.
-    * constructor.
-    * destruct a; simpl; simpl in HF; inversion HF; subst.
-      case_eq (beq_vat x v); intros Heq.
-      -- now apply IHL.
-      -- simpl; constructor; try assumption.
-         now apply IHL.
-Qed.
-*)
-
 Lemma multi_subs_remove : forall L A x,
   Forall (fun z : term => closed z) (map snd L) ->
   ~ In x (ffreevars A) -> multi_subs (remove_snd x L) A = multi_subs L A.
@@ -1135,7 +934,7 @@ Proof. now induction L; simpl; intros k A; [ reflexivity | rewrite IHL ]; rewrit
 
 Lemma multi_subs_ext : forall L A,
   Forall (fun z : term => closed z) (map snd L) ->
-  incl (hffreevars A) (map (fun z => rew <- [id] h2n_at in fst z) L) ->
+  incl (hffreevars A) (map fst L) ->
 forall L', multi_subs L (h2n_formula A) = multi_subs (L ++ L') (h2n_formula A).
 Proof.
 intros L A Hcl Hsub L'.
@@ -1147,48 +946,16 @@ rewrite multi_subs_closed
   revert Hsub; clear; induction L; intros Hincl z Hinz.
   + exfalso.
     rewrite h2n_ffreevars in Hinz.
-    rewrite <- (rew_opp_r id h2n_at z) in Hinz.
-    unfold incl in Hincl; specialize Hincl with (rew <- [id] h2n_at in z).
-    assert (In (rew <- [id] h2n_at in z) (hffreevars A)) as HA.
-    { remember (hffreevars A) as l; clear - Hinz.
-      rewrite <- (rew_opp_r id h2n_at z).
-      apply (in_map (fun x => rew <- [id] h2n_at in x)) in Hinz.
-      rewrite map_map in Hinz.
-      assert (map (fun x => rew <- [id] h2n_at in rew [id] h2n_at in x) l = l).
-      { rewrite <- (map_id l); rewrite map_map.
-        apply map_ext; intros a; now rewrite rew_opp_l. }
-      now rewrite H in Hinz. }
-    apply Hincl in HA; inversion HA.
+    apply Hincl in Hinz; inversion Hinz.
   + rewrite h2n_ffreevars in Hinz.
-    rewrite <- (rew_opp_r id h2n_at z) in Hinz.
-    unfold incl in Hincl; specialize Hincl with (rew <- [id] h2n_at in z).
-    assert (In (rew <- [id] h2n_at in z) (hffreevars A)) as HA.
-    { remember (hffreevars A) as l; clear - Hinz.
-      rewrite <- (rew_opp_r id h2n_at z).
-      apply (in_map (fun x => rew <- [id] h2n_at in x)) in Hinz.
-      rewrite map_map in Hinz.
-      assert (map (fun x => rew <- [id] h2n_at in rew [id] h2n_at in x) l = l).
-      { rewrite <- (map_id l); rewrite map_map.
-        apply map_ext; intros a; now rewrite rew_opp_l. }
-      now rewrite H in Hinz. }
-    apply Hincl in HA; inversion HA; [left|right].
-    * destruct a; simpl in H; simpl.
-      rewrite <- (rew_opp_r id h2n_at i); rewrite H.
-      now rewrite rew_opp_r.
-    * clear - H.
-      rewrite <- (rew_opp_r id h2n_at z).
-      apply (in_map (fun x => rew [id] h2n_at in x)) in H.
-      rewrite map_map in H.
-      assert (map (fun x => rew [id] h2n_at in rew <- [id] h2n_at in fst x) L = map (fun z0  => fst z0) L).
-      { apply map_ext; intros a; now rewrite rew_opp_r. }
-      now rewrite H0 in H.
+    now apply Hincl in Hinz.
 Qed.
 
 
 
 Proposition h2n : forall A, hprove A ->
   forall L, Forall (fun z => closed z) (map snd L) ->
-            incl (hffreevars A) (map (fun z => rew <- [id] h2n_at in fst z) L) ->
+            incl (hffreevars A) (map fst L) ->
   prove nil (multi_subs L (h2n_formula A)).
 Proof.
 intros A pi; induction pi; intros L Hcl Hsub;
@@ -1210,7 +977,7 @@ intros A pi; induction pi; intros L Hcl Hsub;
         with ((AA :: nil) ++ imp AA BB :: imp AA (imp BB CC) :: nil).
       apply ax.
     * apply ax_hd.
-- remember (map (fun x => (rew [id] h2n_at in x, dvar 0)) (hffreevars A)) as LA.
+- remember (map (fun x => (x, dvar 0)) (hffreevars A)) as LA.
   remember (multi_subs (L ++ LA) (h2n_formula A)) as AAA.
   apply (impe AAA).
   + specialize IHpi1 with (L ++ LA).
@@ -1222,7 +989,7 @@ intros A pi; induction pi; intros L Hcl Hsub;
       -- subst LA; remember (hffreevars A) as l; clear; induction l; simpl.
          ++ apply incl_refl.
          ++ apply incl_cons; [ | now apply incl_tl ].
-            constructor; now rewrite rew_opp_l.
+            now constructor.
       -- assumption.
   + subst AAA; apply IHpi2.
     * rewrite map_app; apply Forall_app; [ assumption | subst LA ].
@@ -1231,52 +998,30 @@ intros A pi; induction pi; intros L Hcl Hsub;
       subst LA; remember (hffreevars A) as l; clear; induction l; simpl.
       -- apply incl_refl.
       -- apply incl_cons; [ | now apply incl_tl ].
-         constructor; now rewrite rew_opp_l.
+         now constructor.
 - rewrite multi_subs_frl.
   rewrite h2n_fsubs.
   rewrite multi_subs_subs; try assumption.
-  + destruct (in_dec vatomEq.eq_dec (rew [id] h2n_at in x) (ffreevars (h2n_formula A))) as [Hf|Hf].
+  + destruct (in_dec vatomEq.eq_dec x (ffreevars (h2n_formula A))) as [Hf|Hf].
     * apply frle.
       -- clear - f Hcl Hsub Hf.
          apply multi_tsubs_is_closed; [ assumption | ].
          intros a Hin.
-         unfold incl in Hsub; specialize Hsub with (rew <- [id] h2n_at in a); simpl in Hsub.
-         assert (In (rew <- [id] h2n_at in a) (hffreevars (hfsubs x t A))) as HvA.
+         unfold incl in Hsub; specialize Hsub with a; simpl in Hsub.
+         assert (In a (hffreevars (hfsubs x t A))) as HvA.
          { rewrite h2n_ffreevars in Hf.
-           apply (in_map (fun x => rew <- [id] h2n_at in x)) in Hin.
            rewrite h2n_freevars in Hin.
-           rewrite map_map in Hin.
-           assert (map (fun x => rew <- [id] h2n_at in rew [id] h2n_at in x) (hfreevars t)
-                 = map id (hfreevars t)) as Hmap
-             by now apply map_ext; intros z; rewrite rew_opp_l.
-           rewrite map_id in Hmap.
-           rewrite Hmap in Hin; clear Hmap.
-           apply (in_map (fun x => rew <- [id] h2n_at in x)) in Hf.
-           rewrite map_map in Hf.
-           assert (map (fun x => rew <- [id] h2n_at in rew [id] h2n_at in x) (hffreevars A)
-                 = map id (hffreevars A)) as Hmap
-             by now apply map_ext; intros z; rewrite rew_opp_l.
-           rewrite map_id in Hmap.
-           rewrite Hmap in Hf; clear Hmap.
-           rewrite rew_opp_l in Hf.
            now apply hffreevars_to_subs. }
-         eapply or_intror in HvA; apply in_or_app in HvA; eapply Hsub in HvA.
-         apply (in_map (fun x => rew [id] h2n_at in x)) in HvA.
-         rewrite map_map in HvA.
-         assert (map (fun x => rew [id] h2n_at in rew <- [id] h2n_at in fst x) L = map (fun z => fst z) L)
-           as Hmap by now apply map_ext; intros z; rewrite rew_opp_r.
-         rewrite Hmap in HvA.
-         now rewrite <- (rew_opp_r id h2n_at a).
+         now eapply or_intror in HvA; apply in_or_app in HvA; eapply Hsub in HvA.
       -- apply ax_hd.
-    * assert (~ In (rew [id] h2n_at in x)
-                   (ffreevars (multi_subs (remove_snd (rew [id] h2n_at in x) L) (h2n_formula A)))) as Hnin.
+    * assert (~ In x (ffreevars (multi_subs (remove_snd x L) (h2n_formula A)))) as Hnin.
       { intros Hin; apply Hf; apply multi_subs_ffreevars in Hin; try assumption.
         clear - Hcl; apply Forall_forall; intros a Hin.
         apply Forall_forall with (x:=a) in Hcl; [ assumption | ].
         revert Hin; clear; induction L; simpl; intros Hin.
         - inversion Hin.
         - destruct a0; simpl; simpl in Hin.
-          case_eq (beq_vat (rew [id] h2n_at in x) i); intros Heq; rewrite Heq in Hin.
+          case_eq (beq_vat x v); intros Heq; rewrite Heq in Hin.
           + now right; apply IHL.
           + inversion Hin as [Hin'|Hin']; simpl in Hin'.
             * now left.
@@ -1287,119 +1032,54 @@ intros A pi; induction pi; intros L Hcl Hsub;
       rewrite nfree_subs by assumption.
       apply ax_hd.
   + apply Forall_forall; intros z Hinz.
-    apply Forall_forall with (x:=rew <- [id] h2n_at in z) in f.
+    apply Forall_forall with (x:=z) in f.
     * revert f; clear; hformula_induction A.
-      -- left; intros Heq; apply H1; subst.
-         now rewrite rew_opp_l.
-      -- right; intros Hin; apply H1.
-         revert Hin; clear; hformula_induction A.
-         ++ rewrite map_map in Hin.
-            rewrite <- (rew_opp_l id h2n_at x).
-            apply (in_map (fun x => rew <- [id] h2n_at in x)) in Hin.
-            rewrite h2n_remove in Hin.
-            rewrite concat_map in Hin.
-            rewrite map_map in Hin.
-            assert (map (fun x => map (fun y => rew <- [id] h2n_at in y) (freevars (h2n_term x))) l
-                  = map hfreevars l) as Heq.
-            { apply map_ext; intros a.
-              rewrite h2n_freevars, map_map.
-              replace (hfreevars a) with (map id (hfreevars a)) at 2 by apply map_id.
-              apply map_ext; intros b; now rewrite rew_opp_l. }
-            now rewrite <- Heq.
-         ++ rewrite remove_app in Hin; apply in_app_or in Hin.
-            rewrite remove_app; apply in_or_app.
-            now destruct Hin as [Hin|Hin]; [ left; apply A1 | right; apply IHA1 ].
-         ++ clear IHA.
-            rewrite h2n_ffreevars in Hin.
-            rewrite <- (rew_opp_l id h2n_at x).
-            apply (in_map (fun x => rew <- [id] h2n_at in x)) in Hin.
-            rewrite 2 h2n_remove in Hin.
-            rewrite map_map in Hin.
-            assert (map (fun x => rew <- [id] h2n_at in rew [id] h2n_at in x) (hffreevars A)
-                  = map id (hffreevars A)) as Heq.
-            { apply map_ext; intros a; now rewrite rew_opp_l. }
-            rewrite map_id in Heq.
-            now rewrite <- Heq.
-    * revert Hinz; clear; hterm_induction t; intros Hin.
-      -- destruct Hin; subst.
-         ++ left; now rewrite rew_opp_l.
-         ++ inversion H.
-      -- revert IHl Hin; induction l; simpl; intros Hl Hin.
-         ++ inversion Hin.
-         ++ inversion Hl; subst.
-            apply in_app_or in Hin.
-            apply in_or_app.
-            now destruct Hin as [Hin|Hin]; [left; apply H1 |right; apply IHl].
+      right; intros Hin; apply H1.
+      now rewrite <- h2n_ffreevars.
+    * now rewrite <- h2n_freevars.
 - rewrite ? multi_subs_frl.
-  rewrite <- multi_subs_remove with (x:=rew [id] h2n_at in x) in HeqAA; try assumption.
+  rewrite <- multi_subs_remove with (x:=x) in HeqAA; try assumption.
   + apply frli; simpl.
     apply impe with (fupz AA); [ | apply ax_hd ].
     rewrite multi_subs_imp; simpl; rewrite <- HeqAA.
-    replace (imp (fupz AA) (subs (rew [id] h2n_at in x) (dvar 0)
-                                (fupz (multi_subs (remove_snd (rew [id] h2n_at in x) L) (h2n_formula B)))))
-       with (imp (subs (rew [id] h2n_at in x) (dvar 0) (fupz AA))
-                           (subs (rew [id] h2n_at in x) (dvar 0)
-                                 (fupz (multi_subs (remove_snd (rew [id] h2n_at in x) L) (h2n_formula B))))).
+    replace (imp (fupz AA) (subs x (dvar 0)
+                                (fupz (multi_subs (remove_snd x L) (h2n_formula B)))))
+       with (imp (subs x (dvar 0) (fupz AA))
+                           (subs x (dvar 0)
+                                 (fupz (multi_subs (remove_snd x L) (h2n_formula B))))).
     2:{ f_equal.
-        enough (~ In (rew [id] h2n_at in x) (ffreevars (fupz AA))) as Hf by now apply nfree_subs.
+        enough (~ In x (ffreevars (fupz AA))) as Hf by now apply nfree_subs.
         intros Hin; apply n; clear - Hcl HeqAA Hin.
-        rewrite ffreevars_fup in Hin.
-        apply (in_map (fun x => rew <- [id] h2n_at in x)) in Hin.
-        rewrite <- (rew_opp_l id h2n_at x).
-        assert (map (fun x => rew <- [id] h2n_at in x) (map (fun x => rew [id] h2n_at in x) (hffreevars A))
-              = map id (hffreevars A)) as Heq.
-        { rewrite map_map; apply map_ext; intros a; now rewrite rew_opp_l. }
-        rewrite map_id in Heq.
-        rewrite <- Heq.
-        rewrite <- h2n_ffreevars.
-        subst; remember (h2n_formula A) as B; clear - Hcl Hin; rewrite rew_opp_l in Hin; rewrite rew_opp_l.
-        revert B Hcl Hin; induction L; simpl; intros A Hcl Hin; [ assumption | ].
-        destruct a; simpl in Hin, Hcl; inversion Hcl; subst.
-        case_eq (beq_vat (rew [id] h2n_at in x) i); intros Heq; rewrite Heq in Hin.
-        - now apply IHL.
-        - simpl in Hin; apply IHL in Hin; [ | assumption ].
-          apply (in_map (fun x => rew [id] h2n_at in x)) in Hin.
-          rewrite map_map in Hin.
-          assert (map (fun x : id vatom => rew [id] h2n_at in rew <- [id] h2n_at in x) (ffreevars (subs i t A))
-                = map id (ffreevars (subs i t A))) as Hr.
-          { apply map_ext; intros a; now rewrite rew_opp_r. }
-          rewrite map_id in Hr.
-          rewrite Hr in Hin.
-          apply ffreevars_subs in Hin.
-          destruct Hin as [Hin|Hin].
-          + exfalso; rewrite H1 in Hin; inversion Hin.
-          + apply (in_map (fun x => rew <- [id] h2n_at in x)) in Hin.
-            now rewrite rew_opp_l in Hin. }
-    change (imp (subs (rew [id] h2n_at in x) (dvar 0) (fupz AA))
-                (subs (rew [id] h2n_at in x) (dvar 0)
-                      (fupz (multi_subs (remove_snd (rew [id] h2n_at in x) L) (h2n_formula B)))))
-      with (subs (rew [id] h2n_at in x) (dvar 0) (imp (fupz AA)
-                      (fupz (multi_subs (remove_snd (rew [id] h2n_at in x) L) (h2n_formula B))))).
+        rewrite ffreevars_fup in Hin; subst.
+        apply multi_subs_ffreevars in Hin.
+        - now rewrite <- h2n_ffreevars.
+        - revert Hcl; clear; induction L; simpl; intros Hcl; [ constructor | ].
+          destruct a; simpl; simpl in Hcl; inversion Hcl; subst.
+          case_eq (beq_vat x v); intros Heq; simpl.
+          + now apply IHL.
+          + constructor; auto. }
+    change (imp (subs x (dvar 0) (fupz AA))
+                (subs x (dvar 0)
+                      (fupz (multi_subs (remove_snd x L) (h2n_formula B)))))
+      with (subs x (dvar 0) (imp (fupz AA)
+                      (fupz (multi_subs (remove_snd x L) (h2n_formula B))))).
     apply frle; [ reflexivity | ].
-    change (fupz AA :: frl (rew [id] h2n_at in x)
-              (imp (fupz AA) (fupz (multi_subs (remove_snd (rew [id] h2n_at in x) L) (h2n_formula B)))) :: nil)
-      with ((fupz AA :: nil) ++ frl (rew [id] h2n_at in x)
-              (imp (fupz AA) (fupz (multi_subs (remove_snd (rew [id] h2n_at in x) L) (h2n_formula B)))) :: nil).
+    change (fupz AA :: frl x
+              (imp (fupz AA) (fupz (multi_subs (remove_snd x L) (h2n_formula B)))) :: nil)
+      with ((fupz AA :: nil) ++ frl x
+              (imp (fupz AA) (fupz (multi_subs (remove_snd x L) (h2n_formula B)))) :: nil).
     apply ax.
   + intros Hin; apply n; clear - Hin.
-    rewrite h2n_ffreevars in Hin.
-    rewrite <- (rew_opp_l id h2n_at x).
-    apply (in_map (fun x => rew <- [id] h2n_at in x)) in Hin.
-    rewrite map_map in Hin.
-    assert (map (fun x => rew <- [id] h2n_at in rew [id] h2n_at in x) (hffreevars A) = map id (hffreevars A))
-      as Heq.
-    { apply map_ext; intros a; now rewrite rew_opp_l. }
-    rewrite map_id in Heq.
-    now rewrite <- Heq.
+    now rewrite h2n_ffreevars in Hin.
 - rewrite multi_subs_frl.
   apply frli; simpl.
   rewrite fup_multi_subs.
   rewrite h2n_fup.
-  replace (subs (rew [id] h2n_at in x) (dvar 0)
-          (multi_subs (map (fun x0=> (fst x0, tup 0 (snd x0))) (remove_snd (rew [id] h2n_at in x) L))
+  replace (subs x (dvar 0)
+          (multi_subs (map (fun x0=> (fst x0, tup 0 (snd x0))) (remove_snd x L))
              (h2n_formula A)))
-     with (multi_subs ((map (fun x0 => (fst x0, tup 0 (snd x0))) (remove_snd (rew [id] h2n_at in x) L) ++
-             (rew [id] h2n_at in x, dvar 0) :: nil)) (h2n_formula A))
+     with (multi_subs ((map (fun x0 => (fst x0, tup 0 (snd x0))) (remove_snd x L) ++
+             (x, dvar 0) :: nil)) (h2n_formula A))
     by now unfold multi_subs; rewrite fold_left_app; simpl.
   apply IHpi.
   + rewrite map_app; apply Forall_app.
@@ -1407,7 +1087,7 @@ intros A pi; induction pi; intros L Hcl Hsub;
       revert Hcl; clear; induction L; simpl; intros HF; [ now constructor | ].
       inversion HF; subst.
       destruct a; simpl; simpl in H1.
-      case_eq (beq_vat (rew [id] h2n_at in x) i); intros Heq; simpl.
+      case_eq (beq_vat x v); intros Heq; simpl.
       -- now apply IHL.
       -- constructor; [ | now apply IHL ].
          now rewrite freevars_tup.
@@ -1415,19 +1095,13 @@ intros A pi; induction pi; intros L Hcl Hsub;
   + clear - Hsub; simpl in Hsub.
     intros a Hin.
     rewrite map_app; apply in_or_app.
-    destruct (hatomEq.eq_dec x a); subst; [ right | left ]; simpl.
-    * now left; rewrite rew_opp_l.
+    destruct (vatomEq.eq_dec x a); subst; [ right | left ]; simpl.
+    * now left.
     * unfold incl in Hsub; specialize Hsub with a.
-      apply notin_remove with hatomEq.eq_dec _ _ x in Hin; [ | intros Heq; now apply n ].
+      apply notin_remove with vatomEq.eq_dec _ _ x in Hin; [ | intros Heq; now apply n ].
       apply Hsub in Hin.
       rewrite map_map; simpl.
-      apply notin_remove with hatomEq.eq_dec _ _ x in Hin; [ | intros Heq; now apply n ].
-      assert (map (fun z => rew <- [id] h2n_at in fst z) L
-            = map (fun z => rew <- [id] h2n_at in z) (map fst L)) as Hmap
-        by now rewrite map_map; apply map_ext; intros e.
-      rewrite Hmap in Hin.
-      rewrite <- h2n_remove in Hin.
-      rewrite remove_snd_remove in Hin.
-      now rewrite map_map in Hin.
+      apply notin_remove with vatomEq.eq_dec _ _ x in Hin; [ | intros Heq; now apply n ].
+      now rewrite remove_snd_remove in Hin.
 Qed.
 
