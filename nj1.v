@@ -6,19 +6,6 @@ Require Import Lia.
 Require Import fot.
 
 
-(* * Preliminaries *)
-
-Lemma Exists_impl {A} : forall (P Q : A -> Prop), (forall a, P a -> Q a) ->
-  forall l, Exists P l -> Exists Q l.
-Proof.
-intros P Q Hi.
-induction l ; intros He ; inversion He ; subst.
-- apply Hi in H0 ; now constructor.
-- apply IHl in H0 ; now constructor.
-Qed.
-
-
-
 
 (** * Formulas *)
 
@@ -68,6 +55,15 @@ Hint Rewrite fup_fup_com : term_db.
 
 (** substitutes [term] [u] for variable [x] in [formula] [A] *)
 (* capture is not avoided *)
+(* TODO use this
+Fixpoint subs x u A :=
+match A with
+| var X l => var X (map (tsubs x u) l)
+| imp B C => imp (subs x u B) (subs x u C)
+| frl y B => frl y (if (beq_vat y x) then B else subs x u B)
+| exs y B => frl y (if (beq_vat y x) then B else subs x u B)
+end.
+*)
 Fixpoint subs x u A :=
 match A with
 | var X l => var X (map (tsubs x u) l)
@@ -449,7 +445,7 @@ Qed.
 Fixpoint ffreevars A :=
 match A with
 | var _ l => concat (map freevars l)
-| imp B C => (ffreevars B) ++ (ffreevars C)
+| imp B C => ffreevars B ++ ffreevars C
 | frl x B => remove vatomEq.eq_dec x (ffreevars B)
 | exs x B => remove vatomEq.eq_dec x (ffreevars B)
 end.
@@ -594,7 +590,7 @@ Inductive subform : formula -> formula -> Prop :=
 | sub_ex : forall A x u B, subform A (subs x u B) -> subform A (exs x B)
 | sub_frl_n : forall A x B, subform A (subs x (dvar 0) (fupz B)) -> subform A (frl x B)
 | sub_ex_n : forall A x B, subform A (subs x (dvar 0) (fupz B)) -> subform A (exs x B)
-| sub_fup : forall A B, subform A (fup 0 B) -> subform A B.
+| sub_fup : forall A B, subform A (fupz B) -> subform A B.
 
 Lemma subform_trans : forall A B C, subform A B -> subform B C -> subform A C.
 Proof.
