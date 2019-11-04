@@ -270,7 +270,8 @@ Hint Rewrite htsubs_htsubs_com using try (intuition ; fail) ;
 Inductive hformula :=
 | hfvar : nj1.atom -> list hterm -> hformula
 | himp : hformula -> hformula -> hformula
-| hfrl : fot.vatom -> hformula -> hformula.
+| hfrl : fot.vatom -> hformula -> hformula
+| hexs : fot.vatom -> hformula -> hformula.
 
 Infix "⟶" := himp (at level 70, right associativity).
 
@@ -284,9 +285,10 @@ Ltac hformula_induction A :=
   let lll := fresh "l" in
   let tt := fresh "t" in
   let IHll := fresh "IHl" in
-  induction A as [ XX ll | A1 A2 | xx A ] ; simpl ; intros ;
+  induction A as [ XX ll | A1 A2 | xx A | xx A ] ; simpl ; intros ;
   [ try f_equal ; try (induction ll as [ | tt lll IHll ] ; simpl ; intuition ;
                        rewrite IHll ; f_equal ; intuition)
+  | try (f_equal ; intuition)
   | try (f_equal ; intuition)
   | try (f_equal ; intuition) ] ; try ((rnow idtac) ; fail) ; try (rcauto ; fail).
 
@@ -295,6 +297,7 @@ match A with
 | hfvar _ _ => 1
 | himp B C => S (hfsize B + hfsize C)
 | hfrl _ B => S (hfsize B)
+| hexs _ B => S (hfsize B)
 end.
 
 Fixpoint hffreevars A :=
@@ -302,6 +305,7 @@ match A with
 | hfvar _ l => concat (map hfreevars l)
 | himp B C => (hffreevars B) ++ (hffreevars C)
 | hfrl x B => remove vatomEq.eq_dec x (hffreevars B)
+| hexs x B => remove vatomEq.eq_dec x (hffreevars B)
 end.
 
 Fixpoint hgood_for x y A :=
@@ -309,6 +313,7 @@ match A with
 | hfvar X l => True
 | himp B C => hgood_for x y B /\ hgood_for x y C
 | hfrl z B => In x (hffreevars (hfrl z B)) -> (hgood_for x y B /\ y <> z)
+| hexs z B => In x (hffreevars (hexs z B)) -> (hgood_for x y B /\ y <> z)
 end.
 
 (** substitutes [hterm] [u] for variable [x] in [formula] [A] *)
@@ -318,6 +323,7 @@ match A with
 | hfvar X l => hfvar X (map (htsubs x u) l)
 | himp B C => himp (hfsubs x u B) (hfsubs x u C)
 | hfrl y B as C => if (beq_vat y x) then C else hfrl y (hfsubs x u B)
+| hexs y B as C => if (beq_vat y x) then C else hexs y (hfsubs x u B)
 end.
 
 Lemma hfsize_subs : forall u x A, hfsize (hfsubs x u A) = hfsize A.
@@ -331,7 +337,10 @@ Inductive hprove : hformula -> Type :=
 | hprove_INST : forall x A t, Forall (fun y => hgood_for x y A) (hfreevars t) ->
                    hprove (hfrl x A ⟶ hfsubs x t A)
 | hprove_FRL : forall x A B, ~ In x (hffreevars A) -> hprove ((hfrl x (A ⟶ B)) ⟶ A ⟶ hfrl x B)
-| hprove_GEN : forall x A, hprove A -> hprove (hfrl x A).
+| hprove_GEN : forall x A, hprove A -> hprove (hfrl x A)
+| hprove_EINST : forall x A t, Forall (fun y => hgood_for x y A) (hfreevars t) ->
+                   hprove (hfsubs x t A ⟶ hexs x A)
+| hprove_EXS : forall x A B, ~ In x (hffreevars B) -> hprove (hfrl x (A ⟶ B) ⟶ hexs x A ⟶ B).
 
 Lemma hprove_I : forall A, hprove (A ⟶ A).
 Proof.
@@ -343,7 +352,7 @@ eapply hprove_MP.
 - apply hprove_K.
 Qed.
 
-Lemma hprove_B : forall A B C, hprove ((B ⟶ C) ⟶ ((A ⟶ B) ⟶ A ⟶ C)).
+Lemma hprove_B : forall A B C, hprove ((B ⟶ C) ⟶ (A ⟶ B) ⟶ A ⟶ C).
 Proof.
 intros A B C.
 eapply hprove_MP.
@@ -390,6 +399,9 @@ Proof.
 intros B A C pi1 pi2.
 eapply hprove_MP; [ eapply hprove_MP | ]; [ apply hprove_B | eassumption | assumption ].
 Qed.
+
+Lemma hprove_B2 : forall A B C, hprove ((A ⟶ B) ⟶ (B ⟶ C) ⟶ A ⟶ C).
+Proof. intros A B C; eapply hprove_MP; [ apply hprove_C | apply hprove_B ]. Qed.
 
 
 
@@ -595,6 +607,12 @@ Proof. hformula_induction A; try rcauto.
   apply eqb_neq in H0.
   apply notin_remove; [ | assumption ].
   intros Heq; now apply H0.
+- f_equal.
+  apply IHA.
+  intros Hin; apply H.
+  apply eqb_neq in H0.
+  apply notin_remove; [ | assumption ].
+  intros Heq; now apply H0.
 Qed.
 
 Lemma hfreevars_tsubs_closed : forall x u, hclosed u -> forall t,
@@ -642,6 +660,46 @@ hterm_induction t; intros Hin.
          ++ destruct H2; auto.
 Qed.
 
+Lemma hffreevars_subs : forall x y u A, In x (hffreevars (hfsubs y u A)) ->
+  (In x (hfreevars u) /\ In y (hffreevars A)) \/ (In x (hffreevars A) /\ x <> y).
+Proof. formula_induction A.
+- revert H; induction l; simpl; intros Hin; [ now idtac | ].
+  apply in_app_or in Hin; destruct Hin as [Hin|Hin].
+  + apply hfreevars_tsubs in Hin; destruct Hin as [Hin|Hin]; [left|right]; destruct Hin; split; auto.
+    * now apply in_or_app; left.
+    * now apply in_or_app; left.
+  + apply IHl in Hin; destruct Hin as [Hin|Hin]; [left|right]; destruct Hin; split; auto.
+    * now apply in_or_app; right.
+    * now apply in_or_app; right.
+- apply in_app_or in H; destruct H as [H|H].
+  + apply A1 in H; destruct H as [H|H]; [left|right]; destruct H; split; auto.
+    * now apply in_or_app; left.
+    * now apply in_or_app; left.
+  + apply IHA1 in H; destruct H as [H|H]; [left|right]; destruct H; split; auto.
+    * now apply in_or_app; right.
+    * now apply in_or_app; right.
+- case_eq (beq_vat x0 y); intros Heq; rewrite Heq in H.
+  + right.
+    apply beq_eq_vat in Heq; subst.
+    simpl in H; apply in_remove in H; destruct H; split; auto.
+    now apply notin_remove.
+  + simpl in H; apply in_remove in H; destruct H as [H Hneq].
+    apply IHA in H; destruct H as [H|H]; [left|right]; destruct H; split; auto.
+    * apply eqb_neq in Heq.
+      apply notin_remove; auto.
+    * now apply notin_remove.
+- case_eq (beq_vat x0 y); intros Heq; rewrite Heq in H.
+  + right.
+    apply beq_eq_vat in Heq; subst.
+    simpl in H; apply in_remove in H; destruct H; split; auto.
+    now apply notin_remove.
+  + simpl in H; apply in_remove in H; destruct H as [H Hneq].
+    apply IHA in H; destruct H as [H|H]; [left|right]; destruct H; split; auto.
+    * apply eqb_neq in Heq.
+      apply notin_remove; auto.
+    * now apply notin_remove.
+Qed.
+
 Lemma hfreevars_to_tsubs : forall t a x u,
   In x (hfreevars t) -> In a (hfreevars u) -> In a (hfreevars (htsubs x u t)).
 Proof. hterm_induction t; intros a y u Hin1 Hin2.
@@ -668,6 +726,28 @@ Proof. hformula_induction A.
   apply in_or_app; apply in_app_or in H0; destruct H0 as [Hin|Hin]; [ left | right ].
   + now apply A1.
   + now apply IHA1.
+- case_eq (beq_vat x x0); intros Heq; simpl.
+  + exfalso.
+    apply beq_eq_vat in Heq; subst.
+    now apply remove_In in H0.
+  + case_eq (beq_vat a x); intros Heq2.
+    * exfalso.
+      apply beq_eq_vat in Heq2; subst.
+      apply vatomFacts.eqb_neq in Heq.
+      apply in_remove in H0.
+      apply Forall_forall with (x:=x) in H; [ | assumption ].
+      destruct H0.
+      apply (notin_remove vatomEq.eq_dec _ x0 x) in H0.
+      -- now apply H in H0.
+      -- intros Heq2; now apply Heq.
+    * apply vatomFacts.eqb_neq in Heq2.
+      apply notin_remove; [ assumption | ].
+      apply IHA; try assumption.
+      -- apply Forall_forall; intros y Hy.
+         apply Forall_forall with (x:=y) in H; [ | assumption ].
+         now apply H in H0.
+      -- apply vatomFacts.eqb_neq in Heq.
+         now apply in_remove in H0.
 - case_eq (beq_vat x x0); intros Heq; simpl.
   + exfalso.
     apply beq_eq_vat in Heq; subst.
@@ -728,6 +808,7 @@ match A with
 | hfvar X l => var X (map h2n_term l)
 | himp B C => imp (h2n_formula B) (h2n_formula C)
 | hfrl y B => frl y (h2n_formula B)
+| hexs y B => exs y (h2n_formula B)
 end.
 
 Lemma h2n_ffreevars : forall A, ffreevars (h2n_formula A) = hffreevars A.
@@ -743,6 +824,7 @@ Lemma h2n_fsubs : forall x u A,
   h2n_formula (hfsubs x u A) = subs x (h2n_term u) (h2n_formula A).
 Proof. hformula_induction A.
 - apply h2n_tsubs.
+- now case_eq (beq_vat x0 x); intros Heqb; simpl; [ | rewrite IHA ].
 - now case_eq (beq_vat x0 x); intros Heqb; simpl; [ | rewrite IHA ].
 Qed.
 
@@ -1070,17 +1152,16 @@ intros A pi; induction pi; intros L Hcl Hsub;
   rewrite h2n_fsubs.
   rewrite multi_subs_subs; try assumption.
   + destruct (in_dec vatomEq.eq_dec x (ffreevars (h2n_formula A))) as [Hf|Hf].
-    * apply frle.
-      -- clear - f Hcl Hsub Hf.
-         apply multi_tsubs_is_closed; [ assumption | ].
-         intros a Hin.
-         unfold incl in Hsub; specialize Hsub with a; simpl in Hsub.
-         assert (In a (hffreevars (hfsubs x t A))) as HvA.
-         { rewrite h2n_ffreevars in Hf.
-           rewrite h2n_freevars in Hin.
-           now apply hffreevars_to_subs. }
-         now eapply or_intror in HvA; apply in_or_app in HvA; eapply Hsub in HvA.
-      -- apply ax_hd.
+    * apply frle; [ | apply ax_hd ].
+      clear - f Hcl Hsub Hf.
+      apply multi_tsubs_is_closed; [ assumption | ].
+      intros a Hin.
+      unfold incl in Hsub; specialize Hsub with a; simpl in Hsub.
+      assert (In a (hffreevars (hfsubs x t A))) as HvA.
+      { rewrite h2n_ffreevars in Hf.
+        rewrite h2n_freevars in Hin.
+        now apply hffreevars_to_subs. }
+      now eapply or_intror in HvA; apply in_or_app in HvA; eapply Hsub in HvA.
     * assert (~ In x (ffreevars (multi_subs (remove_snd x L) (h2n_formula A)))) as Hnin.
       { intros Hin; apply Hf; apply multi_subs_ffreevars in Hin; try assumption.
         clear - Hcl; apply Forall_forall; intros a Hin.
@@ -1101,6 +1182,11 @@ intros A pi; induction pi; intros L Hcl Hsub;
   + apply Forall_forall; intros z Hinz.
     apply Forall_forall with (x:=z) in f.
     * revert f; clear; hformula_induction A.
+      -- apply IHA.
+         apply f.
+         now rewrite <- h2n_ffreevars.
+      -- apply f; [ | assumption ].
+         now rewrite <- h2n_ffreevars.
       -- apply IHA.
          apply f.
          now rewrite <- h2n_ffreevars.
@@ -1173,6 +1259,79 @@ intros A pi; induction pi; intros L Hcl Hsub;
       rewrite map_map; simpl.
       apply notin_remove with vatomEq.eq_dec _ _ x in Hin; [ | intros Heq; now apply n ].
       now rewrite remove_snd_remove in Hin.
+- rewrite multi_subs_exs.
+  rewrite h2n_fsubs.
+  rewrite multi_subs_subs; try assumption.
+  + destruct (in_dec vatomEq.eq_dec x (ffreevars (h2n_formula A))) as [Hf|Hf].
+    * eapply exsi; [ | apply ax_hd ].
+      clear - f Hcl Hsub Hf.
+      apply multi_tsubs_is_closed; [ assumption | ].
+      intros a Hin.
+      unfold incl in Hsub; specialize Hsub with a; simpl in Hsub.
+      assert (In a (hffreevars (hfsubs x t A))) as HvA.
+      { rewrite h2n_ffreevars in Hf.
+        rewrite h2n_freevars in Hin.
+        now apply hffreevars_to_subs. }
+      now eapply or_introl in HvA; apply in_or_app in HvA; eapply Hsub in HvA.
+    * assert (~ In x (ffreevars (multi_subs (remove_snd x L) (h2n_formula A)))) as Hnin.
+      { intros Hin; apply Hf; apply multi_subs_ffreevars in Hin; try assumption.
+        clear - Hcl; apply Forall_forall; intros a Hin.
+        apply Forall_forall with (x:=a) in Hcl; [ assumption | ].
+        revert Hin; clear; induction L; simpl; intros Hin.
+        - inversion Hin.
+        - destruct a0; simpl; simpl in Hin.
+          case_eq (beq_vat x v); intros Heq; rewrite Heq in Hin.
+          + now right; apply IHL.
+          + inversion Hin as [Hin'|Hin']; simpl in Hin'.
+            * now left.
+            * now right; apply IHL. }
+      rewrite nfree_subs by assumption.
+      apply exsi with (dvar 0); [ reflexivity | ].
+      rewrite nfree_subs by assumption.
+      apply ax_hd.
+  + apply Forall_forall; intros z Hinz.
+    apply Forall_forall with (x:=z) in f.
+    * revert f; clear; hformula_induction A.
+      -- apply IHA.
+         apply f.
+         now rewrite <- h2n_ffreevars.
+      -- apply f; [ | assumption ].
+         now rewrite <- h2n_ffreevars.
+      -- apply IHA.
+         apply f.
+         now rewrite <- h2n_ffreevars.
+      -- apply f; [ | assumption ].
+         now rewrite <- h2n_ffreevars.
+    * now rewrite <- h2n_freevars.
+- rewrite multi_subs_frl.
+  rewrite multi_subs_exs.
+  rewrite <- multi_subs_remove with (x:=x) in HeqBB; try assumption.
+  + apply @exse with (x:=x) (A:=multi_subs (remove_snd x L) (h2n_formula A)); [ apply ax_hd | ].
+    apply impe with (subs x (dvar 0) (fupz (multi_subs (remove_snd x L) (h2n_formula A)))); [ | apply ax_hd ].
+    replace (imp (subs x (dvar 0) (fupz (multi_subs (remove_snd x L) (h2n_formula A)))) (fupz BB))
+       with (subs x (dvar 0) (imp (fupz (multi_subs (remove_snd x L) (h2n_formula A))) (fupz BB))).
+    2:{ simpl; f_equal.
+        enough (~ In x (ffreevars (fupz BB))) as Hf by now apply nfree_subs.
+        intros Hin; apply n; clear - Hcl HeqBB Hin.
+        rewrite ffreevars_fup in Hin; subst.
+        apply multi_subs_ffreevars in Hin.
+        - now rewrite <- h2n_ffreevars.
+        - revert Hcl; clear; induction L; simpl; intros Hcl; [ constructor | ].
+          destruct a; simpl; simpl in Hcl; inversion Hcl; subst.
+          case_eq (beq_vat x v); intros Heq; simpl.
+          + now apply IHL.
+          + constructor; auto. }
+    apply frle; [ reflexivity | ]; simpl.
+    change (subs x (dvar 0) (fupz (multi_subs (remove_snd x L) (h2n_formula A)))
+             :: exs x (fupz (multi_subs (remove_snd x L) (h2n_formula A)))
+             :: frl x (fupz (multi_subs (remove_snd x L) (imp (h2n_formula A) (h2n_formula B)))) :: nil)
+      with ((subs x (dvar 0) (fupz (multi_subs (remove_snd x L) (h2n_formula A)))
+             :: exs x (fupz (multi_subs (remove_snd x L) (h2n_formula A))) :: nil)
+             ++ frl x (fupz (multi_subs (remove_snd x L) (imp (h2n_formula A) (h2n_formula B)))) :: nil).
+    rewrite multi_subs_imp; subst.
+    apply ax.
+  + intros Hin; apply n; clear - Hin.
+    now rewrite h2n_ffreevars in Hin.
 Qed.
 
 
@@ -1258,7 +1417,7 @@ match A with
 | var X l => hfvar X (map n2h_term l)
 | imp B C => himp (n2h_formula B) (n2h_formula C)
 | frl y B => hfrl y (n2h_formula B)
-| exs y B => hfrl y (n2h_formula B) (* TODO take exs into account *)
+| exs y B => hexs y (n2h_formula B)
 end.
 
 Lemma n2h_tsubs : forall x u t lv, In x lv -> ltgood_for lv t ->
@@ -1465,6 +1624,24 @@ induction l; intros A B; simpl.
 - specialize IHl with (imp a A) (imp a B); simpl in IHl.
   eapply hprove_CUT; [ | apply IHl ].
   eapply hprove_MP; [ apply hprove_Bsequent | apply hprove_S ].
+Qed.
+
+Lemma hprove_sequent_imp : forall l A B,
+  hprove (n2h_sequent l (imp A B)) -> hprove (n2h_formula A ⟶ n2h_sequent l B).
+Proof.
+induction l; simpl; intros A B pi; auto.
+apply IHl.
+eapply hprove_MP; [ eapply hprove_MP; [ apply hprove_Bsequent | ] | apply pi ]; simpl.
+apply hprove_C.
+Qed.
+
+Lemma hprove_imp_sequent : forall l A B,
+  hprove (n2h_formula A ⟶ n2h_sequent l B) -> hprove (n2h_sequent l (imp A B)).
+Proof.
+induction l; simpl; intros A B pi; auto.
+apply IHl in pi.
+eapply hprove_MP; [ eapply hprove_MP; [ apply hprove_Bsequent | ] | apply pi ]; simpl.
+apply hprove_C.
 Qed.
 
 Lemma hprove_FRLsequent : forall x l A, ~ In x (flat_map (fun C => hffreevars (n2h_formula C)) l) ->
@@ -1764,15 +1941,63 @@ match A with
 | hfvar _ l => concat (map hfreevars l)
 | himp B C => hallvars B ++ hallvars C
 | hfrl x B => x :: hallvars B
+| hexs x B => x :: hallvars B
 end.
 
 Lemma hffreevars_hallvars : forall A, incl (hffreevars A) (hallvars A).
 Proof.
 hformula_induction A.
-intros z Hz.
-apply in_cons.
-apply in_remove in Hz; destruct Hz.
-now apply IHA.
+- intros z Hz.
+  apply in_cons.
+  apply in_remove in Hz; destruct Hz.
+  now apply IHA.
+- intros z Hz.
+  apply in_cons.
+  apply in_remove in Hz; destruct Hz.
+  now apply IHA.
+Qed.
+
+Lemma htbisubs : forall x y t, ~ In x (hfreevars t) ->
+  htsubs x (hvar y) (htsubs y (hvar x) t) = t.
+Proof. hterm_induction t; intros Hin.
+- case_eq (beq_vat x0 y); simpl; intros Heq.
+  + rewrite eqb_refl.
+    now apply beq_eq_vat in Heq; subst.
+  + case_eq (beq_vat x0 x); intros Heq2; auto.
+    exfalso; apply Hin.
+    now apply beq_eq_vat in Heq2; left.
+- f_equal.
+  rewrite <- (map_id l) at 2.
+  apply map_ext_in; intros z Hz.
+  apply Forall_forall with (x:=z) in IHl; auto.
+  apply IHl.
+  intros Hin2; apply Hin.
+  revert Hz; clear - Hin2; induction l; intros Hin; inversion Hin; subst.
+  + now simpl; apply in_or_app; left.
+  + apply IHl in H.
+    now simpl; apply in_or_app; right.
+Qed.
+
+Lemma hbisubs : forall x y A, ~ In x (hallvars A) ->
+  hfsubs x (hvar y) (hfsubs y (hvar x) A) = A.
+Proof. hformula_induction A.
+- apply htbisubs.
+  intros Hin; apply H.
+  now simpl; apply in_or_app; left.
+- apply H.
+  now simpl; apply in_or_app; right.
+- case_eq (beq_vat x0 y); simpl; intros Heq; case_eq (beq_vat x0 x); intros Heq2; auto; f_equal; auto.
+  + apply nfree_hfsubs.
+    intros Hin; apply H1.
+    now apply hffreevars_hallvars.
+  + apply beq_eq_vat in Heq2; subst.
+    now exfalso.
+- case_eq (beq_vat x0 y); simpl; intros Heq; case_eq (beq_vat x0 x); intros Heq2; auto; f_equal; auto.
+  + apply nfree_hfsubs.
+    intros Hin; apply H1.
+    now apply hffreevars_hallvars.
+  + apply beq_eq_vat in Heq2; subst.
+    now exfalso.
 Qed.
 
 Lemma n2h_allvars : forall r A,
@@ -1848,8 +2073,32 @@ formula_induction A.
   intros Hin; inversion Hin; auto.
 Qed.
 
+
+
+
 Parameter vfresh : list vatom -> vatom.
 Parameter vfresh_prop : forall l, ~ In (vfresh l) l .
+
+Require Import Lia.
+
+Definition nat_fresh l := S (fold_right max 0 l).
+Lemma nat_fresh_prop : forall l, ~ In (nat_fresh l) l.
+Proof.
+enough (forall l n h, ~ In (n + nat_fresh (h ++ l)) l) as Hh
+ by (intros l; rewrite <- (app_nil_l l) at 1; apply (Hh _ 0)).
+induction l; unfold nat_fresh; simpl; intros n h Hin; auto.
+destruct Hin as [Hin|Hin].
+- enough (a < n + S (fold_right Init.Nat.max 0 (h ++ a :: l))) by lia.
+  clear; induction h; simpl; lia.
+- apply IHl with n (h ++ a :: nil).
+  now rewrite <- app_assoc.
+Qed.
+
+
+
+
+
+
 
 Fixpoint rrefresh l ld r :=
 match l with
@@ -1917,10 +2166,6 @@ apply IHl.
     now apply in_or_app; right.
 Qed.
 
-(*
-Lemma good_for_refresh : forall A r lvA, incl (hallvars (n2h_formula r A)) lvA ->
-  lgood_for (rrefresh lvA nil r) nil A.
-*)
 Lemma good_for_refresh : forall ld A r lvA lv, incl (hallvars (n2h_formula r A) ++ lv) lvA ->
   lgood_for (rrefresh lvA ld r) lv A.
 Proof. formula_induction A.
@@ -2323,6 +2568,60 @@ revert H; induction l; simpl; intros HF; inversion HF; subst; constructor.
 - now apply IHl.
 Qed.
 
+Lemma good_for_rup_tsubs : forall r x y lv t,
+  ~ In y lv -> ~ In y (hfreevars (n2h_term r t)) ->
+  ltgood_for r lv t ->  ltgood_for (rup (hvar y) r) lv (tsubs x (dvar 0) (tup 0 t)).
+Proof.
+term_induction t; intros Hlv Hy Hg.
+- case_eq (beq_vat x0 x); intros Heq; simpl; auto.
+  apply Forall_forall; intros z Hz; intros Heqz.
+  apply Hy; destruct Heqz; subst.
+  + now exfalso.
+  + inversion H.
+- apply Forall_fold_right; apply Forall_fold_right in Hg.
+  apply Forall_forall; intros z Hz.
+  apply in_map_iff in Hz; destruct Hz as [z' [Heq Hz]]; subst.
+  apply Forall_forall with (x:=z') in Hg; apply Forall_forall with (x:=z') in IHl; auto.
+  apply IHl; auto.
+  intros Hin; apply Hy.
+  revert Hz Hin; clear; induction l; simpl; intros Hz Hin; inversion Hz; subst.
+  + now apply in_or_app; left.
+  + apply in_or_app; right.
+    now apply IHl.
+Qed.
+
+Lemma good_for_rup_subs : forall r x y A lv,
+  In x lv -> ~ In y lv -> ~ In y (hallvars (n2h_formula r A)) ->
+  lgood_for r lv A ->  lgood_for (rup (hvar y) r) lv (subs x (dvar 0) (fupz A)).
+Proof. formula_induction A;
+try rename H into Hxlv; try rename H0 into Hylv; try rename H1 into Hyl; try rename H2 into Hg.
+- apply Forall_fold_right in Hg; apply Forall_fold_right.
+  apply Forall_forall; intros t Ht.
+  rewrite map_map in Ht.
+  apply in_map_iff in Ht; destruct Ht as [u [Heq Hu]]; subst.
+  apply Forall_forall with (x:=u) in Hg; [ | assumption ].
+  apply good_for_rup_tsubs; auto.
+  intros Hin; apply Hyl.
+  revert Hu Hin; clear; induction l; simpl; intros Hu Hin; inversion Hu; subst.
+  + now apply in_or_app; left.
+  + apply in_or_app; right.
+    now apply IHl.
+- case_eq (beq_vat x0 x); intros Heq; simpl.
+  + now apply good_for_rup.
+  + apply IHA; auto.
+    * now apply in_cons.
+    * intros Hin; apply Hylv.
+      destruct Hin as [Hin|Hin]; subst; auto.
+      now exfalso.
+- case_eq (beq_vat x0 x); intros Heq; simpl.
+  + now apply good_for_rup.
+  + apply IHA; auto.
+    * now apply in_cons.
+    * intros Hin; apply Hylv.
+      destruct Hin as [Hin|Hin]; subst; auto.
+      now exfalso.
+Qed.
+
 Lemma n2h_rup_term : forall t u r, n2h_term (rup t r) (tup 0 u) = n2h_term r u.
 Proof.
 term_induction u; intros r; f_equal.
@@ -2447,9 +2746,9 @@ apply rnprove_mutrect ; intros.
   apply Hp.
   eapply hprove_MP; [ eapply hprove_MP; [ apply hprove_Bsequent | ] | apply X ]; auto.
   rewrite n2h_subs with (lv:=x::nil); [ apply hprove_INST | | ].
-  apply lgood_hgood_closed with (lv := nil) (lv' := x :: nil); auto.
-  + now constructor.
-  + now inversion Hg1.
+  + apply lgood_hgood_closed with (lv := nil) (lv' := x :: nil); auto.
+    * now constructor.
+    * now inversion Hg1.
   + now constructor.
   + now inversion Hg1.
 - auto.
@@ -2460,73 +2759,18 @@ apply rnprove_mutrect ; intros.
   remember (rup (hvar y) r0) as r1.
   specialize X with r1.
   assert (Forall (rgood_for r1) (subs x (dvar 0) (fupz A) :: map fupz l)) as pi'.
-  { inversion H; subst.
+  { revert Heqy; inversion H; subst; intros Heqy.
     constructor.
-    - remember (vfresh (flat_map (fun C : formula => hallvars (n2h_formula r0 C)) (frl x A :: l))) as y.
-      assert (~ In y ((x :: nil) ++ hallvars (n2h_formula r0 A))) as Hy.
-      { simpl; intros Hin.
+    - simpl in H2; apply good_for_rup_subs with (x:=x) (y:=y) in H2.
+      + rewrite <- (app_nil_l _) in H2; now apply lgood_for_less in H2.
+      + now constructor.
+      + intros Heq; inversion Heq; auto; subst x.
+        apply vfresh_prop with (flat_map (fun C : formula => hallvars (n2h_formula r0 C)) (frl y A :: l)).
+        now left.
+      + intros Hin.
         apply vfresh_prop with (flat_map (fun C : formula => hallvars (n2h_formula r0 C)) (frl x A :: l)).
-        destruct Hin; subst.
-        - rewrite <- H0; simpl; auto.
-        - simpl; right.
-          now apply in_or_app; left. }
-      clear - H Hy.
-      assert (lgood_for r0 (x::nil) A) as Hg by (now inversion H).
-      apply lgood_for_less with (lv1:=nil) (x:=x).
-      remember (x::nil) as lv; simpl.
-      assert (In x lv) as Hlv by (now subst; constructor).
-      clear - Hy Hlv Hg; revert lv Hy Hlv Hg; formula_induction A.
-      + apply Forall_fold_right in Hg; apply Forall_fold_right.
-        revert Hg; induction l; simpl; intros HF; inversion HF; subst; constructor.
-        * revert Hy Hlv H1; clear; term_induction a; intros Hy Hlv Hg.
-          -- case_eq (beq_vat x0 x); intros Heq; simpl; auto.
-             apply Forall_forall; intros z Hz; intros Heqz.
-             apply Hy; destruct Heqz; subst.
-             ++ now apply in_or_app; left.
-             ++ inversion H.
-          -- apply Forall_fold_right; apply Forall_fold_right in Hg.
-             apply Forall_forall; intros z Hz.
-             apply in_map_iff in Hz; destruct Hz as [z' [Heq Hz]]; subst.
-             apply Forall_forall with (x:=z') in Hg; apply Forall_forall with (x:=z') in IHl; auto.
-             apply IHl; auto.
-             intros Hin; apply Hy.
-             apply in_or_app; apply in_app_or in Hin; destruct Hin as [Hin|Hin]; [left|right]; auto.
-             apply in_or_app; simpl in Hin; apply in_app_or in Hin; destruct Hin as [Hin|Hin]; [left|right].
-             ++ revert Hz Hin; clear; induction l0; simpl; intros Hz Hin; inversion Hz; subst.
-                ** now apply in_or_app; left.
-                ** apply in_or_app; right.
-                   now apply IHl0.
-             ++ rewrite <- map_map; auto.
-        * apply IHl; auto.
-          intros Hin; apply Hy.
-          apply in_or_app; apply in_app_or in Hin; destruct Hin as [Hin|Hin]; [left|right]; auto.
-          now apply in_or_app; right.
-      + apply A1; auto.
-        intros Hin; apply Hy.
-         apply in_or_app; apply in_app_or in Hin; destruct Hin as [Hin|Hin]; [left|right]; auto.
-         now apply in_or_app; left.
-      + apply IHA1; auto.
-        intros Hin; apply Hy.
-         apply in_or_app; apply in_app_or in Hin; destruct Hin as [Hin|Hin]; [left|right]; auto.
-         now apply in_or_app; right.
-      + case_eq (beq_vat x0 x); intros Heq; simpl.
-        * now apply good_for_rup.
-        * apply IHA; auto.
-          -- simpl; intros Hin; apply Hy.
-             destruct Hin as [Hin|Hin]; subst.
-             ++ apply in_or_app; now right; constructor.
-             ++ apply in_or_app; apply in_app_or in Hin; destruct Hin as [Hin|Hin]; [left|right]; auto.
-                now apply in_cons.
-          -- now apply in_cons.
-      + case_eq (beq_vat x0 x); intros Heq; simpl.
-        * now apply good_for_rup.
-        * apply IHA; auto.
-          -- intros Hin; apply Hy.
-             apply in_or_app; destruct Hin as [Hin|Hin]; subst; auto.
-             ++ right; now constructor.
-             ++ apply in_app_or in Hin; destruct Hin as [Hin|Hin]; [left|right]; auto.
-                now apply in_cons.
-          -- now apply in_cons.
+        rewrite <- Heqy; simpl; right.
+        now apply in_or_app; left.
     - apply Forall_forall; intros B HB.
       apply in_map_iff in HB.
       destruct HB as [C [Heq HC]]; subst.
@@ -2664,6 +2908,14 @@ apply rnprove_mutrect ; intros.
               ** simpl; case_eq (beq_vat x0 y); intros Heq2; f_equal; auto.
                  exfalso; apply H.
                   now apply beq_eq_vat.
+           ++ case_eq (beq_vat x0 x); intros Heq.
+              ** apply nfree_hfsubs; simpl.
+                 intros Hin; apply H0.
+                 apply in_remove in Hin.
+                 destruct Hin; now apply hffreevars_hallvars.
+              ** simpl; case_eq (beq_vat x0 y); intros Heq2; f_equal; auto.
+                 exfalso; apply H.
+                  now apply beq_eq_vat.
          -- now constructor.
          -- subst r1; apply good_for_rup.
             now inversion H. }
@@ -2673,9 +2925,185 @@ apply rnprove_mutrect ; intros.
   + apply IHl with (imp (fupz a) B); auto; simpl.
     subst r1; rewrite n2h_rup.
     eapply hprove_MP; [ apply hprove_B | apply pBC ].
-- admit. (* TODO exs *)
-- admit. (* TODO exs *)
-Admitted.
+- assert ({rf : _ & Forall (rgood_for rf) (exs x A :: l) /\ rgood_for rf (subs x u A)
+                  & hprove (n2h_sequent rf l (exs x A)) -> hprove (n2h_sequent r0 l (exs x A))})
+    as [rf [Hg1 Hg2] Hp].
+  { exists (rrefresh (hallvars (n2h_formula r0 (subs x u A)))
+                     (flat_map (fun C => hallvars (n2h_formula r0 C)) (exs x A :: l)) r0).
+    - split; [ constructor; simpl | ].
+      + apply good_for_refresh_preserv.
+        * intros z Hz; right; apply in_or_app; left.
+          apply n2h_allvars; now apply in_or_app; left.
+        * intros z Hz; inversion Hz; [ now  constructor | now apply in_cons ].
+        * now inversion H.
+      + apply Forall_forall; intros C HC.
+        apply (good_for_refresh_preserv (hallvars (n2h_formula r0 (subs x u A)))).
+        * intros z Hz.
+          right; apply in_or_app; right.
+          revert HC; clear - Hz; induction l; intros Hin; inversion Hin; subst; simpl.
+          -- apply in_or_app; left.
+             apply n2h_allvars; now apply in_or_app; left.
+          -- apply IHl in H.
+             now apply in_or_app; right.
+        * intros z Hz; inversion Hz.
+        * inversion H; subst.
+          now apply Forall_forall with (x:=C) in H3.
+      + apply (good_for_refresh _ (subs x u A) _ (hallvars (n2h_formula r0 (subs x u A)))).
+        rewrite app_nil_r.
+        now intros z Hz.
+    - remember (exs x A) as B.
+      apply good_for_hilbert_rrefresh.
+      + intros z Hz; simpl.
+        clear - Hz.
+        revert B Hz; induction l; simpl; intros B Hz.
+        * now rewrite app_nil_r.
+        * apply IHl in Hz.
+          apply in_or_app; apply in_app_or in Hz; destruct Hz as [Hz|Hz].
+          -- simpl in Hz; apply in_app_or in Hz; destruct Hz as [Hz|Hz]; [right|left]; auto.
+             now apply in_or_app; left.
+          -- right; now apply in_or_app; right.
+      + clear - H.
+        revert B H; induction l; intros B HF; inversion HF; subst; simpl; auto.
+        inversion H2; subst.
+        apply IHl; constructor; auto.
+        now split. }
+  apply Hp.
+  eapply hprove_MP; [ eapply hprove_MP; [ apply hprove_Bsequent | ] | apply X ]; auto.
+  + rewrite n2h_subs with (lv:=x::nil); [ apply hprove_EINST | | ].
+    * apply lgood_hgood_closed with (lv := nil) (lv' := x :: nil); auto.
+      -- now constructor.
+      -- now inversion Hg1.
+    * now constructor.
+    * now inversion Hg1.
+  + inversion Hg1; now constructor.
+- remember (rrefresh (hallvars (n2h_formula r0 (exs x A)))
+                     (flat_map (fun C => hallvars (n2h_formula r0 C)) (C :: l)) r0) as r1.
+  assert (Forall (rgood_for r1) (C :: l)) as HgCl1.
+  { remember (C :: l) as l'.
+    remember (flat_map (fun C : formula => hallvars (n2h_formula r0 C)) l') as lv.
+    assert (incl lv lv) as Hincl by (now intros z Hz).
+    rewrite Heqlv in Hincl at 1.
+    clear - lv H Hincl Heqr1.
+    revert H Hincl; induction l'; simpl; intros Hg Hincl; constructor;
+      revert Heqr1; inversion Hg; subst; intros Heqr1.
+    - subst; apply good_for_refresh_preserv; auto.
+      + intros z Hz; apply Hincl.
+        apply in_or_app; left.
+        apply n2h_allvars.
+        now apply in_or_app; left.
+      + intros z Hz; inversion Hz.
+    - apply IHl'; auto.
+      intros z Hz; apply Hincl.
+      now apply in_or_app; right. }
+  assert (rgood_for r1 C) as HgC1 by (now inversion HgCl1).
+  assert (Forall (rgood_for r1) l) as Hgl1 by (now inversion HgCl1); clear HgCl1.
+  assert (rgood_for r1 (exs x A)) as HgA1
+    by (subst; apply good_for_refresh; rewrite app_nil_r; now intros z Hz).
+  apply good_for_hilbert_rrefresh with (l:=hallvars (n2h_formula r0 (exs x A)))
+                                       (ld:=flat_map (fun C : formula => hallvars (n2h_formula r0 C)) (C :: l)).
+  + clear; revert C; induction l; simpl; intros C.
+    * rewrite app_nil_r; now intros z Hz.
+    * intros z Hz; apply IHl in Hz; simpl in Hz.
+      apply in_or_app; apply in_app_or in Hz; destruct Hz as [Hz|Hz].
+      -- apply in_app_or in Hz; destruct Hz as [Hz|Hz]; auto.
+         right; now apply in_or_app; left.
+      -- right; now apply in_or_app; right.
+  + clear - H; revert C H; induction l; simpl; intros C Hg; inversion Hg; subst; auto.
+    inversion H2; subst.
+    apply IHl; constructor; simpl; auto.
+  + rewrite <- Heqr1.
+    eapply hprove_MP; [ eapply hprove_MP; [ apply hprove_Ssequent | ] | apply X; constructor; auto ].
+    apply hprove_imp_sequent.
+    remember (vfresh (flat_map (fun C => hallvars (n2h_formula r1 C)) (exs x A :: C :: l))) as y.
+    assert (hprove (hexs x (n2h_formula r1 A) ⟶ hexs y (hfsubs x (hvar y) (n2h_formula r1 A)))) as pi'.
+    { simpl in Heqy.
+      remember (n2h_formula r1 A) as B; clear - Heqy.
+      assert (~ In y (hallvars B)) as Hf.
+      { intros Hin.
+        apply vfresh_prop with (x:: hallvars B ++
+             hallvars (n2h_formula r1 C) ++ flat_map (fun C : formula => hallvars (n2h_formula r1 C)) l).
+        rewrite <- Heqy; simpl; right.
+        now apply in_or_app; left. }
+      clear Heqy.
+      eapply hprove_MP; [ apply hprove_EXS | ].
+      - simpl; intros Hin.
+        apply in_remove in Hin; destruct Hin as [Hin _].
+        apply hffreevars_subs in Hin; destruct Hin as [Hin|Hin].
+        + simpl in Hin; destruct Hin as [Heq Hin]; destruct Heq; auto; subst.
+          now apply Hf, hffreevars_hallvars.
+        + now destruct Hin.
+      - apply hprove_GEN.
+        replace (B ⟶ hexs y (hfsubs x (hvar y) B))
+           with (hfsubs y (hvar x) (hfsubs x (hvar y) B) ⟶ hexs y (hfsubs x (hvar y) B)).
+        + apply hprove_EINST.
+          simpl; repeat constructor.
+          revert Hf; formula_induction B.
+          * case_eq (beq_vat x0 x); simpl; intros Heq Hin.
+            -- exfalso.
+               apply in_remove in Hin; destruct Hin.
+               apply H0, hffreevars_hallvars; assumption.
+            -- apply eqb_neq in Heq; split; auto.
+          * case_eq (beq_vat x0 x); simpl; intros Heq Hin.
+            -- exfalso.
+               apply in_remove in Hin; destruct Hin.
+               apply H0, hffreevars_hallvars; assumption.
+            -- apply eqb_neq in Heq; split; auto.
+        + f_equal.
+          now apply hbisubs. }
+    simpl; eapply hprove_CUT; [ apply pi' | ].
+    eapply hprove_MP; [ apply hprove_EXS | ].
+    * intros Hin.
+      apply vfresh_prop with (flat_map (fun C : formula => hallvars (n2h_formula r1 C)) (exs x A :: C :: l)).
+      rewrite <- Heqy.
+      simpl; right; apply in_or_app; right.
+      clear - Hin; revert C Hin; induction l; simpl; intros C Hin.
+      -- rewrite app_nil_r; apply n2h_allvars.
+         now apply in_or_app; right.
+      -- apply IHl in Hin; simpl in Hin.
+         apply in_or_app; apply in_app_or in Hin; destruct Hin as [Hin|Hin].
+         ++ apply in_app_or in Hin; destruct Hin as [Hin|Hin]; auto.
+            right; now apply in_or_app; left.
+         ++ right; now apply in_or_app; right.
+    * apply hprove_GEN.
+      replace (hvar y) with (n2h_term r1 (tvar y)) by reflexivity.
+      rewrite <- n2h_subs with (lv:=x::nil); auto; [ | now constructor ].
+      apply hprove_sequent_imp.
+      remember (rup (hvar y) r1) as r2.
+      assert (Forall (rgood_for r2) (fupz C :: subs x (dvar 0) (fupz A) :: map fupz l)) as pi.
+      { constructor; [ | constructor ]; subst r2.
+        - now apply good_for_rup.
+        - simpl in HgA1; apply good_for_rup_subs with (x:=x) (y:=y) in HgA1.
+          + rewrite <- (app_nil_l _) in HgA1; now apply lgood_for_less in HgA1.
+          + now constructor.
+          + intros Heq; inversion Heq; auto; subst x.
+            apply vfresh_prop with (flat_map (fun C : formula => hallvars (n2h_formula r1 C)) (exs y A :: C :: l)).
+            now left.
+          + intros Hin.
+            apply vfresh_prop with (flat_map (fun C : formula => hallvars (n2h_formula r1 C)) (exs x A :: C :: l)).
+            rewrite <- Heqy; simpl; right.
+            now apply in_or_app; left.
+        - apply Forall_forall; intros E HE.
+          apply in_map_iff in HE; destruct HE as [E' [Heq HE]]; subst E.
+          apply Forall_forall with (x:=E') in Hgl1; auto.
+          now apply good_for_rup. }
+      apply X0 in pi; simpl in pi.
+      remember (imp (subs x (dvar 0) (fupz A)) (fupz C)) as B.
+      remember (imp (subs x (tvar y) A) C) as D.
+      assert (hprove (n2h_formula r2 B ⟶ n2h_formula r1 D)) as HBD.
+      { subst B D r2; simpl; rewrite ? n2h_rup.
+        rewrite n2h_rup_subs with (lv:=x::nil); auto.
+        - enough (n2h_formula r1 (subs x (tvar y) A) = hfsubs x (hvar y) (n2h_formula r1 A))
+            as Heq by (rewrite Heq; apply hprove_I).
+          apply n2h_subs with (x :: nil); auto.
+          now constructor.
+        - now constructor. }
+      clear - Heqr2 pi HBD; revert B D pi HBD; induction l; simpl; intros B D pi HBD.
+      -- eapply hprove_MP; eassumption.
+      -- apply IHl with (imp (fupz a) B); auto.
+         simpl; subst.
+         rewrite n2h_rup.
+         eapply hprove_MP; [ apply hprove_B | apply HBD ].
+Qed.
 
 Proposition n2h_closed : forall r, (forall n, hclosed (r n)) ->
   forall A, prove nil A -> hprove (n2h_formula r A).
