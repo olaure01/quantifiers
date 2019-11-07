@@ -1,13 +1,38 @@
 (* Sequent Calculus for First-Order Additive Linear Logic *)
 
-Require Import Wf_nat_more.
 Require Import Lia.
+
+Require Import stdlib_more.
 
 Require Import fot.
 
+Parameter vatom : Atom.
+Parameter tatom : Atom.
+Notation term := (@term vatom tatom).
+Notation closed t := (freevars t = nil).
+Notation tup := (@tup vatom tatom).
+
+Hint Rewrite
+  (@tup_tup_com vatom tatom) (@tup_tsubs_com vatom tatom)
+  (@ntsubs_tup_com vatom tatom) (@ntsubs_z_tup vatom tatom)
+  (@freevars_tup vatom tatom) (@tsubs_tsubs_eq vatom tatom) : term_db.
+Hint Resolve (@closed_nofreevars vatom tatom) : term_db.
+Hint Rewrite (@freevars_ntsubs vatom tatom) using intuition; fail : term_db.
+Hint Rewrite (@nfree_tsubs vatom tatom)
+  using try intuition; (try apply closed_nofreevars); intuition; fail : term_db.
+Hint Rewrite (@ntsubs_tsubs_com vatom tatom)
+  using try intuition; (try apply closed_nofreevars); intuition; fail : term_db.
+Hint Rewrite (@tsubs_tsubs_com vatom tatom)
+  using try intuition; (try apply closed_nofreevars); intuition; fail : term_db.
+Hint Rewrite (@freevars_tsubs_closed vatom tatom)
+  using intuition; fail : term_db.
+
+
+
+
 (** * Formulas *)
 
-Parameter atom : Type.  (* propositional variables for [formula] *)
+Parameter atom : Atom.  (* propositional variables for [formula] *)
 
 (** formulas *)
 (** first-order formulas in the langage: true, conjunction, universal quantification *)
@@ -57,14 +82,12 @@ match A with
 | var X l => var X (map (tsubs x u) l)
 | top => top
 | wdg B C => wdg (subs x u B) (subs x u C)
-| frl y B as C => if (beq_vat y x) then C else frl y (subs x u B)
+| frl y B => frl y (if (eqb_at y x) then B else subs x u B)
 end.
 
 Lemma fup_subs_com : forall k x u A,
   fup k (subs x u A) = subs x (tup k u) (fup k A).
-Proof. formula_induction A.
-rnow case_eq (beq_vat x0 x) ; intros ; simpl ; f_equal.
-Qed.
+Proof. formula_induction A. Qed.
 Hint Rewrite fup_subs_com : term_db.
 
 (** substitutes [term] [u] for index [n] in [formula] [A] *)
@@ -255,16 +278,15 @@ match A with
 | var _ l => concat (map freevars l)
 | top => nil
 | wdg B C => (ffreevars B) ++ (ffreevars C)
-| frl x B => remove vatomEq.eq_dec x (ffreevars B)
+| frl x B => remove eq_at_dec x (ffreevars B)
 end.
 
-Lemma in_ffreevars_frl : forall x y, beq_vat y x = false -> forall A,
+Lemma in_ffreevars_frl : forall x y, y <> x -> forall A,
   In x (ffreevars A) -> In x (ffreevars (frl y A)).
 Proof.
 intros x y Heq A Hi ; simpl ; remember (ffreevars A) as l.
 revert Hi ; clear - Heq ; induction l ; intros Hi ; auto.
 inversion Hi ; subst ; simpl ; rcauto.
-exfalso ; subst ; rewrite eqb_refl in Heq ; inversion Heq.
 Qed.
 
 Lemma ffreevars_fup : forall k A, ffreevars (fup k A) = ffreevars A.

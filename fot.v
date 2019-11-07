@@ -4,50 +4,19 @@
 Require Export PeanoNat.
 Require Export List.
 
-Create HintDb term_db.
+Require Import stdlib_more.
 
-Tactic Notation "rnow" tactic(t) :=
-  t ; simpl ; autorewrite with term_db in * ; simpl ; intuition.
-Tactic Notation "rnow" tactic(t) "then" tactic(t1) :=
-  t ; simpl ; autorewrite with term_db in * ; simpl ; intuition t1 ; simpl ; intuition.
+Require Export atom.
 
-Lemma ltb_S : forall n m, (S n <? S m) = (n <? m).
-Proof. reflexivity. Qed.
-Hint Rewrite ltb_S : term_db.
-
-
-(** * Different kinds of atoms *)
-
-Parameter tatom : Type. (* function symbols for [term] *)
-Parameter vatom : Type. (* variables for quantification *)
-Parameter beq_vat : vatom -> vatom -> bool. (* boolean equality on [vatom] *)
-Parameter beq_eq_vat : forall a b, beq_vat a b = true <-> a = b.
-   (* equality specification for [vatom] *)
-
-(* [vatom] presented as a type with Boolean equality *)
-Module vatomBoolEq <: Equalities.UsualBoolEq.
-Definition t := vatom.
-Definition eq := @eq vatom.
-Definition eqb := beq_vat.
-Definition eqb_eq := beq_eq_vat.
-End vatomBoolEq.
-Module vatomEq := Equalities.Make_UDTF vatomBoolEq.
-Module vatomFacts := Equalities.BoolEqualityFacts vatomEq.
-Export vatomFacts.
-
-Ltac case_analysis :=
-match goal with
-| |- context f [?x =? ?y] => case_eq (x =? y)
-| |- context f [?x <? ?y] => case_eq (x <? y)
-| |- context f [?x ?= ?y] => case_eq (x ?= y)
-| |- context f [beq_vat ?x ?y] => case_eq (beq_vat x y)
-| |- context f [vatomEq.eq_dec ?x  ?y] => case_eq (vatomEq.eq_dec x y)
-end.
-Ltac rcauto := simpl ; autorewrite with term_db in * ; simpl ; rnow case_analysis.
+Set Implicit Arguments.
 
 
 
 (** * First-Order Terms *)
+
+Section Terms.
+
+Context { vatom : Atom } { tatom : Type }.
 
 (** terms with quantifiable variables *)
 (** arity not given meaning that we have a copy of each function name for each arity *)
@@ -73,7 +42,7 @@ match t with
       match l' with
       | nil => Forall_nil P
       | cons t1 l1 => Forall_cons _
-                        (term_ind_list_Forall t1 P Pdvar Ptvar Pconstr)
+                        (term_ind_list_Forall t1 Pdvar Ptvar Pconstr)
                         (l_ind l1)
       end) l)
 end.
@@ -84,12 +53,17 @@ Ltac term_induction t :=
   let cc := fresh "c" in
   let ll := fresh "l" in
   let IHll := fresh "IHl" in
+  let i := fresh "i" in
+  let Hi := fresh "Hi" in
   apply (term_ind_list_Forall t) ;
   [ intros nn ; try reflexivity ; try assumption ; simpl
   | intros xx ; try reflexivity ; try assumption ; simpl
   | intros cc ll IHll ; simpl ;
     repeat (rewrite flat_map_concat_map) ; repeat (rewrite map_map) ;
-    try f_equal ; try (apply map_ext_in ; apply Forall_forall) ; try assumption ] ;
+    try f_equal ;
+    try (apply map_ext_in ; intros i Hi; specialize_Forall_all i) ;
+    try (apply Forall_forall; intros i Hi; specialize_Forall_all i) ;
+    try assumption ] ;
   try ((rnow idtac) ; fail) ; try (rcauto ; fail).
 
 
@@ -101,8 +75,7 @@ match t with
 | tconstr f l => tconstr f (map (tup k) l)
 end.
 
-Lemma tup_tup_com : forall k t,
-  tup (S k) (tup 0 t) = tup 0 (tup k t).
+Lemma tup_tup_com : forall k t, tup (S k) (tup 0 t) = tup 0 (tup k t).
 Proof. term_induction t. Qed.
 Hint Rewrite tup_tup_com: term_db.
 
@@ -123,7 +96,7 @@ end.
 (** substitutes [term] [u] for variable [x] in [term] [t] *)
 Fixpoint tsubs x u t :=
 match t with
-| tvar y => if (beq_vat y x) then u else tvar y
+| tvar y => if (eqb_at y x) then u else tvar y
 | dvar k => dvar k
 | tconstr c l => tconstr c (map (tsubs x u) l)
 end.
@@ -136,7 +109,7 @@ Hint Rewrite tup_tsubs_com : term_db.
 Lemma ntsubs_tup_com : forall k u t,
   ntsubs (S k) (tup 0 u) (tup 0 t) = tup 0 (ntsubs k u t).
 Proof. term_induction t ; rcauto.
-now destruct n ; destruct k ; inversion H.
+now destruct n ; destruct k ; inversion Heq.
 Qed.
 Hint Rewrite ntsubs_tup_com : term_db.
 
@@ -172,10 +145,10 @@ Proof. term_induction t. Qed.
 Hint Rewrite freevars_ntsubs using intuition ; fail : term_db.
 
 Lemma nfree_tsubs : forall x u t, ~ In x (freevars t) -> tsubs x u t = t.
-Proof. term_induction t ; try rcauto.
-- now apply vatomEq.eqb_eq in H.
-- rnow intros Heq ; f_equal ; revert IHl Heq ; induction l ; intros.
-  rnow inversion IHl0 ; subst ; rewrite H1 ; [ f_equal | ] ; simpl in Heq.
+Proof. term_induction t ; try rcauto; f_equal.
+rewrite <- flat_map_concat_map in H; apply notin_flat_map_Forall in H.
+rewrite <- (map_id l) at 2; apply map_ext_in; intros v Hv.
+specialize_Forall_all v; intuition.
 Qed.
 Hint Rewrite nfree_tsubs using try (intuition ; fail) ;
                                (try apply closed_nofreevars) ; intuition ; fail : term_db.
@@ -186,13 +159,120 @@ Proof. term_induction t. Qed.
 Hint Rewrite ntsubs_tsubs_com using try (intuition ; fail) ;
                                     (try apply closed_nofreevars) ; intuition ; fail : term_db.
 
-Lemma tsubs_tsubs_com : forall x v y u, beq_vat x y = false -> ~ In x (freevars u) -> forall t,
+Lemma tsubs_tsubs_com : forall x v y u, x <> y -> ~ In x (freevars u) -> forall t,
   tsubs y u (tsubs x v t) = tsubs x (tsubs y u v) (tsubs y u t).
-Proof. term_induction t.
-rnow case_eq (beq_vat x0 x) ; case_eq (beq_vat x0 y) then try rewrite H1 ; try rewrite H2.
-exfalso.
-now rewrite eqb_neq in H ; rewrite beq_eq_vat in H1 ; rewrite beq_eq_vat in H2 ; subst.
-Qed.
+Proof. term_induction t. Qed.
 Hint Rewrite tsubs_tsubs_com using try (intuition ; fail) ;
                                    (try apply closed_nofreevars) ; intuition ; fail : term_db.
+
+
+
+
+(* additional results *)
+
+
+Lemma tsubs_tsubs_eq : forall x u v t, tsubs x u (tsubs x v t) = tsubs x (tsubs x u v) t.
+Proof. term_induction t; repeat case_analysis; intuition. Qed.
+Hint Rewrite tsubs_tsubs_eq : term_db.
+
+Lemma freevars_tsubs_closed : forall x u, closed u -> forall t,
+  freevars (tsubs x u t) = remove eq_at_dec x (freevars t).
+Proof. term_induction t.
+rewrite remove_concat, flat_map_concat_map, map_map; f_equal.
+apply map_ext_in; intros v Hv; now specialize_Forall IHl with v.
+Qed.
+Hint Rewrite freevars_tsubs_closed using intuition ; fail : term_db.
+
+Lemma freevars_tsubs : forall x y u t,
+  In x (freevars (tsubs y u t)) -> In x (freevars u) \/ In x (freevars t).
+Proof.
+term_induction t.
+revert IHl; induction l; simpl; intros Hl Hin.
+- inversion Hin.
+- inversion Hl; subst.
+  rewrite_all in_app_iff; intuition.
+Qed.
+
+
+(* Simultaneous substitution *)
+
+Definition multi_tsubs L t := fold_left (fun F p => tsubs (fst p) (snd p) F) L t.
+
+Lemma multi_tsubs_dvar : forall L n, multi_tsubs L (dvar n) = dvar n.
+Proof. now induction L; intros n; simpl; [ | rewrite IHL ]. Qed.
+
+Lemma multi_tsubs_nvar : forall L x, ~ In x (map fst L) -> multi_tsubs L (tvar x) = tvar x.
+Proof.
+induction L; intros x Hin; simpl; [ reflexivity | ].
+destruct a; simpl; case_analysis.
+- exfalso.
+  now apply Hin; left.
+- apply IHL.
+  now intros Hin2; apply Hin; right.
+Qed.
+
+Lemma multi_tsubs_tconstr : forall L f l, multi_tsubs L (tconstr f l) = tconstr f (map (multi_tsubs L) l).
+Proof.
+induction L; intros f l; simpl.
+- f_equal; now induction l; simpl; [ | rewrite <- IHl ].
+- rewrite IHL.
+  f_equal; rewrite map_map; f_equal.
+Qed.
+
+Lemma multi_tsubs_tsubs : forall L x v, ~ In x (map fst L) ->
+  Forall (fun z => ~ In x (freevars (snd z))) L ->
+  forall t, multi_tsubs L (tsubs x v t) = tsubs x (multi_tsubs L v) (multi_tsubs L t).
+Proof. term_induction t.
+- now rewrite multi_tsubs_dvar; simpl.
+- case_analysis.
+  + rewrite multi_tsubs_nvar by assumption; simpl.
+    now rewrite eqb_refl.
+  + rewrite nfree_tsubs; [ reflexivity | ].
+    apply Forall_Exists_neg in H0.
+    intros Hin; apply H0.
+    assert (~ In x (freevars (tvar x0))) as Hu
+     by (simpl; intros Hor; apply Heq; now destruct Hor).
+    remember (tvar x0) as u.
+    clear Hequ; revert u Hin Hu; clear; induction L using rev_ind; simpl; intros u Hin Hterm.
+    * exfalso; now apply Hterm.
+    * destruct x0; simpl in Hin; simpl.
+      unfold multi_tsubs in Hin.
+      rewrite fold_left_app in Hin; simpl in Hin.
+      apply freevars_tsubs in Hin; destruct Hin as [Hin|Hin].
+      -- now apply Exists_app; right; constructor; simpl.
+      -- apply Exists_app; left.
+         now apply IHL with u.
+- rewrite 2 multi_tsubs_tconstr; simpl; f_equal.
+  rewrite 2 map_map.
+  now apply map_ext_Forall.
+Qed.
+
+Lemma multi_tsubs_closed : forall L t, closed t -> multi_tsubs L t = t.
+Proof.
+induction L; intros t Hc; [ reflexivity | ].
+destruct a; simpl.
+rewrite nfree_tsubs by now apply closed_nofreevars.
+now apply IHL.
+Qed.
+
+Lemma multi_tsubs_is_closed : forall L t,
+  Forall (fun z : term => closed z) (map snd L) ->
+  incl (freevars t) (map (fun z => fst z) L) ->
+closed (multi_tsubs L t).
+Proof.
+induction L; simpl; intros t Hc Hf.
+- now apply incl_nil in Hf; subst.
+- destruct a; simpl; simpl in Hc, Hf.
+  apply IHL.
+  + now inversion Hc.
+  + intros z Hinz.
+    inversion Hc; subst.
+    rewrite freevars_tsubs_closed in Hinz by assumption.
+    apply in_remove in Hinz; destruct Hinz as [Hinz Hneq].
+    apply Hf in Hinz; inversion Hinz.
+    * exfalso; now rewrite H in Hneq.
+    * assumption.
+Qed.
+
+End Terms.
 
