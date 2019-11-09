@@ -1,14 +1,12 @@
 (* From Hilbert to Natural Deduction *)
 
-
 Require Import stdlib_more.
-
 Require Import nj1 hilbert.
 
 
 Section H2N.
 
-Context { vatom : Atom } { tatom : Type } { fatom : Type }.
+Context { vatom : DecType } { tatom : Type } { fatom : Type }.
 Notation term := (@term vatom tatom).
 Notation closed t := (freevars t = nil).
 Notation tup := (@tup vatom tatom).
@@ -173,7 +171,7 @@ intros A pi; induction pi; intros L Hcl Hsub;
 - rewrite multi_subs_frl.
   rewrite h2n_fsubs.
   rewrite multi_subs_subs; try assumption.
-  + destruct (in_dec eq_at_dec x (ffreevars (h2n_formula A))) as [Hf|Hf].
+  + destruct (in_dec eq_dt_dec x (ffreevars (h2n_formula A))) as [Hf|Hf].
     * apply frle; [ | apply ax_hd ].
       clear - f Hcl Hsub Hf.
       apply multi_tsubs_is_closed; [ assumption | ].
@@ -270,17 +268,17 @@ intros A pi; induction pi; intros L Hcl Hsub;
   + clear - Hsub; simpl in Hsub.
     intros a Hin.
     rewrite map_app; apply in_or_app; simpl.
-    case (eq_at_reflect x a); intros Heq; subst; [ right | left ]; simpl; intuition.
+    case (eq_dt_reflect x a); intros Heq; subst; [ right | left ]; simpl; intuition.
     unfold incl in Hsub; specialize Hsub with a.
-    apply notin_remove with eq_at_dec _ _ x in Hin; [ | intuition ].
+    apply notin_remove with eq_dt_dec _ _ x in Hin; [ | intuition ].
     apply Hsub in Hin.
     rewrite map_map; simpl.
-    apply notin_remove with eq_at_dec _ _ x in Hin; [ | intuition ].
+    apply notin_remove with eq_dt_dec _ _ x in Hin; [ | intuition ].
     now rewrite remove_snd_remove in Hin.
 - rewrite multi_subs_exs.
   rewrite h2n_fsubs.
   rewrite multi_subs_subs; try assumption.
-  + destruct (in_dec eq_at_dec x (ffreevars (h2n_formula A))) as [Hf|Hf].
+  + destruct (in_dec eq_dt_dec x (ffreevars (h2n_formula A))) as [Hf|Hf].
     * eapply exsi; [ | apply ax_hd ].
       clear - f Hcl Hsub Hf.
       apply multi_tsubs_is_closed; [ assumption | ].

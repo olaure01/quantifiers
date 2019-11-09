@@ -1,22 +1,19 @@
 (* Definitions and properties of first-order terms *)
 (*   with holes in [nat] for de Bruijn indices *)
 
-Require Export PeanoNat.
-Require Export List.
-
+Require Export PeanoNat List.
 Require Import stdlib_more.
-
-Require Export atom.
+Require Export dectype.
+Require Export term_tactics.
 
 Set Implicit Arguments.
-
 
 
 (** * First-Order Terms *)
 
 Section Terms.
 
-Context { vatom : Atom } { tatom : Type }.
+Context { vatom : DecType } { tatom : Type }.
 
 (** terms with quantifiable variables *)
 (** arity not given meaning that we have a copy of each function name for each arity *)
@@ -96,7 +93,7 @@ end.
 (** substitutes [term] [u] for variable [x] in [term] [t] *)
 Fixpoint tsubs x u t :=
 match t with
-| tvar y => if (eqb_at y x) then u else tvar y
+| tvar y => if (eqb y x) then u else tvar y
 | dvar k => dvar k
 | tconstr c l => tconstr c (map (tsubs x u) l)
 end.
@@ -176,7 +173,7 @@ Proof. term_induction t; repeat case_analysis; intuition. Qed.
 Hint Rewrite tsubs_tsubs_eq : term_db.
 
 Lemma freevars_tsubs_closed : forall x u, closed u -> forall t,
-  freevars (tsubs x u t) = remove eq_at_dec x (freevars t).
+  freevars (tsubs x u t) = remove eq_dt_dec x (freevars t).
 Proof. term_induction t.
 rewrite remove_concat, flat_map_concat_map, map_map; f_equal.
 apply map_ext_in; intros v Hv; now specialize_Forall IHl with v.

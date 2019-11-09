@@ -1,21 +1,17 @@
 (* Hilbert system for Intuitionistic Logic with implication *)
 
 Require Import List.
-
 Require Import stdlib_more.
-
-Require Import atom.
-
+Require Import dectype term_tactics.
 
 Set Implicit Arguments.
-
 
 
 (** * First-Order Terms *)
 
 Section Terms.
 
-Context { vatom : Atom } { tatom : Type }.
+Context { vatom : DecType } { tatom : Type }.
 
 (** terms with quantifiable variables *)
 (** arity not given meaning that we have a copy of each function name for each arity *)
@@ -64,7 +60,7 @@ Ltac hterm_induction t :=
 (** substitutes [term] [u] for variable [x] in [term] [t] *)
 Fixpoint htsubs x u t :=
 match t with
-| hvar y => if eqb_at y x then u else hvar y
+| hvar y => if eqb y x then u else hvar y
 | hconstr c l => hconstr c (map (htsubs x u) l)
 end.
 
@@ -102,7 +98,7 @@ Hint Rewrite htsubs_htsubs_com using try (intuition ; fail) ;
                                     (try apply hclosed_nohfreevars) ; intuition ; fail : term_db.
 
 Lemma hfreevars_tsubs_closed : forall x u, hclosed u -> forall t,
-  hfreevars (htsubs x u t) = remove eq_at_dec x (hfreevars t).
+  hfreevars (htsubs x u t) = remove eq_dt_dec x (hfreevars t).
 Proof. hterm_induction t.
 revert IHl; induction l; simpl; intros Hl; [ reflexivity | ].
 inversion Hl; subst.
@@ -114,7 +110,7 @@ Lemma hfreevars_tsubs : forall x y u t, In x (hfreevars (htsubs y u t)) ->
   (In x (hfreevars u) /\ In y (hfreevars t)) \/ (In x (hfreevars t) /\ x <> y).
 Proof.
 hterm_induction t.
-- case eq_at_reflect; intros Heq Hin; auto.
+- case eq_dt_reflect; intros Heq Hin; auto.
   simpl in Hin; destruct Hin; auto; subst.
   right; split; auto.
 - revert IHl; induction l; simpl; intros Hl Hin.
@@ -172,7 +168,7 @@ End Terms.
 
 Section Formulas.
 
-Context { vatom : Atom } { tatom : Type } { fatom : Type }.
+Context { vatom : DecType } { tatom : Type } { fatom : Type }.
 Notation hterm := (@hterm vatom tatom).
 
 Notation hclosed t := (hfreevars t = nil).
@@ -220,8 +216,8 @@ Fixpoint hffreevars A :=
 match A with
 | hfvar _ l => flat_map hfreevars l
 | himp B C => hffreevars B ++ hffreevars C
-| hfrl x B => remove eq_at_dec x (hffreevars B)
-| hexs x B => remove eq_at_dec x (hffreevars B)
+| hfrl x B => remove eq_dt_dec x (hffreevars B)
+| hexs x B => remove eq_dt_dec x (hffreevars B)
 end.
 
 Fixpoint hgood_for x y A :=
@@ -238,8 +234,8 @@ Fixpoint hfsubs x u A :=
 match A with
 | hfvar X l => hfvar X (map (htsubs x u) l)
 | himp B C => himp (hfsubs x u B) (hfsubs x u C)
-| hfrl y B => hfrl y (if eqb_at y x then B else hfsubs x u B)
-| hexs y B => hexs y (if eqb_at y x then B else hfsubs x u B)
+| hfrl y B => hfrl y (if eqb y x then B else hfsubs x u B)
+| hexs y B => hexs y (if eqb y x then B else hfsubs x u B)
 end.
 
 Lemma hfsize_subs : forall u x A, hfsize (hfsubs x u A) = hfsize A.
@@ -281,7 +277,7 @@ Proof. hformula_induction A.
   + apply IHA1 in H; destruct H as [H|H]; [left|right]; destruct H; split; auto.
     * now apply in_or_app; right.
     * now apply in_or_app; right.
-- revert H; case eq_at_reflect; intros Heq Hin.
+- revert H; case eq_dt_reflect; intros Heq Hin.
   + right; subst.
     simpl in Hin; apply in_remove in Hin; destruct Hin; split; auto.
     now apply notin_remove.
@@ -289,7 +285,7 @@ Proof. hformula_induction A.
     apply IHA in Hin; destruct Hin as [Hin|Hin]; [left|right]; destruct Hin; split; auto.
     * apply notin_remove; auto.
     * now apply notin_remove.
-- revert H; case eq_at_reflect; intros Heq Hin.
+- revert H; case eq_dt_reflect; intros Heq Hin.
   + right; subst.
     simpl in Hin; apply in_remove in Hin; destruct Hin; split; auto.
     now apply notin_remove.
@@ -313,15 +309,15 @@ Proof. hformula_induction A.
   apply in_or_app; apply in_app_or in H0; destruct H0 as [Hin|Hin]; [ left | right ].
   + now apply A1.
   + now apply IHA1.
-- case eq_at_reflect; intros Heq; simpl.
+- case eq_dt_reflect; intros Heq; simpl.
   + exfalso; subst.
     now apply remove_In in H0.
-  + case (eq_at_reflect a x); intros Heq2.
+  + case (eq_dt_reflect a x); intros Heq2.
     * exfalso; subst.
       apply in_remove in H0.
       apply Forall_forall with (x:=x) in H; [ | assumption ].
       destruct H0.
-      apply (notin_remove eq_at_dec _ x0 x) in H0.
+      apply (notin_remove eq_dt_dec _ x0 x) in H0.
       -- now apply H in H0.
       -- intros Heq2; now apply Heq.
     * apply notin_remove; [ assumption | ].
@@ -330,15 +326,15 @@ Proof. hformula_induction A.
          apply Forall_forall with (x:=y) in H; [ | assumption ].
          now apply H in H0.
       -- now apply in_remove in H0.
-- case eq_at_reflect; intros Heq; simpl.
+- case eq_dt_reflect; intros Heq; simpl.
   + exfalso; subst.
     now apply remove_In in H0.
-  + case (eq_at_reflect a x); intros Heq2.
+  + case (eq_dt_reflect a x); intros Heq2.
     * exfalso; subst.
       apply in_remove in H0.
       apply Forall_forall with (x:=x) in H; [ | assumption ].
       destruct H0.
-      apply (notin_remove eq_at_dec _ x0 x) in H0.
+      apply (notin_remove eq_dt_dec _ x0 x) in H0.
       -- now apply H in H0.
       -- intros Heq2; now apply Heq.
     * apply notin_remove; [ assumption | ].

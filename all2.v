@@ -1,63 +1,14 @@
 (* Sequent Calculus for Second-Order Propositional Additive Linear Logic *)
 
-Require Import PeanoNat.
-Require Import Wf_nat.
-Require Import Lia.
-Require Import List.
+Require Import PeanoNat Wf_nat Lia List.
+Require Import stdlib_more.
+Require Import dectype term_tactics.
 
-Create HintDb term_db.
+Hint Resolve notin_remove : term_db.
 
-Tactic Notation "rnow" tactic(t) :=
-  t ; simpl ; autorewrite with term_db in * ; simpl ; intuition.
-Tactic Notation "rnow" tactic(t) "then" tactic(t1) :=
-  t ; simpl ; autorewrite with term_db in * ; simpl ; intuition t1 ; simpl ; intuition.
-
-Lemma ltb_S : forall n m, (S n <? S m) = (n <? m).
-Proof. reflexivity. Qed.
-Hint Rewrite ltb_S : term_db.
-
-
-(** * Different kinds of atoms *)
 
 Parameter atom : Type. (* second-order constants *)
-Parameter vatom : Type. (* variables for quantification *)
-Parameter beq_vat : vatom -> vatom -> bool. (* boolean equality on [vatom] *)
-Parameter beq_eq_vat : forall a b, beq_vat a b = true <-> a = b.
-   (* equality specification for [vatom] *)
-
-(* [vatom] presented as a type with Boolean equality *)
-Module vatomBoolEq <: Equalities.UsualBoolEq.
-Definition t := vatom.
-Definition eq := @eq vatom.
-Definition eqb := beq_vat.
-Definition eqb_eq := beq_eq_vat.
-End vatomBoolEq.
-Module vatomEq := Equalities.Make_UDTF vatomBoolEq.
-Module vatomFacts := Equalities.BoolEqualityFacts vatomEq.
-Import vatomFacts.
-
-Ltac case_analysis :=
-match goal with
-| |- context f [?x =? ?y] => case_eq (x =? y)
-| |- context f [?x <? ?y] => case_eq (x <? y)
-| |- context f [?x ?= ?y] => case_eq (x ?= y)
-| |- context f [beq_vat ?x ?y] => case_eq (beq_vat x y)
-| |- context f [vatomEq.eq_dec ?x  ?y] => case_eq (vatomEq.eq_dec x y)
-end.
-Ltac rcauto := simpl ; autorewrite with term_db in * ; simpl ; rnow case_analysis.
-
-Lemma in_rmv : forall X Y, beq_vat Y X = false -> forall l,
-  In X l -> In X (remove vatomEq.eq_dec Y l).
-Proof.
-induction l ; auto ; intros Hi.
-inversion Hi ; subst ; simpl.
-- destruct (vatomEq.eq_dec Y X) ; intuition.
-  subst ; rewrite eqb_refl in H ; inversion H.
-- destruct (vatomEq.eq_dec Y a) ; intuition.
-Qed.
-Hint Resolve in_rmv : term_db.
-
-
+Parameter vatom : DecType. (* variables for quantification *)
 
 
 (** * Formulas *)
@@ -123,11 +74,11 @@ Hint Rewrite fup_fup_com : term_db.
 Fixpoint subs X F A :=
 match A with
 | dvar k => dvar k
-| var Y => if (beq_vat Y X) then F else var Y
+| var Y => if (eqb Y X) then F else var Y
 | cst R => cst R
 | top => top
 | wdg B C => wdg (subs X F B) (subs X F C)
-| frl Y B as C => if (beq_vat Y X) then C else frl Y (subs X F B)
+| frl Y B as C => if (eqb Y X) then C else frl Y (subs X F B)
 end.
 
 Lemma fsize_subs_dvar : forall k X A, fsize (subs X (dvar k) A) = fsize A.
@@ -159,7 +110,7 @@ end.
 Lemma nsubs_fup_com : forall k F A,
   nsubs (S k) (fupz F) (fupz A) = fupz (nsubs k F A).
 Proof. formula_induction A ; rcauto.
-now destruct k0 ; destruct k ; inversion H.
+now destruct k0; destruct k; inversion Heq.
 Qed.
 Hint Rewrite nsubs_fup_com : term_db.
 
@@ -171,7 +122,7 @@ match A with
 | cst _ => nil
 | top => nil
 | wdg B C => (freevars B) ++ (freevars C)
-| frl X B => remove vatomEq.eq_dec X (freevars B)
+| frl X B => remove eq_dt_dec X (freevars B)
 end.
 Notation closed A := (freevars A = nil).
 
@@ -188,10 +139,7 @@ Proof. formula_induction A. Qed.
 Hint Rewrite freevars_nsubs using assumption : term_db.
 
 Lemma nfree_subs : forall X F A, ~ In X (freevars A) -> subs X F A = A.
-Proof. formula_induction A ; rcauto.
-- now apply vatomEq.eqb_eq in H.
-- now f_equal.
-Qed.
+Proof. formula_induction A ; rcauto; now f_equal. Qed.
 Hint Rewrite nfree_subs using try (intuition ; fail) ;
                               (try apply closed_nofreevars) ; intuition ; fail : term_db.
 

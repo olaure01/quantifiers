@@ -1,14 +1,12 @@
 (* From Natural Deduction to Hilbert *)
 
-
 Require Import stdlib_more.
-
 Require Import nj1 hilbert.
 
 
 Section N2H.
 
-Context { vatom : InfAtom } { tatom : Type } { fatom : Type }.
+Context { vatom : InfDecType } { tatom : Type } { fatom : Type }.
 Notation vfresh := (@fresh vatom).
 Notation vfresh_prop := (@fresh_prop vatom).
 Notation term := (@term vatom tatom).

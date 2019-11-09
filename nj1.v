@@ -1,9 +1,7 @@
 (* Natural Deduction for First-Order Intuitionistic Logic *)
 
 Require Import Lia.
-
 Require Import stdlib_more.
-
 Require Export fot.
 
 Set Implicit Arguments.
@@ -13,7 +11,7 @@ Set Implicit Arguments.
 
 Section Formulas.
 
-Context { vatom : Atom } { tatom : Type }.
+Context { vatom : DecType } { tatom : Type }.
 Notation term := (@term vatom tatom).
 Notation closed t := (freevars t = nil).
 Notation tup := (@tup vatom tatom).
@@ -42,6 +40,18 @@ Inductive formula :=
 | imp : formula -> formula -> formula
 | frl : vatom -> formula -> formula
 | exs : vatom -> formula -> formula.
+(* alternative representation (thanks D. Pous)
+Inductive qtf := Frl | Exs.  (* use bool *)
+Inductive qformula :=
+| qvar : fatom -> list term -> qformula
+| qimp : qformula -> qformula -> qformula
+| qant : qtf -> vatom -> qformula -> qformula.
+Notation qfrl := (qant Frl).
+Notation qexs := (qant Exs).
+(* could be generalized to a family of binary connectives,
+   a family of unary connectives, etc
+*)
+*)
 
 Ltac formula_induction A :=
   (try intros until A) ;
@@ -85,8 +95,8 @@ Fixpoint subs x u A :=
 match A with
 | var X l => var X (map (tsubs x u) l)
 | imp B C => imp (subs x u B) (subs x u C)
-| frl y B => frl y (if (eqb_at y x) then B else subs x u B)
-| exs y B => exs y (if (eqb_at y x) then B else subs x u B)
+| frl y B => frl y (if (eqb y x) then B else subs x u B)
+| exs y B => exs y (if (eqb y x) then B else subs x u B)
 end.
 
 Lemma fup_subs_com : forall k x u A,
@@ -472,8 +482,8 @@ Fixpoint ffreevars A :=
 match A with
 | var _ l => flat_map freevars l
 | imp B C => ffreevars B ++ ffreevars C
-| frl x B => remove eq_at_dec x (ffreevars B)
-| exs x B => remove eq_at_dec x (ffreevars B)
+| frl x B => remove eq_dt_dec x (ffreevars B)
+| exs x B => remove eq_dt_dec x (ffreevars B)
 end.
 
 Lemma in_ffreevars_frl : forall x y, y <> x -> forall A,
@@ -763,7 +773,7 @@ Qed.
 (* additional results *)
 
 Lemma ffreevars_subs_closed : forall x u, closed u -> forall A,
-  ffreevars (subs x u A) = remove eq_at_dec x (ffreevars A).
+  ffreevars (subs x u A) = remove eq_dt_dec x (ffreevars A).
 Proof. formula_induction A ; rewrite ? remove_app; try now f_equal.
 - now f_equal; apply freevars_tsubs_closed.
 - case_analysis.
@@ -841,14 +851,14 @@ Proof. induction A; intros Hb.
     eapply Forall_impl; [ | eassumption ]; simpl.
     intros a [Hba Hba']; apply Hba'; now right.
 - simpl; repeat case_analysis; intuition; f_equal.
-  + destruct (in_dec eq_at_dec y (freevars v)); [ destruct (in_dec eq_at_dec x (ffreevars A)) | ].
+  + destruct (in_dec eq_dt_dec y (freevars v)); [ destruct (in_dec eq_dt_dec x (ffreevars A)) | ].
     * exfalso.
       apply Forall_forall with (x:=y) in Hb; [ | assumption ].
       simpl in Hb.
-      apply (notin_remove eq_at_dec _ x y) in i0; intuition.
+      apply (notin_remove eq_dt_dec _ x y) in i0; intuition.
     * now rewrite 2 nfree_subs.
     * now rewrite nfree_tsubs; [ reflexivity | ].
-  + destruct (in_dec eq_at_dec x (ffreevars A)).
+  + destruct (in_dec eq_dt_dec x (ffreevars A)).
     * apply IHA.
       apply Forall_forall; intros z Hinz.
       apply Forall_forall with (x:=z) in Hb; [ | assumption ].
@@ -859,14 +869,14 @@ Proof. induction A; intros Hb.
       rewrite ffreevars_subs_closed in Hin; [ | assumption ].
       now apply in_remove in Hin.
 - simpl; repeat case_analysis; intuition; f_equal.
-  + destruct (in_dec eq_at_dec y (freevars v)); [ destruct (in_dec eq_at_dec x (ffreevars A)) | ].
+  + destruct (in_dec eq_dt_dec y (freevars v)); [ destruct (in_dec eq_dt_dec x (ffreevars A)) | ].
     * exfalso.
       apply Forall_forall with (x:=y) in Hb; [ | assumption ].
       simpl in Hb.
-      apply (notin_remove eq_at_dec _ x y) in i0; intuition.
+      apply (notin_remove eq_dt_dec _ x y) in i0; intuition.
     * now rewrite 2 nfree_subs.
     * now rewrite nfree_tsubs; [ reflexivity | ].
-  + destruct (in_dec eq_at_dec x (ffreevars A)).
+  + destruct (in_dec eq_dt_dec x (ffreevars A)).
     * apply IHA.
       apply Forall_forall; intros z Hinz.
       apply Forall_forall with (x:=z) in Hb; [ | assumption ].
@@ -885,11 +895,11 @@ Qed.
 Fixpoint remove_snd {T : Type} x (L : list (vatom * T)) :=
 match L with
 | nil => nil
-| (y, F) :: TL => if eqb_at x y then remove_snd x TL else (y, F) :: remove_snd x TL
+| (y, F) :: TL => if eqb x y then remove_snd x TL else (y, F) :: remove_snd x TL
 end.
 
 Lemma remove_snd_remove {T} x (L : list (vatom * T)) :
-  remove eq_at_dec x (map fst L) = map fst (remove_snd x L).
+  remove eq_dt_dec x (map fst L) = map fst (remove_snd x L).
 Proof.
 induction L; simpl; [ reflexivity | rewrite IHL ]; destruct a; simpl.
 repeat case_analysis; intuition.
@@ -992,7 +1002,7 @@ case_analysis; rewrite <- IHL; try assumption.
       { intros Hin.
         apply in_remove in Hin; destruct Hin as [Hin Hneq].
         apply Himp in Hin.
-        apply notin_remove with eq_at_dec (ffreevars A) x c0 in Hin; [ | assumption ].
+        apply notin_remove with eq_dt_dec (ffreevars A) x c0 in Hin; [ | assumption ].
         apply Hb in Hin.
         split; [ | apply Hin ].
         now apply IHA. }
@@ -1006,7 +1016,7 @@ case_analysis; rewrite <- IHL; try assumption.
       { intros Hin.
         apply in_remove in Hin; destruct Hin as [Hin Hneq].
         apply Himp in Hin.
-        apply notin_remove with eq_at_dec (ffreevars A) x c0 in Hin; [ | assumption ].
+        apply notin_remove with eq_dt_dec (ffreevars A) x c0 in Hin; [ | assumption ].
         apply Hb in Hin.
         split; [ | apply Hin ].
         now apply IHA. }

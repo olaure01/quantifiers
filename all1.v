@@ -1,13 +1,11 @@
 (* Sequent Calculus for First-Order Additive Linear Logic *)
 
 Require Import Lia.
-
 Require Import stdlib_more.
-
 Require Import fot.
 
-Parameter vatom : Atom.
-Parameter tatom : Atom.
+Parameter vatom : DecType.
+Parameter tatom : Type.
 Notation term := (@term vatom tatom).
 Notation closed t := (freevars t = nil).
 Notation tup := (@tup vatom tatom).
@@ -32,7 +30,7 @@ Hint Rewrite (@freevars_tsubs_closed vatom tatom)
 
 (** * Formulas *)
 
-Parameter atom : Atom.  (* propositional variables for [formula] *)
+Parameter atom : Type.  (* propositional variables for [formula] *)
 
 (** formulas *)
 (** first-order formulas in the langage: true, conjunction, universal quantification *)
@@ -82,7 +80,7 @@ match A with
 | var X l => var X (map (tsubs x u) l)
 | top => top
 | wdg B C => wdg (subs x u B) (subs x u C)
-| frl y B => frl y (if (eqb_at y x) then B else subs x u B)
+| frl y B => frl y (if (eqb y x) then B else subs x u B)
 end.
 
 Lemma fup_subs_com : forall k x u A,
@@ -278,7 +276,7 @@ match A with
 | var _ l => concat (map freevars l)
 | top => nil
 | wdg B C => (ffreevars B) ++ (ffreevars C)
-| frl x B => remove eq_at_dec x (ffreevars B)
+| frl x B => remove eq_dt_dec x (ffreevars B)
 end.
 
 Lemma in_ffreevars_frl : forall x y, y <> x -> forall A,
