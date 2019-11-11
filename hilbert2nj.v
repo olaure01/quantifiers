@@ -122,8 +122,7 @@ Proof. formula_induction A. Qed.
 
 
 Proposition h2n : forall A, hprove A ->
-  forall L, Forall (fun z => closed z) (map snd L) ->
-            incl (hffreevars A) (map fst L) ->
+  forall L, Forall (fun z => closed z) (map snd L) -> incl (hffreevars A) (map fst L) ->
   prove nil (multi_subs L (h2n_formula A)).
 Proof.
 intros A pi; induction pi; intros L Hcl Hsub;
@@ -180,6 +179,7 @@ intros A pi; induction pi; intros L Hcl Hsub;
       assert (In a (hffreevars (hfsubs x t A))) as HvA.
       { rewrite h2n_ffreevars in Hf.
         rewrite h2n_freevars in Hin.
+        specialize_Forall f with a.
         now apply hffreevars_to_subs. }
       now eapply or_intror in HvA; apply in_or_app in HvA; eapply Hsub in HvA.
     * assert (~ In x (ffreevars (multi_subs (remove_snd x L) (h2n_formula A)))) as Hnin.
@@ -287,6 +287,7 @@ intros A pi; induction pi; intros L Hcl Hsub;
       assert (In a (hffreevars (hfsubs x t A))) as HvA.
       { rewrite h2n_ffreevars in Hf.
         rewrite h2n_freevars in Hin.
+        specialize_Forall f with a.
         now apply hffreevars_to_subs. }
       now eapply or_introl in HvA; apply in_or_app in HvA; eapply Hsub in HvA.
     * assert (~ In x (ffreevars (multi_subs (remove_snd x L) (h2n_formula A)))) as Hnin.

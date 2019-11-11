@@ -223,13 +223,29 @@ induction L; simpl; split; intros Hc; try constructor.
   now apply IHL.
 Qed.
 
-Lemma in_flat_map_Exists {A B : Type} : forall (f : A -> list B) x l,
+Lemma in_concat {A} : forall (l : list A) (L : list (list A)) a, In a l -> In l L -> In a (concat L).
+Proof.
+  intros l L a Hin1 Hin2.
+  induction L; simpl; inversion_clear Hin2; subst.
+  - clear IHL; induction l; inversion_clear Hin1; [left|right]; intuition.
+  - apply in_or_app; intuition.
+Qed.
+
+Lemma in_flat_map_Exists {A B} : forall (f : A -> list B) x l,
   In x (flat_map f l) <-> Exists (fun y => In x (f y)) l.
 Proof. intros f x l; rewrite in_flat_map; split; apply Exists_exists. Qed.
 
-Lemma notin_flat_map_Forall {A B : Type} : forall (f : A -> list B) x l,
+Lemma notin_flat_map_Forall {A B} : forall (f : A -> list B) x l,
   ~ In x (flat_map f l) <-> Forall (fun y => ~ In x (f y)) l.
 Proof. intros f x l; rewrite Forall_Exists_neg; apply not_iff_compat, in_flat_map_Exists. Qed.
+
+Lemma in_flat_map {A B} : forall (f : A -> list B) x a l,
+  In x (f a) -> In a l -> In x (flat_map f l).
+Proof.
+intros f x a l Hinx Hina.
+rewrite flat_map_concat_map; apply in_concat with (f a); trivial.
+now apply in_map.
+Qed.
 
 
 Fixpoint In_Type {A} (a:A) (l:list A) : Type :=

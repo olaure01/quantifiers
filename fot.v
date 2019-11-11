@@ -150,8 +150,8 @@ Hint Rewrite nfree_tsubs using try (intuition; fail) ;
 Lemma ntsubs_tsubs_com : forall x v n u, ~ In x (freevars u) -> forall t,
   ntsubs n u (tsubs x v t) = tsubs x (ntsubs n u v) (ntsubs n u t).
 Proof. term_induction t. Qed.
-Hint Rewrite ntsubs_tsubs_com using try (intuition ; fail) ;
-                                    (try apply closed_nofreevars) ; intuition ; fail : term_db.
+Hint Rewrite ntsubs_tsubs_com using try (intuition; fail);
+                                    (try apply closed_nofreevars); intuition; fail : term_db.
 
 Lemma tsubs_tsubs_com : forall x v y u, x <> y -> ~ In x (freevars u) -> forall t,
   tsubs y u (tsubs x v t) = tsubs x (tsubs y u v) (tsubs y u t).
@@ -176,8 +176,7 @@ Hint Rewrite freevars_tsubs_closed using intuition; fail : term_db.
 
 Lemma freevars_tsubs : forall x y u t, In x (freevars (tsubs y u t)) ->
   (In x (freevars u) /\ In y (freevars t)) \/ (In x (freevars t) /\ x <> y).
-Proof.
-term_induction t.
+Proof. term_induction t.
 - case_analysis.
   + intros Hin; left; intuition.
   + intros Heq2; right; intuition; subst; intuition.
@@ -185,6 +184,24 @@ term_induction t.
   + inversion Hin.
   + inversion_clear Hl.
     rewrite_all in_app_iff; intuition.
+Qed.
+
+Lemma freevars_to_tsubs : forall t x y u,
+  In y (freevars t) -> In x (freevars u) -> In x (freevars (tsubs y u t)).
+Proof. term_induction t; intros z y u Hin1 Hin2.
+- case_analysis; intuition.
+- revert IHl Hin1; induction l; simpl; intros Hl Hin; [ inversion Hin | ].
+  inversion_clear Hl; in_solve.
+Qed.
+
+Lemma tbisubs : forall x y t, ~ In x (freevars t) ->
+  tsubs x (tvar y) (tsubs y (tvar x) t) = t.
+Proof. term_induction t; intros Hin; f_equal.
+rewrite <- (map_id l) at 2.
+apply map_ext_in; intros z Hz.
+specialize_Forall IHl with z; apply IHl.
+intros Hin2; apply Hin.
+now rewrite <- flat_map_concat_map; apply in_flat_map with z.
 Qed.
 
 

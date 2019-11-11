@@ -687,8 +687,7 @@ Hint Rewrite ffreevars_subs_closed using intuition; fail : term_db.
 
 Lemma ffreevars_subs : forall x y u A, In x (ffreevars (subs y u A)) ->
   (In x (freevars u) /\ In y (ffreevars A)) \/ (In x (ffreevars A) /\ x <> y).
-Proof.
-formula_induction A; try in_solve.
+Proof. formula_induction A; try in_solve.
 - revert H; induction l; simpl; intros Hin.
   + inversion Hin.
   + apply in_app_or in Hin; destruct Hin as [Hin|Hin].
@@ -894,7 +893,6 @@ now apply multi_subs_is_closed.
 Qed.
 
 (* All variables occurring (free or bound or for quantification) in a formula *)
-
 Fixpoint allvars A :=
 match A with
 | var _ l => flat_map freevars l
@@ -910,6 +908,18 @@ Proof. formula_induction A.
   eapply incl_tran; [ apply IHA | intuition ].
 Qed.
 
+Lemma bisubs : forall x y A, ~ In x (allvars A) ->
+  subs x (tvar y) (subs y (tvar x) A) = A.
+Proof. formula_induction A; f_equal.
+- apply tbisubs.
+  intros Hin; apply H; simpl; intuition.
+- apply H; simpl; intuition.
+- refine ?[mygoal]. Existential 1 := ?mygoal.
+  repeat case_analysis; intuition.
+  apply nfree_subs.
+  intros Hin; apply H1.
+  now apply ffreevars_allvars.
+Qed.
 
 
 (** * Examples *)

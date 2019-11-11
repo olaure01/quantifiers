@@ -10,11 +10,11 @@ Proof. reflexivity. Qed.
 Hint Rewrite ltb_S : term_db.
 
 Tactic Notation "rnow" tactic(t) :=
-  t; simpl; autorewrite with term_db in *; simpl; intuition.
+  t; simpl; intuition; autorewrite with term_db in *; simpl; intuition.
 Tactic Notation "rnow" tactic(t) "then" tactic(t1) :=
-  t; simpl; autorewrite with term_db in *; simpl; intuition t1; simpl; intuition.
+  t; simpl; intuition; autorewrite with term_db in *; simpl; intuition t1; simpl; intuition.
 
-Ltac rcauto := simpl ; autorewrite with term_db in * ; simpl; rnow (repeat case_analysis).
+Ltac rcauto := simpl; autorewrite with term_db in *; simpl; rnow (repeat case_analysis).
 
 Ltac in_solve :=
   simpl; repeat split;
