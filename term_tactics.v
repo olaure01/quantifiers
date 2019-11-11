@@ -14,7 +14,7 @@ Tactic Notation "rnow" tactic(t) :=
 Tactic Notation "rnow" tactic(t) "then" tactic(t1) :=
   t; simpl; intuition; autorewrite with term_db in *; simpl; intuition t1; simpl; intuition.
 
-Ltac rcauto := simpl; autorewrite with term_db in *; simpl; rnow (repeat case_analysis).
+Ltac rcauto := simpl; intuition; autorewrite with term_db in *; simpl; rnow (repeat case_analysis).
 
 Ltac in_solve :=
   simpl; repeat split;
@@ -26,4 +26,3 @@ Ltac in_solve :=
   | H : In _ _ |- _ => simpl in H; apply in_app_or in H; destruct H
   end;
   intuition; fail.
-

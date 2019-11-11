@@ -1301,6 +1301,7 @@ apply rnprove_mutrect ; intros.
         -- revert Hin H1; clear; term_induction a; intros Hin Hg.
            ++ inversion Hg; subst.
               now exfalso.
+           ++ revert Hin; case_analysis; intuition.
            ++ apply Forall_fold_right in Hg.
               revert IHl Hin Hg; induction l; simpl; intros Hl Hin Hg.
               ** inversion Hin.

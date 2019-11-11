@@ -116,9 +116,8 @@ Qed.
 Lemma hfreevars_to_tsubs : forall t x y u,
   In y (hfreevars t) -> In x (hfreevars u) -> In x (hfreevars (htsubs y u t)).
 Proof. hterm_induction t; intros z y u Hin1 Hin2.
-- case_analysis; intuition.
-- revert IHl Hin1; induction l; simpl; intros Hl Hin; [ inversion Hin | ].
-  inversion_clear Hl; in_solve.
+revert IHl Hin1; induction l; simpl; intros Hl Hin; [ inversion Hin | ].
+inversion_clear Hl; in_solve.
 Qed.
 
 Lemma htbisubs : forall x y t, ~ In x (hfreevars t) ->
@@ -250,9 +249,8 @@ Lemma hffreevars_to_subs : forall A x y t, hgood_for y x A ->
 Proof. hformula_induction A; try in_solve.
 - revert H0 H1; clear; induction l; intros Hin1 Hin2; simpl; intuition.
   simpl in Hin1.
-  apply in_or_app; apply in_app_or in Hin1; destruct Hin1 as [Hin1|Hin1]; [left|right].
-  + now apply hfreevars_to_tsubs.
-  + now apply IHl.
+  apply in_or_app; apply in_app_or in Hin1; destruct Hin1 as [Hin1|Hin1]; [left|right]; rcauto.
+  now apply hfreevars_to_tsubs.
 - refine ?[mygoal]. Existential 1 := ?mygoal.
   apply in_remove in H0; destruct H0 as [Hin Hneq].
   case_analysis; intuition.

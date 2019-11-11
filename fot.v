@@ -189,9 +189,8 @@ Qed.
 Lemma freevars_to_tsubs : forall t x y u,
   In y (freevars t) -> In x (freevars u) -> In x (freevars (tsubs y u t)).
 Proof. term_induction t; intros z y u Hin1 Hin2.
-- case_analysis; intuition.
-- revert IHl Hin1; induction l; simpl; intros Hl Hin; [ inversion Hin | ].
-  inversion_clear Hl; in_solve.
+revert IHl Hin1; induction l; simpl; intros Hl Hin; [ inversion Hin | ].
+inversion_clear Hl; in_solve.
 Qed.
 
 Lemma tbisubs : forall x y t, ~ In x (freevars t) ->

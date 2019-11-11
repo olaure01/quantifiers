@@ -193,6 +193,14 @@ Lemma nax_hd {l A} : nprove (A :: l) A.
 Proof. rewrite <- (app_nil_l (A :: l)); apply nax. Qed.
 Hint Resolve nax_hd : term_db.
 
+(* automatic tactic for application of the [nax] constructor *)
+Ltac run_nax :=
+  match goal with
+  | |- nprove (?l1 ++ ?B :: ?l2) ?A => (try now apply nax);
+         rewrite <- (app_nil_l l2); rewrite app_comm_cons, app_assoc; run_nax
+  end.
+Ltac auto_nax := rewrite <- (app_nil_l _); run_nax.
+
 (* Apply all (reversible) introduction rules *)
 Ltac rev_intros := repeat (repeat apply rimpi; repeat apply rfrli); apply rninj.
 
@@ -485,10 +493,7 @@ end.
 
 Lemma in_ffreevars_frl : forall x y, y <> x -> forall A,
   In x (ffreevars A) -> In x (ffreevars (frl y A)).
-Proof.
-formula_induction A; apply notin_remove; intuition.
-now rewrite <- flat_map_concat_map.
-Qed.
+Proof. formula_induction A; apply notin_remove; intuition; now rewrite <- flat_map_concat_map. Qed.
 
 Lemma ffreevars_fup : forall k A, ffreevars (fup k A) = ffreevars A.
 Proof. formula_induction A. Qed.
@@ -762,6 +767,19 @@ Proof. induction A; simpl; intros Hb; f_equal.
 Qed.
 Hint Rewrite subs_subs_com_good using intuition; fail : term_db.
 
+Lemma ffreevars_to_subs : forall A x y t, good_for y x A ->
+  In y (ffreevars A) -> In x (freevars t) -> In x (ffreevars (subs y t A)).
+Proof. formula_induction A; try in_solve.
+- revert H0 H1; clear; induction l; intros Hin1 Hin2; simpl; intuition.
+  simpl in Hin1.
+  apply in_or_app; apply in_app_or in Hin1; destruct Hin1 as [Hin1|Hin1]; [left|right]; rcauto.
+  now apply freevars_to_tsubs.
+- refine ?[mygoal]. Existential 1 := ?mygoal.
+  apply in_remove in H0; destruct H0 as [Hin Hneq].
+  case_analysis; intuition.
+  assert (Hin2 := notin_remove eq_dt_dec _ _ x Hneq Hin).
+  apply notin_remove; intuition.
+Qed.
 
 (* Iterated substitution *)
 
@@ -972,9 +990,7 @@ apply (nimpe (subs x (dvar 0) (fupz A))).
 - change (imp (subs x (dvar 0) (fupz A)) (subs x (dvar 0) (fupz B)))
     with (subs x (dvar 0) (imp (fupz A) (fupz B))).
   apply nfrle ; [ reflexivity | ] ; simpl.
-  change (frl x (fupz A) :: frl x (imp (fupz A) (fupz B)) :: nil)
-    with ((frl x (fupz A) :: nil) ++ frl x (imp (fupz A) (fupz B)) :: nil).
-  apply nax.
+  auto_nax.
 - now apply rninj, nfrle, nax_hd.
 Qed.
 
@@ -982,21 +998,16 @@ Lemma frl_nfree : forall A x, ~ In x (ffreevars A) -> rprove (A :: nil) (frl x A
 Proof. intros A x Hnf; rev_intros; rnow rewrite nfree_subs. Qed.
 
 Lemma Kcombi : forall A B, rprove nil (imp A (imp B A)).
-Proof.
-intros ; rev_intros.
-change (B :: A :: nil) with ((B :: nil) ++ A :: nil); auto with term_db.
-Qed.
+Proof. intros ; rev_intros; auto_nax. Qed.
 
 Lemma Scombi : forall A B C, rprove nil (imp (imp A (imp B C)) (imp (imp A B) (imp A C))).
 Proof with auto with term_db.
 intros ; rev_intros.
 apply (nimpe B).
 - apply (nimpe A)...
-  change (A :: imp A B :: imp A (imp B C) :: nil)
-    with ((A :: imp A B :: nil) ++ imp A (imp B C) :: nil)...
+  auto_nax.
 - apply rninj ; apply (nimpe A)...
-  change (A :: imp A B :: imp A (imp B C) :: nil)
-    with ((A :: nil) ++ imp A B :: imp A (imp B C) :: nil)...
+  auto_nax.
 Qed.
 
 End Formulas.
