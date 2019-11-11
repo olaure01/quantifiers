@@ -63,14 +63,14 @@ Ltac formula_induction A :=
   let lll := fresh "l" in
   let tt := fresh "t" in
   let IHll := fresh "IHl" in
-  induction A as [ XX ll | A1 A2 | xx A | xx A ] ; simpl ; intros ;
+  induction A as [ XX ll | A1 A2 | xx A | xx A ]; simpl; intros;
   [ rewrite ? flat_map_concat_map;
-    try f_equal ; try (induction ll as [ | tt lll IHll ] ; simpl ; intuition ;
-                       rewrite IHll ; f_equal ; intuition)
-  | try (f_equal ; intuition)
-  | try (repeat case_analysis; intuition; f_equal ; intuition; (rnow idtac); fail)
-  | try (repeat case_analysis; intuition; f_equal ; intuition; (rnow idtac); fail) ];
-  try ((rnow idtac) ; fail) ; try (rcauto ; fail).
+    try f_equal; try (induction ll as [ | tt lll IHll ]; simpl; intuition;
+                      rewrite IHll; f_equal; intuition)
+  | try (f_equal; intuition)
+  | try (repeat case_analysis; intuition; f_equal; intuition; (rnow idtac); fail)
+  | try (repeat case_analysis; intuition; f_equal; intuition; (rnow idtac); fail) ];
+  try (now (rnow idtac)); try (now rcauto).
 
 (** lift indexes above [k] in [formula] [A] *)
 Fixpoint fup k A :=
@@ -80,11 +80,9 @@ match A with
 | frl x B => frl x (fup k B)
 | exs x B => exs x (fup k B)
 end.
-
 Notation fupz := (fup 0).
 
-Lemma fup_fup_com : forall k A,
-  fup (S k) (fup 0 A) = fup 0 (fup k A).
+Lemma fup_fup_com : forall k A, fup (S k) (fup 0 A) = fup 0 (fup k A).
 Proof. formula_induction A. Qed.
 Hint Rewrite fup_fup_com : term_db.
 
@@ -101,9 +99,7 @@ end.
 
 Lemma fup_subs_com : forall k x u A,
   fup k (subs x u A) = subs x (tup k u) (fup k A).
-Proof. formula_induction A.
-all: case_analysis ; intros ; simpl ; f_equal; intuition.
-Qed.
+Proof. formula_induction A. Qed.
 Hint Rewrite fup_subs_com : term_db.
 
 (** substitutes [term] [u] for index [n] in [formula] [A] *)
@@ -127,7 +123,7 @@ Hint Rewrite nsubs_z_fup : term_db.
 
 Lemma nsubs_subs_com : forall x v n u, ~ In x (freevars u) -> forall A,
   nsubs n u (subs x v A) = subs x (ntsubs n u v) (nsubs n u A).
-Proof. now formula_induction A ; rcauto ; f_equal. Qed.
+Proof. formula_induction A. Qed.
 Hint Rewrite nsubs_subs_com using try (intuition ; fail) ;
                                   (try apply closed_nofreevars) ; intuition ; fail : term_db.
 
@@ -167,12 +163,11 @@ Inductive prove : list formula -> formula -> Type :=
 | exse { l C } : forall x A, prove l (exs x A) ->
                              prove (subs x (dvar 0) (fupz A) :: map fupz l) (fupz C) -> prove l C.
 Hint Constructors prove : term_db.
-
 Global Arguments impe { l B } _ _ _.
 Global Arguments exse { l C } _ _ _.
 
 Lemma ax_hd {l A} : prove (A :: l) A.
-Proof. rewrite <- (app_nil_l (A :: l)) ; apply ax. Qed.
+Proof. rewrite <- (app_nil_l (A :: l)); apply ax. Qed.
 
 (** Normal Forms *)
 Inductive nprove : list formula -> formula -> Type := (* neutral terms *)
@@ -187,7 +182,6 @@ with rprove : list formula -> formula -> Type := (* normal forms *)
 | rexse { l C } : forall x A, nprove l (exs x A) ->
                               rprove (subs x (dvar 0) (fupz A) :: map fupz l) (fupz C) -> rprove l C.
 Hint Constructors nprove rprove : term_db.
-
 Global Arguments nimpe { l B } _ _ _.
 Global Arguments rexse { l C } _ _ _ _.
 
@@ -196,8 +190,11 @@ Scheme nrprove_rect := Induction for nprove Sort Type
 Combined Scheme rnprove_mutrect from nrprove_rect, rnprove_rect.
 
 Lemma nax_hd {l A} : nprove (A :: l) A.
-Proof. rewrite <- (app_nil_l (A :: l)) ; apply nax. Qed.
+Proof. rewrite <- (app_nil_l (A :: l)); apply nax. Qed.
 Hint Resolve nax_hd : term_db.
+
+(* Apply all (reversible) introduction rules *)
+Ltac rev_intros := repeat (repeat apply rimpi; repeat apply rfrli); apply rninj.
 
 Fixpoint nsize {l A} (pi : nprove l A) : nat :=
 match pi with
@@ -231,7 +228,7 @@ clear n u Hc ; apply rnprove_mutrect ; intros ; (try simpl in X) ;
 - rnow idtac then rnow eapply nfrle.
 - assert (closed (tup 0 u)) by rnow idtac.
   specialize X with (S n) (tup 0 u).
-  rewrite map_map in X ; rewrite (map_ext _ _ (nsubs_fup_com _ _)) in X ; rewrite <- map_map in X.
+  rewrite map_map, (map_ext _ _ (nsubs_fup_com _ _)), <- map_map in X.
   rnow autorewrite with term_db in X.
 - rnow specialize X with n u0 then rnow eapply (rexsi (ntsubs n u0 u)).
 - rewrite <- (freevars_tup 0) in H.
@@ -243,20 +240,20 @@ Qed.
 
 Lemma rpsubsz_r {l A x u} : closed u ->
   rprove (map fupz l) (subs x (dvar 0) (fupz A)) -> rprove l (subs x u A).
-Proof with try assumption.
+Proof.
 intros Hc pi.
-apply (rnpsubs 0 u) in pi...
+apply (rnpsubs 0 u) in pi; [ | assumption ].
 rnow simpl in pi then simpl in pi.
-rewrite map_map in pi ; rewrite (map_ext _ _ (nsubs_z_fup _)) in pi ; rewrite map_id in pi...
+now rewrite map_map, (map_ext _ _ (nsubs_z_fup _)), map_id in pi.
 Qed.
 
 Lemma rpsubsz_l {l A x u C} : closed u ->
   rprove (subs x (dvar 0) (fupz A) :: map fupz l) (fupz C) -> rprove (subs x u A :: l) C.
-Proof with try assumption.
+Proof.
 intros Hc pi.
-apply (rnpsubs 0 u) in pi...
+apply (rnpsubs 0 u) in pi; [ | assumption ].
 rnow simpl in pi then simpl in pi.
-rewrite map_map in pi ; rewrite (map_ext _ _ (nsubs_z_fup _)) in pi ; rewrite map_id in pi...
+now rewrite map_map, (map_ext _ _ (nsubs_z_fup _)), map_id in pi.
 Qed.
 
 
@@ -276,42 +273,41 @@ clear k ; apply rnprove_mutrect ; intros;
 - rnow idtac then rnow apply nfrle.
 - clear IH1 ; assert (IH := X (S k)).
   rnow change (dvar 0) with (tup (S k) (dvar 0)) in X.
-  rewrite map_map in IH ; rewrite (map_ext _ _ (fup_fup_com _)) in IH ; rewrite <- map_map in IH.
+  rewrite map_map, (map_ext _ _ (fup_fup_com _)), <- map_map in IH.
   now apply rfrli.
 - rnow idtac then rnow apply (rexsi (tup k u)).
 - clear IH2 ; assert (IH2 := X0 (S k)) ; simpl in IH2.
   rnow change (dvar 0) with (tup (S k) (dvar 0)) in X.
-  rewrite map_map in IH2 ; rewrite (map_ext _ _ (fup_fup_com _)) in IH2 ; rewrite <- map_map in IH2.
+  rewrite map_map, (map_ext _ _ (fup_fup_com _)), <- map_map in IH2.
   rnow apply (rexse x (fup k A)).
 Qed.
 
 
 (** * Normalization *)
 
-Theorem denormalization : (forall l A, nprove l A -> prove l A) * (forall l A, rprove l A -> prove l A).
-Proof.
-apply rnprove_mutrect ; intros ; try (econstructor ; eassumption) ; assumption.
-Qed.
+Theorem denormalization :
+  (forall l A, nprove l A -> prove l A) * (forall l A, rprove l A -> prove l A).
+Proof. now apply rnprove_mutrect; intros; try (econstructor; eassumption). Qed.
 
 Lemma weakening :
    (forall l A, nprove l A -> forall l0 l1 l2, l = l1 ++ l2 -> nprove (l1 ++ l0 ++ l2) A)
  * (forall l A, rprove l A -> forall l0 l1 l2, l = l1 ++ l2 -> rprove (l1 ++ l0 ++ l2) A).
 Proof.
-apply rnprove_mutrect ; intros ; try (econstructor ; intuition ; intuition ; fail) ; subst.
+apply rnprove_mutrect ; intros ; try (econstructor; intuition; intuition ; fail) ; subst.
 - enough (forall l l3, l1 ++ A :: l2 = l3 ++ l4 -> nprove (l ++ l3 ++ l0 ++ l4) A)
     as HI by (rewrite <- (app_nil_l (l3 ++ l0 ++ l4)) ; apply HI ; assumption) ; clear.
-  induction l1 ; intros l l3 Heq ; destruct l3 ; inversion Heq ; subst ; simpl.
-  + simpl in H ; subst ; rewrite app_assoc ; apply nax.
+  induction l1; intros l l3 Heq; destruct l3; inversion Heq; subst; simpl.
+  + simpl in Heq; subst; rewrite app_assoc; apply nax.
   + apply nax.
-  + simpl in H ; subst ; rewrite app_comm_cons ; rewrite 2 app_assoc ; apply nax.
+  + simpl in Heq; subst; rewrite app_comm_cons, 2 app_assoc; apply nax.
   + replace (l ++ f :: l3 ++ l0 ++ l4) with ((l ++ f :: nil) ++ l3 ++ l0 ++ l4)
       by (rewrite <- app_assoc ; reflexivity).
     now apply IHl1.
-- apply rimpi ; rewrite app_comm_cons ; intuition.
-- apply rfrli ; rewrite ? map_app ; apply X ; rewrite map_app ; reflexivity.
+- apply rimpi; rewrite app_comm_cons; intuition.
+- apply rfrli; rewrite ? map_app; apply X; rewrite map_app; reflexivity.
 - apply (rexse x A).
-  + apply X ; reflexivity.
-  + rewrite ? map_app ; rewrite app_comm_cons ; apply X0 ; rewrite map_app ; reflexivity.
+  + now apply X.
+  + rewrite ? map_app, app_comm_cons; apply X0 ; now rewrite map_app.
 Qed.
 
 Lemma imp_reduction : forall A B l, rprove l (imp A B) ->
@@ -364,7 +360,8 @@ remember (exs x A) as A' ; revert A x HeqA' ; induction pi ;
     eapply weakening...
     apply (rnpup 1) in pi2.
     rnow simpl in pi2 then simpl in pi2.
-    rewrite map_map in pi2 ; rewrite (map_ext _ _ (fup_fup_com _)) in pi2 ; rewrite <- map_map in pi2...
+    rewrite map_map in pi2 ; rewrite (map_ext _ _ (fup_fup_com _)) in pi2 ;
+      rewrite <- map_map in pi2...
 Qed.
 
 Lemma substitution : forall n m A, fsize A = n ->
@@ -489,9 +486,8 @@ end.
 Lemma in_ffreevars_frl : forall x y, y <> x -> forall A,
   In x (ffreevars A) -> In x (ffreevars (frl y A)).
 Proof.
-intros x y Heq A Hi ; simpl ; remember (ffreevars A) as l.
-revert Hi ; clear - Heq ; induction l ; intros Hi ; auto.
-inversion Hi ; subst ; simpl ; rcauto.
+formula_induction A; apply notin_remove; intuition.
+now rewrite <- flat_map_concat_map.
 Qed.
 
 Lemma ffreevars_fup : forall k A, ffreevars (fup k A) = ffreevars A.
@@ -503,104 +499,11 @@ Proof. formula_induction A; try rcauto.
 - rnow apply nfree_tsubs then apply H.
 - rnow apply H.
 - rnow rewrite IHA.
-  now apply H ; apply in_ffreevars_frl.
+  now apply H; apply in_ffreevars_frl.
 - rnow rewrite IHA.
-  now apply H ; apply in_ffreevars_frl.
+  now apply H; apply in_ffreevars_frl.
 Qed.
 Hint Rewrite nfree_subs using intuition ; fail : term_db.
-
-
-(** * Hilbert style properties *)
-
-(* Apply all (reversible) introduction rules *)
-Ltac rev_intros := repeat (repeat apply rimpi ; repeat apply rfrli) ; apply rninj.
-
-Lemma frl_elim : forall A u x, closed u -> rprove (frl x A :: nil) (subs x u A).
-Proof. intros A u x Hf ; rev_intros.
-rnow apply (nfrle u).
-Qed.
-
-Lemma frl_imp : forall A B x, rprove (frl x (imp A B) :: nil) (imp (frl x A) (frl x B)).
-Proof. intros A B x ; rev_intros.
-apply (nimpe (subs x (dvar 0) (fupz A))).
-- change (imp (subs x (dvar 0) (fupz A)) (subs x (dvar 0) (fupz B)))
-    with (subs x (dvar 0) (imp (fupz A) (fupz B))).
-  apply nfrle ; [ reflexivity | ] ; simpl.
-  change (frl x (fupz A) :: frl x (imp (fupz A) (fupz B)) :: nil)
-    with ((frl x (fupz A) :: nil) ++ frl x (imp (fupz A) (fupz B)) :: nil).
-  apply nax.
-- apply rninj ; apply nfrle ; [ reflexivity | ].
-  apply nax_hd.
-Qed.
-
-Lemma frl_nfree : forall A x, ~ In x (ffreevars A) -> rprove (A :: nil) (frl x A).
-Proof. intros A x Hnf ; rev_intros.
-rnow rewrite nfree_subs.
-Qed.
-
-Lemma Kcombi : forall A B, rprove nil (imp A (imp B A)).
-Proof with auto with term_db.
-intros ; rev_intros.
-change (B :: A :: nil) with ((B :: nil) ++ A :: nil)...
-Qed.
-
-Lemma Scombi : forall A B C, rprove nil (imp (imp A (imp B C)) (imp (imp A B) (imp A C))).
-Proof with auto with term_db.
-intros ; rev_intros.
-apply (nimpe B).
-- apply (nimpe A)...
-  change (A :: imp A B :: imp A (imp B C) :: nil)
-    with ((A :: imp A B :: nil) ++ imp A (imp B C) :: nil)...
-- apply rninj ; apply (nimpe A)...
-  change (A :: imp A B :: imp A (imp B C) :: nil)
-    with ((A :: nil) ++ imp A B :: imp A (imp B C) :: nil)...
-Qed.
-
-
-(** * More Lemmas *)
-
-Lemma subs_subs_com : forall x v y u, x <> y -> closed u -> closed v ->
-  forall A, subs y u (subs x v A) = subs x (tsubs y u v) (subs y u A).
-Proof. formula_induction A. Qed.
-Hint Rewrite subs_subs_com using intuition ; fail : term_db.
-
-
-(** * Examples *)
-Section Examples.
-
-Variable f : tatom.
-Variable x y : vatom.
-Variable P : fatom.
-
-Goal forall A, rprove nil (imp (frl x (frl y A)) (frl y (frl x A))).
-Proof.
-intros; apply rimpi; repeat (apply rfrli; simpl).
-case_analysis; rev_intros.
-- rnow apply nfrle.
-  replace (frl y (fupz (fupz A)))
-     with (subs y (dvar 0) (frl y (fupz (fupz A))))
-    by rcauto.
-  rnow apply nfrle then subst; rcauto.
-- rewrite fup_subs_com, subs_subs_com; intuition.
-  rnow apply nfrle.
-  replace (frl y (subs x (dvar 0) (fupz (fupz A))))
-    with (subs x (dvar 0) (frl y (fupz (fupz A))))
-    by (simpl; case_analysis; intuition).
-  rnow apply nfrle.
-Qed.
-
-Goal rprove nil (imp (frl x (var P (tconstr f (tvar x :: nil) :: nil)))
-                     (frl x (var P (tconstr f (tconstr f (tvar x :: nil) :: nil) :: nil)))).
-Proof.
-intros ; rev_intros ; rnow idtac.
-case_analysis; intuition.
-replace (var P (tconstr f (tconstr f (dvar 0 :: nil) :: nil) :: nil))
-   with (subs x (tconstr f (dvar 0 :: nil)) (var P (tconstr f (tvar x :: nil) :: nil)))
-  by (simpl; case_analysis; intuition).
-rnow apply nfrle.
-Qed.
-
-End Examples.
 
 
 (** * Sub-Formula Property *)
@@ -618,7 +521,7 @@ Inductive subform : formula -> formula -> Prop :=
 
 Lemma subform_trans : forall A B C, subform A B -> subform B C -> subform A C.
 Proof.
-now intros A B C Hl Hr ; revert A Hl ; induction Hr ; intros A' Hl ; try (econstructor ; apply IHHr).
+now intros A B C Hl Hr; revert A Hl; induction Hr; intros A' Hl; try (econstructor; apply IHHr).
 Qed.
 
 (* property [P] holds for any formula in [pi] *)
@@ -640,9 +543,7 @@ end.
 Lemma rnprove_stronger : forall (P Q : _ -> Prop), (forall x, P x -> Q x) ->
    (forall l A (pi : nprove l A), nprove_with_prop P pi -> nprove_with_prop Q pi)
  * (forall l A (pi : rprove l A), rprove_with_prop P pi -> rprove_with_prop Q pi).
-Proof.
-intros; apply rnprove_mutrect ; simpl ; intuition; eapply Forall_impl ; eassumption.
-Qed.
+Proof. intros; apply rnprove_mutrect ; simpl ; intuition; eapply Forall_impl ; eassumption. Qed.
 
 Theorem subformula_prop :
    (forall l A (pi : nprove l A), Exists (subform A) l
@@ -769,8 +670,7 @@ Qed.
 
 
 
-
-(* additional results *)
+(** * More Lemmas *)
 
 Lemma ffreevars_subs_closed : forall x u, closed u -> forall A,
   ffreevars (subs x u A) = remove eq_dt_dec x (ffreevars A).
@@ -783,50 +683,35 @@ Proof. formula_induction A ; rewrite ? remove_app; try now f_equal.
   + symmetry; apply remove_remove_eq.
   + now rewrite remove_remove_neq by (now intros Heq'; apply Heq); f_equal.
 Qed.
+Hint Rewrite ffreevars_subs_closed using intuition; fail : term_db.
 
-Lemma ffreevars_subs : forall x y u A, In x (ffreevars (subs y u A)) -> In x (freevars u) \/ In x (ffreevars A).
+Lemma ffreevars_subs : forall x y u A, In x (ffreevars (subs y u A)) ->
+  (In x (freevars u) /\ In y (ffreevars A)) \/ (In x (ffreevars A) /\ x <> y).
 Proof.
-formula_induction A.
+formula_induction A; try in_solve.
 - revert H; induction l; simpl; intros Hin.
   + inversion Hin.
   + apply in_app_or in Hin; destruct Hin as [Hin|Hin].
-    * apply freevars_tsubs in Hin; destruct Hin as [Hin|Hin].
-      -- now left.
-      -- right; apply in_or_app; now left.
-    * apply IHl in Hin; try assumption.
-      destruct Hin as [Hin|Hin]; [left|right]; try assumption.
-      now apply in_or_app; right.
-- apply in_app_or in H; destruct H as [Hin|Hin].
-  + apply A1 in Hin; destruct Hin as [Hin|Hin]; [left|right]; try assumption.
-    apply in_or_app; now left.
-  + apply IHA1 in Hin; destruct Hin as [Hin|Hin]; [left|right]; try assumption.
-    apply in_or_app; now right.
-- revert H; case_analysis; intros H.
-  + now right.
+    * apply freevars_tsubs in Hin; in_solve.
+    * apply IHl in Hin; in_solve.
+- refine ?[mygoal]. Existential 1 := ?mygoal.
+  revert H; case_analysis; intros H.
+  + right; intuition.
+    apply in_remove in H; intuition.
   + assert (Hin := proj1 (in_remove _ _ _ _ H)).
-    apply IHA in Hin; destruct Hin as [Hin|Hin]; [now left|right].
-    assert (x <> x0) as Hneq
-      by (intros Heqx; subst; revert H; apply remove_In).
-    remember (ffreevars A) as l; clear - Hneq Hin; induction l.
-    * inversion Hin.
-    * inversion Hin; subst.
-      -- apply notin_remove; intuition.
-      -- simpl; case_analysis; intuition.
-- revert H; case_analysis; intros H.
-  + now right.
-  + assert (Hin := proj1 (in_remove _ _ _ _ H)).
-    apply IHA in Hin; destruct Hin as [Hin|Hin]; [now left|right].
-    assert (x <> x0) as Hneq
-      by (intros Heqx; subst; revert H; apply remove_In).
-    remember (ffreevars A) as l; clear - Hneq Hin; induction l.
-    * inversion Hin.
-    * inversion Hin; subst.
-      -- apply notin_remove; intuition.
-      -- simpl; case_analysis; intuition.
+    apply IHA in Hin; destruct Hin as [Hin|Hin]; [left|right]; intuition;
+      apply notin_remove; intuition.
+    subst; revert H; apply remove_In.
 Qed.
 
 Lemma subs_subs_eq : forall x u v A, subs x u (subs x v A) = subs x (tsubs x u v) A.
 Proof. formula_induction A. Qed.
+Hint Rewrite subs_subs_eq : term_db.
+
+Lemma subs_subs_com_closed : forall x v y u, x <> y -> closed u -> closed v ->
+  forall A, subs y u (subs x v A) = subs x (tsubs y u v) (subs y u A).
+Proof. formula_induction A. Qed.
+Hint Rewrite subs_subs_com_closed using intuition; fail : term_db.
 
 Fixpoint good_for x y A :=
 match A with
@@ -836,63 +721,52 @@ match A with
 | exs z B => In x (ffreevars (exs z B)) -> good_for x y B /\ y <> z
 end.
 
-Lemma subs_subs_com_good : forall x v y u, x <> y -> closed u ->
-  forall A, Forall (fun y => good_for x y A) (freevars v) ->
-              subs y u (subs x v A) = subs x (tsubs y u v) (subs y u A).
-Proof. induction A; intros Hb.
-- simpl ; f_equal ; rnow rewrite 2 map_map ; apply map_ext.
-  rnow idtac then rewrite (nfree_tsubs _ _ v) ; try now apply closed_nofreevars.
-- simpl in Hb.
-  simpl; f_equal.
-  + apply IHA1.
-    eapply Forall_impl; [ | eassumption ]; simpl.
-    intros a [Hba Hba']; apply Hba; now left.
-  + apply IHA2.
-    eapply Forall_impl; [ | eassumption ]; simpl.
-    intros a [Hba Hba']; apply Hba'; now right.
-- simpl; repeat case_analysis; intuition; f_equal.
-  + destruct (in_dec eq_dt_dec y (freevars v)); [ destruct (in_dec eq_dt_dec x (ffreevars A)) | ].
-    * exfalso.
-      apply Forall_forall with (x:=y) in Hb; [ | assumption ].
-      simpl in Hb.
-      apply (notin_remove eq_dt_dec _ x y) in i0; intuition.
-    * now rewrite 2 nfree_subs.
-    * now rewrite nfree_tsubs; [ reflexivity | ].
+Lemma good_for_subs : forall x y z t A, closed t -> x <> z ->
+  good_for x y A -> good_for x y (subs z t A).
+Proof. intros x y z t A; revert t; formula_induction A.
+- refine ?[mygoal]. Existential 1 := ?mygoal.
+  assert (incl (remove eq_dt_dec x0 (ffreevars (subs z t A))) (remove eq_dt_dec x0 (ffreevars A)))
+    as Hincl.
+  { apply remove_incl.
+    intros a Ha.
+    apply ffreevars_subs in Ha; destruct Ha as [Ha|Ha]; intuition.
+    exfalso; now rewrite H in H3. }
+  revert H1 H2; repeat case_analysis; intros H1 H2; intuition.
+  + apply IHA; intuition.
+    apply H1; intuition.
+  + apply H1; intuition.
+Qed.
+
+Lemma subs_subs_com_good : forall x v y u, x <> y -> closed u -> forall A,
+  Forall (fun y => good_for x y A) (freevars v) ->
+  subs y u (subs x v A) = subs x (tsubs y u v) (subs y u A).
+Proof. induction A; simpl; intros Hb; f_equal.
+- rnow rewrite 2 map_map; apply map_ext; rcauto.
+- apply IHA1; eapply Forall_impl; [ | eassumption ]; simpl; intuition.
+- apply IHA2; eapply Forall_impl; [ | eassumption ]; simpl; intuition.
+- refine ?[mygoal]. Existential 1 := ?mygoal.
+  repeat case_analysis; intuition.
+  + destruct (in_dec eq_dt_dec y (freevars v));
+     [ destruct (in_dec eq_dt_dec x (ffreevars A)) | ]; rcauto.
+    exfalso.
+    specialize_Forall Hb with y; apply Hb; intuition.
+    now apply notin_remove.
   + destruct (in_dec eq_dt_dec x (ffreevars A)).
     * apply IHA.
       apply Forall_forall; intros z Hinz.
-      apply Forall_forall with (x:=z) in Hb; [ | assumption ].
-      apply Hb.
-      simpl; apply notin_remove; intuition.
-    * rewrite 2 (nfree_subs x); [ reflexivity | | assumption ].
-      intros Hin; apply n.
-      rewrite ffreevars_subs_closed in Hin; [ | assumption ].
-      now apply in_remove in Hin.
-- simpl; repeat case_analysis; intuition; f_equal.
-  + destruct (in_dec eq_dt_dec y (freevars v)); [ destruct (in_dec eq_dt_dec x (ffreevars A)) | ].
-    * exfalso.
-      apply Forall_forall with (x:=y) in Hb; [ | assumption ].
-      simpl in Hb.
-      apply (notin_remove eq_dt_dec _ x y) in i0; intuition.
-    * now rewrite 2 nfree_subs.
-    * now rewrite nfree_tsubs; [ reflexivity | ].
-  + destruct (in_dec eq_dt_dec x (ffreevars A)).
-    * apply IHA.
-      apply Forall_forall; intros z Hinz.
-      apply Forall_forall with (x:=z) in Hb; [ | assumption ].
-      apply Hb.
-      simpl; apply notin_remove; intuition.
+      specialize_Forall Hb with z; apply Hb.
+      apply notin_remove; intuition.
     * rewrite 2 (nfree_subs x); [ reflexivity | | assumption ].
       intros Hin; apply n.
       rewrite ffreevars_subs_closed in Hin; [ | assumption ].
       now apply in_remove in Hin.
 Qed.
+Hint Rewrite subs_subs_com_good using intuition; fail : term_db.
 
 
+(* Iterated substitution *)
 
-(* Simultaneous substitution *)
-
-Fixpoint remove_snd {T : Type} x (L : list (vatom * T)) :=
+Fixpoint remove_snd {T} x (L : list (vatom * T)) :=
 match L with
 | nil => nil
 | (y, F) :: TL => if eqb x y then remove_snd x TL else (y, F) :: remove_snd x TL
@@ -904,151 +778,109 @@ Proof.
 induction L; simpl; [ reflexivity | rewrite IHL ]; destruct a; simpl.
 repeat case_analysis; intuition.
 Qed.
+Hint Rewrite (@remove_snd_remove formula) : term_db.
 
-Definition multi_subs L A :=
-  fold_left (fun F p => subs (fst p) (snd p) F) L A.
+(* iterated substitution *)
+Definition multi_subs L A := fold_left (fun F p => subs (fst p) (snd p) F) L A.
+
+Lemma multi_subs_nil : multi_subs nil = id.
+Proof. reflexivity. Qed.
+Hint Rewrite multi_subs_nil : term_db.
 
 Lemma multi_subs_var : forall L X l, multi_subs L (var X l) = var X (map (multi_tsubs L) l).
 Proof.
 induction L; intros X l; simpl.
-- f_equal; now induction l; simpl; [ | rewrite <- IHl ].
-- rewrite IHL.
-  f_equal; rewrite map_map; f_equal.
+- now rewrite multi_tsubs_nil, map_id.
+- now rewrite IHL, map_map.
 Qed.
+Hint Rewrite multi_subs_var : term_db.
 
 Lemma multi_subs_imp : forall L A B, multi_subs L (imp A B) = imp (multi_subs L A) (multi_subs L B).
 Proof. now induction L; intros A B; simpl; [ | rewrite IHL ]. Qed.
+Hint Rewrite multi_subs_imp : term_db.
 
 Lemma multi_subs_frl : forall L x A, multi_subs L (frl x A) = frl x (multi_subs (remove_snd x L) A).
 Proof.
 induction L; intros x A; simpl; [ reflexivity | destruct a; simpl ].
 case_analysis; rewrite IHL; f_equal.
 Qed.
+Hint Rewrite multi_subs_frl : term_db.
 
 Lemma multi_subs_exs : forall L x A, multi_subs L (exs x A) = exs x (multi_subs (remove_snd x L) A).
 Proof.
 induction L; intros x A; simpl; [ reflexivity | destruct a; simpl ].
 case_analysis; rewrite IHL; f_equal.
 Qed.
+Hint Rewrite multi_subs_exs : term_db.
 
 Lemma multi_subs_closed : forall L A, ffreevars A = nil -> multi_subs L A = A.
 Proof.
-induction L; intros A Hc; [ reflexivity | ].
-destruct a; simpl.
-rewrite nfree_subs by (rewrite Hc; intros Hin; inversion Hin).
-now apply IHL.
+induction L; intros A Hc; [ reflexivity | destruct a; simpl ].
+(rnow rewrite nfree_subs); rewrite Hc in H; inversion H.
 Qed.
+Hint Rewrite multi_subs_closed using intuition; fail : term_db.
 
 Lemma multi_subs_is_closed : forall L A,
-  Forall (fun z : term => closed z) (map snd L) ->
-  incl (ffreevars A) (map (fun z => fst z) L) ->
-ffreevars (multi_subs L A) = nil.
+  Forall (fun z => closed z) (map snd L) -> incl (ffreevars A) (map fst L) ->
+  ffreevars (multi_subs L A) = nil.
 Proof.
 induction L; simpl; intros A Hc Hf.
 - now apply incl_nil in Hf; subst.
-- destruct a; simpl; simpl in Hc, Hf.
-  apply IHL.
-  + now inversion Hc.
-  + intros z Hinz.
-    inversion Hc; subst.
-    rewrite ffreevars_subs_closed in Hinz by assumption.
-    apply in_remove in Hinz; destruct Hinz as [Hinz Hneq].
-    apply Hf in Hinz; inversion Hinz.
-    * exfalso; now rewrite H in Hneq.
-    * assumption.
+- destruct a; simpl; simpl in Hc, Hf; inversion_clear Hc as [ | ? ? Hc2 HcF].
+  apply IHL; intuition.
+  intros z Hinz.
+  rewrite ffreevars_subs_closed in Hinz by assumption.
+  apply in_remove in Hinz; destruct Hinz as [Hinz Hneq].
+  apply Hf in Hinz; inversion Hinz; [ exfalso | ]; intuition.
 Qed.
 
-Lemma multi_subs_ffreevars L x A: 
-  Forall (fun z : term => closed z) (map snd L) ->
-In x (ffreevars (multi_subs L A)) -> In x (ffreevars A).
+Lemma multi_subs_ffreevars : forall L x A, 
+  Forall (fun z => closed z) (map snd L) ->
+  In x (ffreevars (multi_subs L A)) -> In x (ffreevars A).
 Proof.
-induction L using rev_ind; simpl; intros Hc Hin; [ assumption | ].
-destruct x0; simpl in Hin.
-rewrite map_app in Hc; apply Forall_app_inv in Hc; simpl in Hc; destruct Hc as [Hc1 Hc2].
-unfold multi_subs in Hin; rewrite fold_left_app in Hin; simpl in Hin.
-apply ffreevars_subs in Hin; destruct Hin as [Hin|Hin].
-- exfalso.
-  inversion Hc2; rewrite H1 in Hin; inversion Hin.
-- now apply IHL.
+induction L; intros x A Hc Hin; [ assumption | destruct a; simpl in Hc, Hin ].
+inversion_clear Hc as [ | ? ? Hct HcF ].
+apply IHL in Hin; trivial.
+apply ffreevars_subs in Hin; destruct Hin as [[Hin _]| ]; intuition.
+exfalso; rewrite Hct in Hin; inversion Hin.
 Qed.
 
 Lemma multi_subs_subs : forall L x v,
-  Forall (fun z : term => closed z) (map snd L) ->
+  Forall (fun z => closed z) (map snd L) ->
   forall A, Forall (fun y => good_for x y A) (freevars v) ->
   multi_subs L (subs x v A) = subs x (multi_tsubs L v) (multi_subs (remove_snd x L) A).
 Proof.
-induction L; simpl; intros x v Hc A Hb; [ reflexivity | ].
-destruct a; simpl; simpl in Hc; inversion Hc; subst.
-case_analysis; rewrite <- IHL; try assumption.
-- f_equal; apply subs_subs_eq.
-- apply Forall_forall; intros z Hinz.
-  apply freevars_tsubs in Hinz.
-  destruct Hinz as [Hinz|Hinz].
-  { exfalso; rewrite H1 in Hinz; inversion Hinz. }
-  now apply Forall_forall with (x := z) in Hb.
-- f_equal.
-  now rewrite subs_subs_com_good.
-- apply Forall_forall; intros z Hinz.
-  apply freevars_tsubs in Hinz.
-  destruct Hinz as [Hinz|Hinz].
-  { exfalso; rewrite H1 in Hinz; inversion Hinz. }
-  apply Forall_forall with (x := z) in Hb; [ | assumption ].
-  revert H1 Hb Heq; clear; induction A; simpl; intros Hc Hb Heq.
-  + constructor.
-  + now destruct Hb as [Hb1 Hb2]; split; [ apply IHA1 | apply IHA2 ].
-  + case_analysis.
-    * assumption.
-    * enough (In x (ffreevars (subs c t A)) -> In x (ffreevars A)) as Himp.
-      { intros Hin.
-        apply in_remove in Hin; destruct Hin as [Hin Hneq].
-        apply Himp in Hin.
-        apply notin_remove with eq_dt_dec (ffreevars A) x c0 in Hin; [ | assumption ].
-        apply Hb in Hin.
-        split; [ | apply Hin ].
-        now apply IHA. }
-      intros Hin; apply ffreevars_subs in Hin.
-      destruct Hin as [Hin|Hin].
-      -- rewrite Hc in Hin; inversion Hin.
-      -- assumption.
-  + case_analysis.
-    * assumption.
-    * enough (In x (ffreevars (subs c t A)) -> In x (ffreevars A)) as Himp.
-      { intros Hin.
-        apply in_remove in Hin; destruct Hin as [Hin Hneq].
-        apply Himp in Hin.
-        apply notin_remove with eq_dt_dec (ffreevars A) x c0 in Hin; [ | assumption ].
-        apply Hb in Hin.
-        split; [ | apply Hin ].
-        now apply IHA. }
-      intros Hin; apply ffreevars_subs in Hin.
-      destruct Hin as [Hin|Hin].
-      -- rewrite Hc in Hin; inversion Hin.
-      -- assumption.
+induction L; simpl; intros x v Hc A Hb; [ reflexivity | destruct a; simpl; simpl in Hc ].
+inversion_clear Hc as [ | ? ? Hct HcF ].
+case_analysis; rewrite <- IHL; intuition; f_equal; rcauto.
+- apply Forall_incl with (freevars v); intuition.
+  apply incl_remove.
+- apply Forall_incl with (freevars v).
+  + apply incl_remove.
+  + apply Forall_impl with (fun y => good_for x y A); trivial.
+    intros a; now apply good_for_subs.
 Qed.
+Hint Rewrite multi_subs_subs using intuition; fail : term_db.
 
 Lemma multi_subs_remove : forall L A x,
-  Forall (fun z : term => closed z) (map snd L) ->
+  Forall (fun z => closed z) (map snd L) ->
   ~ In x (ffreevars A) -> multi_subs (remove_snd x L) A = multi_subs L A.
 Proof.
-induction L; simpl; intros A x Hc Hin; [ reflexivity | ].
-destruct a; simpl; simpl in Hc.
-case_analysis.
-- rewrite nfree_subs by assumption.
-  inversion Hc; subst; now apply IHL.
-- inversion Hc; subst.
-  apply IHL; try assumption.
-  apply eqb_neq in Heq.
-  intros Hin2; apply Hin; clear - Heq H1 Hin2.
-  apply ffreevars_subs in Hin2.
-  destruct Hin2 as [Hin2|Hin2].
-  + exfalso.
-    rewrite H1 in Hin2; inversion Hin2.
-  + assumption.
+induction L; simpl; intros A x Hc Hin; [ reflexivity | destruct a; simpl; simpl in Hc ].
+inversion_clear Hc as [ | ? ? Hct HcF ].
+case_analysis; rcauto.
+apply IHL; try assumption.
+intros Hin2; apply Hin.
+apply ffreevars_subs in Hin2.
+destruct Hin2 as [[Hin2 _]|[Hin2 _]]; trivial.
+exfalso; rewrite Hct in Hin2; inversion Hin2.
 Qed.
+Hint Rewrite multi_subs_remove using intuition; fail : term_db.
 
 Lemma fup_multi_subs : forall L k A,
   fup k (multi_subs L A) = multi_subs (map (fun x => (fst x, tup k (snd x))) L) (fup k A).
-Proof. now induction L; simpl; intros k A; [ reflexivity | rewrite IHL ]; rewrite fup_subs_com. Qed.
+Proof. induction L; simpl; intros k A; [ | rewrite IHL ]; rcauto. Qed.
+Hint Rewrite fup_multi_subs : term_db.
 
 Lemma multi_subs_ext : forall L A,
   Forall (fun z => closed z) (map snd L) -> incl (ffreevars A) (map fst L) ->
@@ -1057,36 +889,104 @@ Proof.
 intros L A Hcl Hsub L'.
 unfold multi_subs at 2; rewrite fold_left_app.
 rewrite multi_subs_closed
-  with (A:= fold_left (fun F p => subs (fst p) (snd p) F) L A).
-- reflexivity.
-- apply multi_subs_is_closed; [ assumption | ].
-  revert Hsub; clear; induction L; intros Hincl z Hinz.
-  + exfalso.
-    apply Hincl in Hinz; inversion Hinz.
-  + now apply Hincl in Hinz.
+  with (A:= fold_left (fun F p => subs (fst p) (snd p) F) L A); trivial.
+now apply multi_subs_is_closed.
 Qed.
 
 (* All variables occurring (free or bound or for quantification) in a formula *)
 
 Fixpoint allvars A :=
 match A with
-| var _ l => concat (map freevars l)
+| var _ l => flat_map freevars l
 | imp B C => allvars B ++ allvars C
 | frl x B => x :: allvars B
 | exs x B => x :: allvars B
 end.
 
 Lemma ffreevars_allvars : forall A, incl (ffreevars A) (allvars A).
+Proof. formula_induction A.
+- refine ?[mygoal]. Existential 1 := ?mygoal.
+  eapply incl_tran; [ apply incl_remove | ].
+  eapply incl_tran; [ apply IHA | intuition ].
+Qed.
+
+
+
+(** * Examples *)
+Section Examples.
+
+Variable x y : vatom.
+
+Goal forall A, rprove nil (imp (frl x (frl y A)) (frl y (frl x A))).
 Proof.
-formula_induction A.
-- intros z Hz.
-  apply in_cons.
-  apply in_remove in Hz; destruct Hz.
-  now apply IHA.
-- intros z Hz.
-  apply in_cons.
-  apply in_remove in Hz; destruct Hz.
-  now apply IHA.
+intros; apply rimpi; repeat (apply rfrli; simpl).
+case_analysis; rev_intros.
+- rnow apply nfrle.
+  replace (frl y (fupz (fupz A)))
+     with (subs y (dvar 0) (frl y (fupz (fupz A))))
+    by rcauto.
+  rnow apply nfrle then subst; rcauto.
+- rewrite fup_subs_com, subs_subs_com_closed; intuition.
+  rnow apply nfrle.
+  replace (frl y (subs x (dvar 0) (fupz (fupz A))))
+    with (subs x (dvar 0) (frl y (fupz (fupz A))))
+    by (simpl; case_analysis; intuition).
+  rnow apply nfrle.
+Qed.
+
+Variable f : tatom.
+Variable P : fatom.
+
+Goal rprove nil (imp (frl x (var P (tconstr f (tvar x :: nil) :: nil)))
+                     (frl x (var P (tconstr f (tconstr f (tvar x :: nil) :: nil) :: nil)))).
+Proof.
+intros ; rev_intros ; rnow idtac.
+case_analysis; intuition.
+replace (var P (tconstr f (tconstr f (dvar 0 :: nil) :: nil) :: nil))
+   with (subs x (tconstr f (dvar 0 :: nil)) (var P (tconstr f (tvar x :: nil) :: nil)))
+  by (simpl; case_analysis; intuition).
+rnow apply nfrle.
+Qed.
+
+End Examples.
+
+
+(** ** Hilbert style properties *)
+
+Lemma frl_elim : forall A u x, closed u -> rprove (frl x A :: nil) (subs x u A).
+Proof. intros A u x Hf; rev_intros; rnow apply (nfrle u). Qed.
+
+Lemma frl_imp : forall A B x, rprove (frl x (imp A B) :: nil) (imp (frl x A) (frl x B)).
+Proof. intros A B x; rev_intros.
+apply (nimpe (subs x (dvar 0) (fupz A))).
+- change (imp (subs x (dvar 0) (fupz A)) (subs x (dvar 0) (fupz B)))
+    with (subs x (dvar 0) (imp (fupz A) (fupz B))).
+  apply nfrle ; [ reflexivity | ] ; simpl.
+  change (frl x (fupz A) :: frl x (imp (fupz A) (fupz B)) :: nil)
+    with ((frl x (fupz A) :: nil) ++ frl x (imp (fupz A) (fupz B)) :: nil).
+  apply nax.
+- now apply rninj, nfrle, nax_hd.
+Qed.
+
+Lemma frl_nfree : forall A x, ~ In x (ffreevars A) -> rprove (A :: nil) (frl x A).
+Proof. intros A x Hnf; rev_intros; rnow rewrite nfree_subs. Qed.
+
+Lemma Kcombi : forall A B, rprove nil (imp A (imp B A)).
+Proof.
+intros ; rev_intros.
+change (B :: A :: nil) with ((B :: nil) ++ A :: nil); auto with term_db.
+Qed.
+
+Lemma Scombi : forall A B C, rprove nil (imp (imp A (imp B C)) (imp (imp A B) (imp A C))).
+Proof with auto with term_db.
+intros ; rev_intros.
+apply (nimpe B).
+- apply (nimpe A)...
+  change (A :: imp A B :: imp A (imp B C) :: nil)
+    with ((A :: imp A B :: nil) ++ imp A (imp B C) :: nil)...
+- apply rninj ; apply (nimpe A)...
+  change (A :: imp A B :: imp A (imp B C) :: nil)
+    with ((A :: nil) ++ imp A B :: imp A (imp B C) :: nil)...
 Qed.
 
 End Formulas.

@@ -77,6 +77,14 @@ apply IHl1 in H0...
 constructor...
 Qed.
 
+Lemma Forall_incl {A} : forall P (l1 l2 : list A),
+  incl l2 l1 -> Forall P l1 -> Forall P l2.
+Proof.
+intros Pl l1 l2 Hincl HF.
+apply Forall_forall; intros a Ha.
+apply Forall_forall with (x:=a) in HF; intuition.
+Qed.
+
 Lemma Exists_app {A} : forall (P : A -> Prop) l1 l2,
   (Exists P l1 \/ Exists P l2) -> Exists P (l1 ++ l2).
 Proof with try assumption.
@@ -119,6 +127,15 @@ induction l1; intros l2 x; simpl.
   + apply IHl1.
   + rewrite <- app_comm_cons; f_equal.
     apply IHl1.
+Qed.
+
+Lemma incl_remove {A} : forall Hdec l (x : A), incl (remove Hdec x l) l.
+Proof.
+induction l; simpl; intros x y Hy; intuition.
+destruct (Hdec x a); subst.
+- apply IHl in Hy; intuition.
+- destruct Hy as [Hy|Hy]; [left|right]; intuition.
+  now apply IHl in Hy.
 Qed.
 
 Lemma notin_remove_eq {A} : forall Hdec l (x : A), ~ In x l ->
@@ -177,6 +194,14 @@ induction l; simpl; intros x y Hneq Hin.
     * now apply IHl.
   + simpl; destruct Hin; [now left|right].
     now apply IHl.
+Qed.
+
+Lemma remove_incl {A} : forall Hdec l1 l2 (x : A),
+  incl l1 l2 -> incl (remove Hdec x l1) (remove Hdec x l2).
+Proof.
+intros Hdec l1 l2 x Hincl y Hin.
+apply in_remove in Hin; destruct Hin as [Hin Hneq].
+apply notin_remove; intuition.
 Qed.
 
 Lemma remove_concat {A} : forall Hdec (x : A) l,

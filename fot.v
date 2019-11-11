@@ -3,8 +3,7 @@
 
 Require Export PeanoNat List.
 Require Import stdlib_more.
-Require Export dectype.
-Require Export term_tactics.
+Require Export dectype term_tactics.
 
 Set Implicit Arguments.
 
@@ -44,7 +43,7 @@ match t with
       end) l)
 end.
 Ltac term_induction t :=
-  (try intros until t) ;
+  (try intros until t);
   let nn := fresh "n" in
   let xx := fresh "x" in
   let cc := fresh "c" in
@@ -52,22 +51,22 @@ Ltac term_induction t :=
   let IHll := fresh "IHl" in
   let i := fresh "i" in
   let Hi := fresh "Hi" in
-  apply (term_ind_list_Forall t) ;
-  [ intros nn ; try reflexivity ; try assumption ; simpl
-  | intros xx ; try reflexivity ; try assumption ; simpl
-  | intros cc ll IHll ; simpl ;
-    repeat (rewrite flat_map_concat_map) ; repeat (rewrite map_map) ;
-    try f_equal ;
-    try (apply map_ext_in ; intros i Hi; specialize_Forall_all i) ;
-    try (apply Forall_forall; intros i Hi; specialize_Forall_all i) ;
-    try assumption ] ;
-  try ((rnow idtac) ; fail) ; try (rcauto ; fail).
+  apply (term_ind_list_Forall t);
+  [ intros nn; try (now intuition); simpl
+  | intros xx; try (now intuition); simpl
+  | intros cc ll IHll; simpl;
+    rewrite ? flat_map_concat_map; rewrite ? map_map;
+    try f_equal;
+    try (apply map_ext_in; intros i Hi; specialize_Forall_all i);
+    try (apply Forall_forall; intros i Hi; specialize_Forall_all i);
+    try (now intuition) ];
+  try (now (rnow idtac)); try (now rcauto).
 
 
 (** lift indexes above [k] in [term] [t] *)
 Fixpoint tup k t :=
 match t with
-| dvar n => if n <? k then dvar n else dvar (S n)
+| dvar n => dvar (if n <? k then n else S n)
 | tvar x => tvar x
 | tconstr f l => tconstr f (map (tup k) l)
 end.
@@ -98,16 +97,14 @@ match t with
 | tconstr c l => tconstr c (map (tsubs x u) l)
 end.
 
-Lemma tup_tsubs_com : forall k x u t,
+Lemma tup_tsubs_com : forall k x u t, 
   tup k (tsubs x u t) = tsubs x (tup k u) (tup k t).
 Proof. term_induction t. Qed.
 Hint Rewrite tup_tsubs_com : term_db.
 
 Lemma ntsubs_tup_com : forall k u t,
   ntsubs (S k) (tup 0 u) (tup 0 t) = tup 0 (ntsubs k u t).
-Proof. term_induction t ; rcauto.
-now destruct n ; destruct k ; inversion Heq.
-Qed.
+Proof. term_induction t ; rcauto; now destruct n ; destruct k ; inversion Heq. Qed.
 Hint Rewrite ntsubs_tup_com : term_db.
 
 Lemma ntsubs_z_tup : forall u t, ntsubs 0 u (tup 0 t) = t.
@@ -139,7 +136,7 @@ Hint Rewrite freevars_tup : term_db.
 Lemma freevars_ntsubs : forall n u, closed u -> forall t,
   freevars (ntsubs n u t) = freevars t.
 Proof. term_induction t. Qed.
-Hint Rewrite freevars_ntsubs using intuition ; fail : term_db.
+Hint Rewrite freevars_ntsubs using intuition; fail : term_db.
 
 Lemma nfree_tsubs : forall x u t, ~ In x (freevars t) -> tsubs x u t = t.
 Proof. term_induction t ; try rcauto; f_equal.
@@ -147,8 +144,8 @@ rewrite <- flat_map_concat_map in H; apply notin_flat_map_Forall in H.
 rewrite <- (map_id l) at 2; apply map_ext_in; intros v Hv.
 specialize_Forall_all v; intuition.
 Qed.
-Hint Rewrite nfree_tsubs using try (intuition ; fail) ;
-                               (try apply closed_nofreevars) ; intuition ; fail : term_db.
+Hint Rewrite nfree_tsubs using try (intuition; fail) ;
+                               (try apply closed_nofreevars); intuition; fail : term_db.
 
 Lemma ntsubs_tsubs_com : forall x v n u, ~ In x (freevars u) -> forall t,
   ntsubs n u (tsubs x v t) = tsubs x (ntsubs n u v) (ntsubs n u t).
@@ -159,14 +156,11 @@ Hint Rewrite ntsubs_tsubs_com using try (intuition ; fail) ;
 Lemma tsubs_tsubs_com : forall x v y u, x <> y -> ~ In x (freevars u) -> forall t,
   tsubs y u (tsubs x v t) = tsubs x (tsubs y u v) (tsubs y u t).
 Proof. term_induction t. Qed.
-Hint Rewrite tsubs_tsubs_com using try (intuition ; fail) ;
-                                   (try apply closed_nofreevars) ; intuition ; fail : term_db.
-
-
+Hint Rewrite tsubs_tsubs_com using try (intuition; fail);
+                                   (try apply closed_nofreevars); intuition; fail : term_db.
 
 
 (* additional results *)
-
 
 Lemma tsubs_tsubs_eq : forall x u v t, tsubs x u (tsubs x v t) = tsubs x (tsubs x u v) t.
 Proof. term_induction t; repeat case_analysis; intuition. Qed.
@@ -178,79 +172,83 @@ Proof. term_induction t.
 rewrite remove_concat, flat_map_concat_map, map_map; f_equal.
 apply map_ext_in; intros v Hv; now specialize_Forall IHl with v.
 Qed.
-Hint Rewrite freevars_tsubs_closed using intuition ; fail : term_db.
+Hint Rewrite freevars_tsubs_closed using intuition; fail : term_db.
 
-Lemma freevars_tsubs : forall x y u t,
-  In x (freevars (tsubs y u t)) -> In x (freevars u) \/ In x (freevars t).
+Lemma freevars_tsubs : forall x y u t, In x (freevars (tsubs y u t)) ->
+  (In x (freevars u) /\ In y (freevars t)) \/ (In x (freevars t) /\ x <> y).
 Proof.
 term_induction t.
-revert IHl; induction l; simpl; intros Hl Hin.
-- inversion Hin.
-- inversion Hl; subst.
-  rewrite_all in_app_iff; intuition.
+- case_analysis.
+  + intros Hin; left; intuition.
+  + intros Heq2; right; intuition; subst; intuition.
+- revert IHl; induction l; simpl; intros Hl Hin.
+  + inversion Hin.
+  + inversion_clear Hl.
+    rewrite_all in_app_iff; intuition.
 Qed.
 
 
-(* Simultaneous substitution *)
+(* Iterated substitution *)
 
 Definition multi_tsubs L t := fold_left (fun F p => tsubs (fst p) (snd p) F) L t.
 
+Lemma multi_tsubs_nil : multi_tsubs nil = id.
+Proof. reflexivity. Qed.
+Hint Rewrite multi_tsubs_nil : term_db.
+
 Lemma multi_tsubs_dvar : forall L n, multi_tsubs L (dvar n) = dvar n.
 Proof. now induction L; intros n; simpl; [ | rewrite IHL ]. Qed.
+Hint Rewrite multi_tsubs_dvar : term_db.
 
 Lemma multi_tsubs_nvar : forall L x, ~ In x (map fst L) -> multi_tsubs L (tvar x) = tvar x.
 Proof.
 induction L; intros x Hin; simpl; [ reflexivity | ].
 destruct a; simpl; case_analysis.
-- exfalso.
-  now apply Hin; left.
+- exfalso; now apply Hin; left.
 - apply IHL.
   now intros Hin2; apply Hin; right.
 Qed.
+Hint Rewrite multi_tsubs_nvar using intuition; fail : term_db.
 
-Lemma multi_tsubs_tconstr : forall L f l, multi_tsubs L (tconstr f l) = tconstr f (map (multi_tsubs L) l).
+Lemma multi_tsubs_tconstr : forall L f l,
+  multi_tsubs L (tconstr f l) = tconstr f (map (multi_tsubs L) l).
 Proof.
 induction L; intros f l; simpl.
 - f_equal; now induction l; simpl; [ | rewrite <- IHl ].
-- rewrite IHL.
-  f_equal; rewrite map_map; f_equal.
+- rewrite IHL; f_equal; rewrite map_map; f_equal.
 Qed.
+Hint Rewrite multi_tsubs_tconstr : term_db.
 
 Lemma multi_tsubs_tsubs : forall L x v, ~ In x (map fst L) ->
   Forall (fun z => ~ In x (freevars (snd z))) L ->
   forall t, multi_tsubs L (tsubs x v t) = tsubs x (multi_tsubs L v) (multi_tsubs L t).
-Proof. term_induction t.
-- now rewrite multi_tsubs_dvar; simpl.
+Proof. term_induction t; rename H into Hnin; rename H0 into HF.
 - case_analysis.
   + rewrite multi_tsubs_nvar by assumption; simpl.
     now rewrite eqb_refl.
   + rewrite nfree_tsubs; [ reflexivity | ].
-    apply Forall_Exists_neg in H0.
-    intros Hin; apply H0.
+    apply Forall_Exists_neg in HF.
+    intros Hin; apply HF.
     assert (~ In x (freevars (tvar x0))) as Hu
      by (simpl; intros Hor; apply Heq; now destruct Hor).
     remember (tvar x0) as u.
     clear Hequ; revert u Hin Hu; clear; induction L using rev_ind; simpl; intros u Hin Hterm.
-    * exfalso; now apply Hterm.
+    * now exfalso.
     * destruct x0; simpl in Hin; simpl.
       unfold multi_tsubs in Hin.
       rewrite fold_left_app in Hin; simpl in Hin.
       apply freevars_tsubs in Hin; destruct Hin as [Hin|Hin].
       -- now apply Exists_app; right; constructor; simpl.
-      -- apply Exists_app; left.
-         now apply IHL with u.
+      -- now apply Exists_app; left; apply IHL with u.
 - rewrite 2 multi_tsubs_tconstr; simpl; f_equal.
   rewrite 2 map_map.
   now apply map_ext_Forall.
 Qed.
+Hint Rewrite multi_tsubs_tsubs using intuition; fail : term_db.
 
 Lemma multi_tsubs_closed : forall L t, closed t -> multi_tsubs L t = t.
-Proof.
-induction L; intros t Hc; [ reflexivity | ].
-destruct a; simpl.
-rewrite nfree_tsubs by now apply closed_nofreevars.
-now apply IHL.
-Qed.
+Proof. induction L; intros t Hc; rcauto. Qed.
+Hint Rewrite multi_tsubs_closed using intuition; fail : term_db.
 
 Lemma multi_tsubs_is_closed : forall L t,
   Forall (fun z : term => closed z) (map snd L) ->
@@ -263,12 +261,10 @@ induction L; simpl; intros t Hc Hf.
   apply IHL.
   + now inversion Hc.
   + intros z Hinz.
-    inversion Hc; subst.
+    inversion_clear Hc.
     rewrite freevars_tsubs_closed in Hinz by assumption.
     apply in_remove in Hinz; destruct Hinz as [Hinz Hneq].
-    apply Hf in Hinz; inversion Hinz.
-    * exfalso; now rewrite H in Hneq.
-    * assumption.
+    apply Hf in Hinz; inversion Hinz; [ exfalso | ]; intuition.
 Qed.
 
 End Terms.

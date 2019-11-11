@@ -788,8 +788,7 @@ Qed.
 Lemma bisubs_fresh : forall r y x A,
   ~ In y (allvars A) -> ~ In y (hffreevars (n2h_formula r A)) ->
   hfsubs y (hvar x) (n2h_formula (rsubs x y r) A) = n2h_formula r A.
-Proof.
-formula_induction A.
+Proof. formula_induction A.
 - revert H H0; clear; term_induction t; simpl; intros Hin Hinf.
   + unfold rsubs.
     remember (r n) as u; revert Hinf; clear; hterm_induction u; simpl; intros Hinf.
@@ -806,7 +805,7 @@ formula_induction A.
   + f_equal.
     apply map_ext_in; intros a Hina.
     apply Forall_forall with (x:=a) in IHl; [ | assumption ].
-    apply IHl.
+    apply IHl; rewrite flat_map_concat_map.
     * simpl; intros Hin2; apply Hin.
       apply in_or_app; apply in_app_or in Hin2; destruct Hin2 as [Hin2|Hin2]; [ left | right ]; auto.
       revert Hina; clear - Hin2; induction l; simpl; intros Hin; auto.
@@ -816,7 +815,7 @@ formula_induction A.
       apply in_or_app; apply in_app_or in Hin2; destruct Hin2 as [Hin2|Hin2]; [left|right].
       -- revert Hina; clear - Hin2; induction l; simpl; intros Hin; auto.
          apply in_or_app; destruct Hin as [Hin|Hin]; [ left | right ]; subst; auto.
-      -- now (rewrite flat_map_concat_map, map_map in Hin2).
+      -- now rewrite map_map in Hin2.
 - apply H.
   simpl; apply in_or_app; auto.
 - apply H0.
@@ -886,9 +885,9 @@ induction A; simpl; intros; auto.
                --- apply H1; auto.
                    intros Hnin2; apply Hnin.
                    destruct Hnin2; auto.
-                   right.
+                   right; rewrite flat_map_concat_map in H.
                    apply in_or_app; apply in_app_or in H; destruct H; [left|right]; auto.
-                   apply in_or_app; left; auto.
+                   now apply in_or_app; left.
                --- apply IHl0; auto.
                    intros Hnin2; apply Hnin.
                    destruct Hnin2; auto.

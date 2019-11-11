@@ -1,4 +1,5 @@
-(* Atoms for building terms and formulas *)
+(* Types with decidable equality formalized as types with Boolean valued equality *)
+(*   as well as study of inifinite types *)
 
 Require Import Bool PeanoNat Wf_nat Lia List.
 Require Import stdlib_more.
