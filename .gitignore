@@ -16,6 +16,11 @@ TODO.org
 *.mllib.d
 *.mlpack.d
 *.native
+
+.coqdeps.d
+CoqMakefile.conf
+Makefile.conf
+
 *.o
 *.v.crashcoqide
 *.v.d

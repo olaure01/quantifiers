@@ -1,11 +1,11 @@
 (* Natural Deduction for First-Order Intuitionistic Logic *)
 
-Require Import Wf_nat_more. (* from ollibs *)
-Require Import Lia.
-Require Import List.
+Require Import List Lia.
+Require Import stdlib_more.
+Require Import fot_vec.
+
 Import EqNotations.
 
-Require Import fot_vec.
 
 Section Definitions.
 
@@ -163,8 +163,10 @@ Theorem rnpsubs n u (Hc : closed u) {l A} :
  * (rprove l A -> rprove (map (nsubs n u) l) (nsubs n u A)).
 Proof with try eassumption.
 revert l A.
-enough ((forall l A, nprove l A -> forall n u, closed u -> nprove (map (nsubs n u) l) (nsubs n u A))
-      * (forall l A, rprove l A -> forall n u, closed u -> rprove (map (nsubs n u) l) (nsubs n u A)))
+enough ((forall l A, nprove l A -> forall n u, closed u ->
+           nprove (map (nsubs n u) l) (nsubs n u A))
+      * (forall l A, rprove l A -> forall n u, closed u ->
+          rprove (map (nsubs n u) l) (nsubs n u A)))
   as He by (split ; intros ; apply He ; assumption).
 clear n u Hc ; apply rnprove_mutrect ; intros ; (try simpl in X) ;
   (try assert (IH1 := X n0 u H)) ; (try assert (IH2 := X0 n0 u H)) ; 
@@ -173,7 +175,7 @@ clear n u Hc ; apply rnprove_mutrect ; intros ; (try simpl in X) ;
 - rnow idtac then rnow eapply nfrle.
 - assert (closed (tup 0 u)) by rnow idtac.
   specialize X with (S n) (tup 0 u).
-  rewrite map_map in X ; rewrite (map_ext _ _ (nsubs_fup_com _ _)) in X ; rewrite <- map_map in X.
+  rewrite map_map, (map_ext _ _ (nsubs_fup_com _ _)), <- map_map in X.
   rnow autorewrite with term_db in X.
 Qed.
 
@@ -192,7 +194,7 @@ clear k ; apply rnprove_mutrect ; intros ;
 - rnow idtac then rnow apply nfrle.
 - clear IH1 ; assert (IH := X (S k)).
   rnow change (dvar 0) with (tup (S k) (dvar 0)) in X.
-  rewrite map_map in IH ; rewrite (map_ext _ _ (fup_fup_com _)) in IH ; rewrite <- map_map in IH.
+  rewrite map_map, (map_ext _ _ (fup_fup_com _)), <- map_map in IH.
   now apply rfrli.
 Qed.
 
@@ -202,10 +204,9 @@ Qed.
 
 (** * Normalization *)
 
-Theorem denormalization : (forall l A, nprove l A -> prove l A) * (forall l A, rprove l A -> prove l A).
-Proof.
-apply rnprove_mutrect ; intros ; try (econstructor ; eassumption) ; assumption.
-Qed.
+Theorem denormalization :
+  (forall l A, nprove l A -> prove l A) * (forall l A, rprove l A -> prove l A).
+Proof. apply rnprove_mutrect ; intros ; try (econstructor ; eassumption) ; assumption. Qed.
 
 Lemma weakening :
    (forall l A, nprove l A -> forall l0 l1 l2, l = l1 ++ l2 -> nprove (l1 ++ l0 ++ l2) A)
@@ -488,13 +489,14 @@ Defined.
 Lemma SPf_ar : S (pred (tarity f)) = tarity f.
 Proof. rewrite f_ar ; reflexivity. Qed.
 
-Goal rprove nil (imp (frl x (var P (rew <- P_ar in Vector.cons _
-                                   (tconstr f (rew <- f_ar in (Vector.cons _
-                                     (tvar x) _ (Vector.nil _)))) _ (Vector.nil _))))
-                      (frl x (var P (rew <- [vec term] P_ar in Vector.cons _
-                                   (tconstr f (rew <- [vec term] f_ar in (Vector.cons _
-                                     (tconstr f (rew [vec term] SPf_ar in (Vector.cons _
-                                       (tvar x) (pred (tarity f)) (vec_nil_f)))) _ (Vector.nil _))))
+Goal rprove nil
+  (imp (frl x (var P (rew <- P_ar in Vector.cons _
+                     (tconstr f (rew <- f_ar in (Vector.cons _
+                       (tvar x) _ (Vector.nil _)))) _ (Vector.nil _))))
+       (frl x (var P (rew <- [vec term] P_ar in Vector.cons _
+                     (tconstr f (rew <- [vec term] f_ar in (Vector.cons _
+                        (tconstr f (rew [vec term] SPf_ar in (Vector.cons _
+                           (tvar x) (pred (tarity f)) (vec_nil_f)))) _ (Vector.nil _))))
                                         _ (Vector.nil _))))).
 Proof.
 intros ; rev_intros ; rnow idtac.
@@ -503,11 +505,10 @@ replace (var P
         (Vector.map (tup 0)
            (rew <- [vec term] P_ar in
             Vector.cons term
-              (tconstr f
-                 (rew <- [vec term] f_ar in
-                  Vector.cons term
-                    (tconstr f
-                       (rew [vec term] SPf_ar in Vector.cons term (tvar x) (Init.Nat.pred (tarity f)) vec_nil_f)) 0
+              (tconstr f (rew <- [vec term] f_ar in
+                  Vector.cons term  (tconstr f
+                       (rew [vec term] SPf_ar in Vector.cons term (tvar x)
+                        (Init.Nat.pred (tarity f)) vec_nil_f)) 0
                     (Vector.nil term))) 0 (Vector.nil term)))))
  with (subs x (tconstr f
                        (rew [vec term] SPf_ar in
@@ -515,12 +516,10 @@ replace (var P
                         (var P (Vector.map (tup 0)(rew <- P_ar in Vector.cons _
                                    (tconstr f (rew <- f_ar in (Vector.cons _
                                      (tvar x) _ (Vector.nil _)))) _ (Vector.nil _))))).
-
 { apply nfrle.
 - simpl ; rewrite <- SPf_ar ; simpl ; unfold vec_nil_f.
   rewrite f_ar ; reflexivity.
 - apply nax_hd. }
-
 simpl ; f_equal.
 rewrite P_ar ; simpl ; f_equal ; f_equal.
 rewrite f_ar ; simpl ; f_equal.

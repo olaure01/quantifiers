@@ -1,10 +1,10 @@
 (* Natural Deduction for First-Order Intuitionistic Logic *)
 
-Require Import Wf_nat_more. (* from ollibs *)
 Require Import Lia.
-Import EqNotations.
-
+Require Import stdlib_more.
 Require Import fot_ar.
+
+Import EqNotations.
 
 
 (** * Formulas *)
@@ -20,26 +20,9 @@ Inductive formula : nat -> Type :=
 | imp : formula 0 -> formula 0 -> formula 0
 | frl : vatom -> formula 0 -> formula 0.
 
-(*
-Ltac formula_induction A :=
-  (try intros until A) ;
-  let XX := fresh "X" in
-  let xx := fresh "x" in
-  let A1 := fresh A in
-  let A2 := fresh A in
-  let ll := fresh "l" in
-  let lll := fresh "l" in
-  let tt := fresh "t" in
-  let IHll := fresh "IHl" in
-  induction A as [ XX ll | A1 A2 | xx A ] ; simpl ; intros ;
-  [ try f_equal ; try (induction ll as [ | tt lll IHll ] ; simpl ; intuition ;
-                       rewrite IHll ; f_equal ; intuition)
-  | try (f_equal ; intuition)
-  | try (f_equal ; intuition) ] ; try ((rnow idtac) ; fail) ; try (rcauto ; fail).
-*)
 Ltac simpl_formula_induction F :=
-  induction F ; try rcauto ; try reflexivity ;
-    try (simpl ; f_equal ; rnow try assumption).
+  induction F ; try rcauto ; try (now intuition) ;
+    try (simpl ; f_equal ; rnow try intuition).
 
 
 (** lift indexes above [k] in [formula] [A] *)
@@ -210,10 +193,9 @@ Qed.
 
 (** * Normalization *)
 
-Theorem denormalization : (forall l A, nprove l A -> prove l A) * (forall l A, rprove l A -> prove l A).
-Proof.
-apply rnprove_mutrect ; intros ; try (econstructor ; eassumption) ; assumption.
-Qed.
+Theorem denormalization :
+  (forall l A, nprove l A -> prove l A) * (forall l A, rprove l A -> prove l A).
+Proof. apply rnprove_mutrect ; intros ; try (econstructor ; eassumption) ; assumption. Qed.
 
 Lemma weakening :
    (forall l A, nprove l A -> forall l0 l1 l2, l = l1 ++ l2 -> nprove (l1 ++ l0 ++ l2) A)
@@ -366,13 +348,9 @@ Proof. simpl_formula_induction A. Qed.
 Hint Rewrite ffreevars_fup : term_db.
 
 Lemma nfree_subs : forall x u {m} (A : formula m), ~ In x (ffreevars A) -> subs x u A = A.
-Proof. simpl_formula_induction A.
-- f_equal.
-  + rnow apply nfree_tsubs then apply H.
-  + assumption.
-- f_equal ; assumption.
-- rnow rewrite IHA.
-  now apply H0 ; apply in_ffreevars_frl.
+Proof. simpl_formula_induction A; try now f_equal.
+rnow rewrite IHA.
+now apply H0 ; apply in_ffreevars_frl.
 Qed.
 Hint Rewrite nfree_subs using intuition ; fail : term_db.
 
@@ -469,9 +447,10 @@ rnow (case_eq (beq_vat x y)) then rewrite H ; rev_intros.
   rnow apply nfrle.
 Qed.
 
-Goal rprove nil (imp (frl x (fconstr (tconstr (tvar x) (rew farity in tfun f)) (rew Parity in rel P)))
-                     (frl x (fconstr (tconstr (tconstr (tvar x) (rew farity in tfun f))
-                                                                (rew farity in tfun f)) (rew Parity in rel P)))).
+Goal rprove nil
+  (imp (frl x (fconstr (tconstr (tvar x) (rew farity in tfun f)) (rew Parity in rel P)))
+       (frl x (fconstr (tconstr (tconstr (tvar x) (rew farity in tfun f))
+                                                  (rew farity in tfun f)) (rew Parity in rel P)))).
 Proof.
 intros ; rev_intros ; rnow idtac.
 
@@ -498,8 +477,10 @@ replace (fconstr
   replace (closed (rew [term] farity in tfun f)) with (closed (tfun f)).
   + intuition.
   + rewrite <- farity ; reflexivity.
-- replace (fconstr (tconstr (tvar x) (tup 0 (rew [term] farity in tfun f))) (fupz (rew [formula] Parity in rel P)))
-    with (fconstr (tconstr (tvar x) (rew [term] farity in tfun f)) (rew [formula] Parity in rel P)).
+- replace (fconstr (tconstr (tvar x) (tup 0 (rew [term] farity in tfun f)))
+                                     (fupz (rew [formula] Parity in rel P)))
+    with (fconstr (tconstr (tvar x) (rew [term] farity in tfun f))
+                                    (rew [formula] Parity in rel P)).
   apply nax_hd.
 
   f_equal ; try f_equal.

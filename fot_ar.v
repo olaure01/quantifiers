@@ -4,8 +4,7 @@
 (* with arity checks *)
 
 
-Require Export PeanoNat.
-Require Export List.
+Require Export PeanoNat List.
 
 Create HintDb term_db.
 
