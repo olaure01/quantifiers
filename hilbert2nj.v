@@ -40,7 +40,7 @@ Ltac formula_induction A :=
   let lll := fresh "l" in
   let tt := fresh "t" in
   let IHll := fresh "IHl" in
-  induction A as [ XX ll | A1 A2 | xx A | xx A ]; simpl; intros;
+  induction A as [ XX ll | A1 ? A2 ? | xx A | xx A ]; simpl; intros;
   [ rewrite ? flat_map_concat_map;
     try f_equal; try (induction ll as [ | tt lll IHll ]; simpl; intuition;
                       rewrite IHll; f_equal; intuition)

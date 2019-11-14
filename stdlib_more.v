@@ -109,7 +109,7 @@ intros ; apply map_ext_in ; apply Forall_forall ; assumption.
 Qed.
 
 Ltac specialize_Forall H a := apply Forall_forall with (x:=a) in H; [ | assumption ].
-Tactic Notation "specialize_Forall" hyp(H) "with" hyp(x) := specialize_Forall H x.
+Tactic Notation "specialize_Forall" hyp(H) "with" constr(x) := specialize_Forall H x.
 Ltac specialize_Forall_all a := repeat
 match goal with
 | H : Forall ?P ?l |- _ => specialize_Forall H with a
@@ -211,8 +211,38 @@ induction l; [ reflexivity | simpl ].
 rewrite remove_app, IHl; reflexivity.
 Qed.
 
-Lemma incl_nil {T} : forall (l : list T), incl l nil -> l = nil.
+Lemma incl_nil {A} : forall l : list A, incl nil l.
+Proof. intros l a Hin; inversion Hin. Qed.
+
+Lemma incl_nil_inv {T} : forall (l : list T), incl l nil -> l = nil.
 Proof. now induction l; intros Hincl; [ | exfalso; apply Hincl with a; constructor ]. Qed.
+
+Lemma incl_cons_inv {A} : forall (a:A) (l m:list A),
+  incl (a :: l) m -> In a m /\ incl l m.
+Proof.
+intros a l m Hi.
+split.
+- apply Hi.
+  constructor.
+  reflexivity.
+- intros b Hin.
+  apply Hi.
+  apply in_cons.
+  assumption.
+Qed.
+
+Lemma incl_app_inv {A} : forall l m n : list A,
+  incl (l ++ m) n -> incl l n /\ incl m n.
+Proof.
+induction l; intros m n Hin; split; auto.
+- apply incl_nil.
+- intros b Hb; inversion_clear Hb; subst; apply Hin.
+  + now constructor.
+  + simpl; apply in_cons.
+   apply incl_appl with l; [ apply incl_refl | assumption ].
+- apply IHl.
+  now apply incl_cons_inv in Hin.
+Qed.
 
 Lemma concat_is_nil {T} : forall (L : list (list T)), concat L = nil <-> Forall (fun x => x = nil) L.
 Proof.
@@ -238,14 +268,6 @@ Proof. intros f x l; rewrite in_flat_map; split; apply Exists_exists. Qed.
 Lemma notin_flat_map_Forall {A B} : forall (f : A -> list B) x l,
   ~ In x (flat_map f l) <-> Forall (fun y => ~ In x (f y)) l.
 Proof. intros f x l; rewrite Forall_Exists_neg; apply not_iff_compat, in_flat_map_Exists. Qed.
-
-Lemma in_flat_map {A B} : forall (f : A -> list B) x a l,
-  In x (f a) -> In a l -> In x (flat_map f l).
-Proof.
-intros f x a l Hinx Hina.
-rewrite flat_map_concat_map; apply in_concat with (f a); trivial.
-now apply in_map.
-Qed.
 
 
 Fixpoint In_Type {A} (a:A) (l:list A) : Type :=

@@ -200,7 +200,7 @@ rewrite <- (map_id l) at 2.
 apply map_ext_in; intros z Hz.
 specialize_Forall IHl with z; apply IHl.
 intros Hin2; apply Hin.
-now rewrite <- flat_map_concat_map; apply in_flat_map with z.
+now rewrite <- flat_map_concat_map; apply in_flat_map; exists z.
 Qed.
 
 
@@ -272,7 +272,7 @@ Lemma multi_tsubs_is_closed : forall L t,
 closed (multi_tsubs L t).
 Proof.
 induction L; simpl; intros t Hc Hf.
-- now apply incl_nil in Hf; subst.
+- now apply incl_nil_inv in Hf; subst.
 - destruct a; simpl; simpl in Hc, Hf.
   apply IHL.
   + now inversion Hc.

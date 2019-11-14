@@ -127,7 +127,7 @@ rewrite <- (map_id l) at 2.
 apply map_ext_in; intros z Hz.
 specialize_Forall IHl with z; apply IHl.
 intros Hin2; apply Hin.
-now rewrite <- flat_map_concat_map; apply in_flat_map with z.
+now rewrite <- flat_map_concat_map; apply in_flat_map; exists z.
 Qed.
 
 End Terms.
@@ -161,7 +161,7 @@ Ltac hformula_induction A :=
   let lll := fresh "l" in
   let tt := fresh "t" in
   let IHll := fresh "IHl" in
-  induction A as [ XX ll | A1 A2 | xx A | xx A ]; simpl; intros;
+  induction A as [ XX ll | A1 ? A2 ? | xx A | xx A ]; simpl; intros;
   [ rewrite ? flat_map_concat_map;
     try f_equal; try (induction ll as [ | tt lll IHll ]; simpl; intuition;
                       rewrite IHll; f_equal; intuition)
@@ -337,6 +337,13 @@ eapply hprove_MP.
 - eapply hprove_MP.
   + apply hprove_K.
   + apply hprove_K.
+Qed.
+
+Lemma hprove_K2 A B : hprove (B ⟶ A ⟶ A).
+Proof. (* K2 = C K *)
+eapply hprove_MP.
+- apply hprove_C.
+- apply hprove_K.
 Qed.
 
 Lemma hprove_W A B : hprove ((A ⟶ A ⟶ B) ⟶ A ⟶ B).
