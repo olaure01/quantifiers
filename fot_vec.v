@@ -4,52 +4,17 @@
 (* arity check based on vectors *)
 
 Require Export PeanoNat.
-Require Import Vector_more.
-Notation vec := Vector.t.
 Require List.
-
-Create HintDb term_db.
-
-Tactic Notation "rnow" tactic(T) :=
-  T ; simpl ; autorewrite with term_db in * ; simpl ; intuition.
-Tactic Notation "rnow" tactic(T) "then" tactic(T1) :=
-  T ; simpl ; autorewrite with term_db in * ; simpl ; intuition T1 ; simpl ; intuition.
-
-Lemma ltb_S : forall n m, (S n <? S m) = (n <? m).
-Proof. reflexivity. Qed.
-Hint Rewrite ltb_S : term_db.
+Require Import stdlib_more.
+Notation vec := Vector.t.
+Require Import term_tactics dectype.
 
 
 (** * Different kinds of atoms *)
 
 Parameter tatom : Type. (* function symbols for [term] *)
 Parameter tarity : tatom -> nat. (* arity of function symbols *)
-Parameter vatom : Type. (* variables for quantification *)
-Parameter beq_vat : vatom -> vatom -> bool. (* boolean equality on [vatom] *)
-Parameter beq_eq_vat : forall a b, beq_vat a b = true <-> a = b.
-   (* equality specification for [vatom] *)
-
-(* [vatom] presented as a type with Boolean equality *)
-Module vatomBoolEq <: Equalities.UsualBoolEq.
-Definition t := vatom.
-Definition eq := @eq vatom.
-Definition eqb := beq_vat.
-Definition eqb_eq := beq_eq_vat.
-End vatomBoolEq.
-Module vatomEq := Equalities.Make_UDTF vatomBoolEq.
-Module vatomFacts := Equalities.BoolEqualityFacts vatomEq.
-Export vatomFacts.
-
-Ltac case_analysis :=
-match goal with
-| |- context f [?x =? ?y] => case_eq (x =? y)
-| |- context f [?x <? ?y] => case_eq (x <? y)
-| |- context f [?x ?= ?y] => case_eq (x ?= y)
-| |- context f [beq_vat ?x ?y] => case_eq (beq_vat x y)
-| |- context f [vatomEq.eq_dec ?x  ?y] => case_eq (vatomEq.eq_dec x y)
-end.
-Ltac rcauto := simpl ; autorewrite with term_db in * ; simpl ; rnow case_analysis.
-
+Parameter vatom : DecType. (* variables for quantification *)
 
 
 (** * First-Order Terms *)
@@ -67,16 +32,16 @@ Fixpoint term_ind_vec_Forall u :
   forall P : _ -> Prop,
   (forall n, P (dvar n)) ->
   (forall x, P (tvar x)) ->
-  (forall f l, Forall P l -> P (tconstr f l)) -> P u :=
+  (forall f l, Vector.Forall P l -> P (tconstr f l)) -> P u :=
 fun P Pdvar Ptvar Pconstr =>
 match u with
 | dvar n => Pdvar n
 | tvar x => Ptvar x
 | tconstr c l => Pconstr c l
-    ((fix l_ind k l' : Forall P l' :=
+    ((fix l_ind k l' : Vector.Forall P l' :=
       match l' with
-      | nil _ => Forall_nil P
-      | cons _ t1 k l1 => Forall_cons _ _ _
+      | Vector.nil _ => Vector.Forall_nil P
+      | Vector.cons _ t1 k l1 => Vector.Forall_cons _ _ _
                           (term_ind_vec_Forall t1 P Pdvar Ptvar Pconstr)
                           (l_ind k l1)
       end) (tarity c) l)
@@ -92,8 +57,8 @@ Ltac term_induction u :=
   [ intros nn ; try reflexivity ; try assumption ; simpl
   | intros xx ; try reflexivity ; try assumption ; simpl
   | intros cc ll IHll ; simpl ;
-    repeat (rewrite List.flat_map_concat_map) ; repeat (rewrite map_map) ;
-    try f_equal ; try (apply map_ext_in ; apply Forall_forall) ; try assumption ] ;
+    repeat (rewrite List.flat_map_concat_map) ; repeat (rewrite Vector_map_map) ;
+    try f_equal ; try (apply Vector_map_ext_in ; apply Vector_Forall_forall) ; try assumption ] ;
   try ((rnow idtac) ; fail) ; try (rcauto ; fail).
 
 
@@ -102,7 +67,7 @@ Fixpoint tup k v :=
 match v with
 | dvar n => if n <? k then dvar n else dvar (S n)
 | tvar x => tvar x
-| tconstr f l => tconstr f (map (tup k) l)
+| tconstr f l => tconstr f (Vector.map (tup k) l)
 end.
 
 Lemma tup_tup_com : forall k u,
@@ -121,15 +86,15 @@ match v with
             | Lt => dvar (pred k)
             | Gt => dvar k
             end
-| tconstr f l => tconstr f (map (ntsubs n u) l)
+| tconstr f l => tconstr f (Vector.map (ntsubs n u) l)
 end.
 
 (** substitutes [term] [u] for variable [x] in [term] [v] *)
 Fixpoint tsubs x u v :=
 match v with
-| tvar y => if (beq_vat y x) then u else tvar y
+| tvar y => if (eqb y x) then u else tvar y
 | dvar k => dvar k
-| tconstr c l => tconstr c (map (tsubs x u) l)
+| tconstr c l => tconstr c (Vector.map (tsubs x u) l)
 end.
 
 Lemma tup_tsubs_com : forall k x u v,
@@ -139,14 +104,12 @@ Hint Rewrite tup_tsubs_com : term_db.
 
 Lemma ntsubs_tup_com : forall k u v,
   ntsubs (S k) (tup 0 u) (tup 0 v) = tup 0 (ntsubs k u v).
-Proof. term_induction v ; rcauto.
-now destruct n ; destruct k ; inversion H.
-Qed.
+Proof. term_induction v ; rcauto; now destruct n ; destruct k ; inversion Heq. Qed.
 Hint Rewrite ntsubs_tup_com : term_db.
 
 Lemma ntsubs_z_tup : forall u v, ntsubs 0 u (tup 0 v) = v.
 Proof. term_induction v.
-now rewrite <- (map_id l) at 2 ; apply map_ext_in ; apply Forall_forall.
+now rewrite <- (Vector_map_id l) at 2 ; apply Vector_map_ext_in ; apply Vector_Forall_forall.
 Qed.
 Hint Rewrite ntsubs_z_tup : term_db.
 
@@ -158,7 +121,7 @@ Fixpoint freevars u :=
 match u with
 | tvar x => List.cons x List.nil
 | dvar _ => List.nil
-| tconstr f l => fold_right (fun x => app (freevars x)) l List.nil
+| tconstr f l => Vector.fold_right (fun x => app (freevars x)) l List.nil
 end.
 Notation closed u := (freevars u = List.nil).
 
@@ -200,11 +163,14 @@ Qed.
 Hint Rewrite freevars_ntsubs using intuition ; fail : term_db.
 
 Lemma nfree_tsubs : forall x u v, ~ List.In x (freevars v) -> tsubs x u v = v.
-Proof. term_induction v ; try rcauto.
-- now apply vatomEq.eqb_eq in H.
-- rnow intros Heq ; f_equal ; revert IHl Heq ; induction l ; intros.
-  rnow inversion IHl0 ; apply inj_pairT2_nat in H1 ; subst ;
-       rewrite H2 ; [ f_equal | ] ; simpl in Heq.
+Proof. term_induction v ; try rcauto; f_equal.
+rewrite <- (Vector_map_id l) at 2.
+apply Vector_map_ext_in; intros a Ha.
+eapply Vector_Forall_forall in IHl; [ apply IHl | eassumption ].
+intros Hin; apply H.
+revert Hin; clear - Ha; induction Ha; intros Hin; simpl.
+- now apply List.in_or_app; left.
+- apply List.in_or_app; right; intuition.
 Qed.
 Hint Rewrite nfree_tsubs using try (intuition ; fail) ;
                                (try apply closed_nofreevars) ; intuition ; fail : term_db.
@@ -215,13 +181,11 @@ Proof. term_induction w. Qed.
 Hint Rewrite ntsubs_tsubs_com using try (intuition ; fail) ;
                                     (try apply closed_nofreevars) ; intuition ; fail : term_db.
 
-Lemma tsubs_tsubs_com : forall x v y u, beq_vat x y = false -> ~ List.In x (freevars u) ->
+Lemma tsubs_tsubs_com : forall x v y u, x <> y -> ~ List.In x (freevars u) ->
   forall w, tsubs y u (tsubs x v w) = tsubs x (tsubs y u v) (tsubs y u w).
-Proof. term_induction w.
-rnow case_eq (beq_vat x0 x) ; case_eq (beq_vat x0 y) then try rewrite H1 ; try rewrite H2.
-exfalso.
-now rewrite eqb_neq in H ; rewrite beq_eq_vat in H1 ; rewrite beq_eq_vat in H2 ; subst.
-Qed.
+Proof. term_induction w. Qed.
+(*
 Hint Rewrite tsubs_tsubs_com using try (intuition ; fail) ;
                                    (try apply closed_nofreevars) ; intuition ; fail : term_db.
+*)
 

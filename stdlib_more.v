@@ -1,6 +1,7 @@
 (* Results missing in the standard library *)
 
-Require Import Wf_nat Lia.
+Require Import Wf_nat Lia Peano_dec Eqdep_dec.
+Require Vector.
 
 Lemma lt_wf_rect :
   forall n (P:nat -> Type), (forall n, (forall m, m < n -> P m) -> P n) -> P n.
@@ -324,5 +325,49 @@ induction l; simpl; intros x Hin.
   + destruct Hin as [Hin | Hin].
     * exfalso; now apply Hneq.
     * apply IHl in Hin; lia.
+Qed.
+
+Lemma Vector_map_id {A n} : forall (v : Vector.t A n),
+  Vector.map (fun x => x) v = v.
+Proof. induction v; simpl; auto; rewrite IHv; auto. Qed.
+
+Lemma Vector_map_map {A B C n} : forall (f:A->B) (g:B->C) (v : Vector.t A n),
+  Vector.map g (Vector.map f v) = Vector.map (fun x => g (f x)) v.
+Proof.
+induction v; simpl; auto.
+rewrite IHv; auto.
+Qed.
+
+Lemma Vector_map_ext_in {A B n} : forall (f g:A->B) (v : Vector.t A n),
+  (forall a, Vector.In a v -> f a = g a) -> Vector.map f v = Vector.map g v.
+Proof.
+  induction v; simpl; auto.
+  intros; rewrite H by constructor; rewrite IHv; intuition.
+  apply H ; now constructor.
+Qed.
+
+Lemma Vector_map_ext {A B n} : forall (f g:A->B), (forall a, f a = g a) ->
+  forall (v : Vector.t A n), Vector.map f v = Vector.map g v.
+Proof. intros; apply Vector_map_ext_in; auto. Qed.
+
+Lemma inj_pairT2_nat : forall (P:nat -> Type) p x y,
+  existT P p x = existT P p y -> x = y.
+Proof.
+apply inj_pair2_eq_dec.
+apply eq_nat_dec.
+Qed.
+
+Lemma Vector_Forall_forall {A} : forall P n (v : Vector.t A n),
+  Vector.Forall P v <-> forall a, Vector.In a v -> P a.
+Proof.
+intros P n v ; split.
+- intros HP a Hin.
+  revert HP ; induction Hin ; intros HP ; inversion HP ; subst.
+  + assumption.
+  + apply inj_pairT2_nat in H1 ; subst ; auto.
+- induction v ; intros Hin ; constructor.
+  + apply Hin ; constructor.
+  + apply IHv ; intros a Ha.
+    apply Hin ; now constructor.
 Qed.
 

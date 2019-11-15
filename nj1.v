@@ -202,7 +202,7 @@ Ltac run_nax :=
 Ltac auto_nax := rewrite <- (app_nil_l _); run_nax.
 
 (* Apply all (reversible) introduction rules *)
-Ltac rev_intros := repeat (repeat apply rimpi; repeat apply rfrli); apply rninj.
+Ltac rev_intros := repeat (repeat apply rimpi; repeat (apply rfrli; simpl)); apply rninj.
 
 Fixpoint nsize {l A} (pi : nprove l A) : nat :=
 match pi with
@@ -1038,8 +1038,7 @@ Variable x y : vatom.
 
 Goal forall A, rprove nil (imp (frl x (frl y A)) (frl y (frl x A))).
 Proof.
-intros; apply rimpi; repeat (apply rfrli; simpl).
-case_analysis; rev_intros.
+intros; rev_intros; case_analysis.
 - rnow apply nfrle.
   replace (frl y (fupz (fupz A)))
      with (subs y (dvar 0) (frl y (fupz (fupz A))))
@@ -1059,8 +1058,7 @@ Variable P : fatom.
 Goal rprove nil (imp (frl x (var P (tconstr f (tvar x :: nil) :: nil)))
                      (frl x (var P (tconstr f (tconstr f (tvar x :: nil) :: nil) :: nil)))).
 Proof.
-intros ; rev_intros ; rnow idtac.
-case_analysis; intuition.
+intros; rev_intros; case_analysis.
 replace (var P (tconstr f (tconstr f (dvar 0 :: nil) :: nil) :: nil))
    with (subs x (tconstr f (dvar 0 :: nil)) (var P (tconstr f (tvar x :: nil) :: nil)))
   by (simpl; case_analysis; intuition).

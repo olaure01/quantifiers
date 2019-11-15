@@ -5,49 +5,14 @@
 
 
 Require Export PeanoNat List.
-
-Create HintDb term_db.
-
-Tactic Notation "rnow" tactic(T) :=
-  T ; simpl ; autorewrite with term_db in * ; simpl ; intuition.
-Tactic Notation "rnow" tactic(T) "then" tactic(T1) :=
-  T ; simpl ; autorewrite with term_db in * ; simpl ; intuition T1 ; simpl ; intuition.
-
-Lemma ltb_S : forall n m, (S n <? S m) = (n <? m).
-Proof. reflexivity. Qed.
-Hint Rewrite ltb_S : term_db.
+Require Import dectype term_tactics.
 
 
 (** * Different kinds of atoms *)
 
 Parameter tatom : Type. (* function symbols for [term] *)
 Parameter tarity : tatom -> nat. (* arity of function symbols *)
-Parameter vatom : Type. (* variables for quantification *)
-Parameter beq_vat : vatom -> vatom -> bool. (* boolean equality on [vatom] *)
-Parameter beq_eq_vat : forall a b, beq_vat a b = true <-> a = b.
-   (* equality specification for [vatom] *)
-
-(* [vatom] presented as a type with Boolean equality *)
-Module vatomBoolEq <: Equalities.UsualBoolEq.
-Definition t := vatom.
-Definition eq := @eq vatom.
-Definition eqb := beq_vat.
-Definition eqb_eq := beq_eq_vat.
-End vatomBoolEq.
-Module vatomEq := Equalities.Make_UDTF vatomBoolEq.
-Module vatomFacts := Equalities.BoolEqualityFacts vatomEq.
-Export vatomFacts.
-
-Ltac case_analysis :=
-match goal with
-| |- context f [?x =? ?y] => case_eq (x =? y)
-| |- context f [?x <? ?y] => case_eq (x <? y)
-| |- context f [?x ?= ?y] => case_eq (x ?= y)
-| |- context f [beq_vat ?x ?y] => case_eq (beq_vat x y)
-| |- context f [vatomEq.eq_dec ?x  ?y] => case_eq (vatomEq.eq_dec x y)
-end.
-Ltac rcauto := simpl ; autorewrite with term_db in * ; simpl ; rnow case_analysis.
-
+Parameter vatom : DecType. (* variables for quantification *)
 
 
 (** * First-Order Terms *)
@@ -109,7 +74,7 @@ end.
 (** substitutes [term] [u] for variable [x] in [term] [v] *)
 Fixpoint tsubs x u {m} (v : term m) :=
 match v with
-| tvar y => if (beq_vat y x) then u else tvar y
+| tvar y => if (eqb y x) then u else tvar y
 | dvar k => dvar k
 | tfun f => tfun f
 | tconstr t p => tconstr (tsubs x u t) (tsubs x u p)
@@ -122,9 +87,7 @@ Hint Rewrite tup_tsubs_com : term_db.
 
 Lemma ntsubs_tup_com : forall k u {m} (v : term m),
   ntsubs (S k) (tup 0 u) (tup 0 v) = tup 0 (ntsubs k u v).
-Proof. simpl_term_induction v.
-now destruct n ; destruct k ; inversion H.
-Qed.
+Proof. simpl_term_induction v; now destruct n ; destruct k ; inversion Heq. Qed.
 Hint Rewrite ntsubs_tup_com : term_db.
 
 Lemma ntsubs_z_tup : forall u {m} (v : term m), ntsubs 0 u (tup 0 v) = v.
@@ -158,18 +121,7 @@ Proof. simpl_term_induction v. Qed.
 Hint Rewrite freevars_ntsubs using intuition ; fail : term_db.
 
 Lemma nfree_tsubs : forall x u {m} (v :term m), ~ In x (freevars v) -> tsubs x u v = v.
-Proof. simpl_term_induction v.
-- now apply vatomEq.eqb_eq in H.
-- (rnow intros Heq) ; f_equal.
-  + apply IHv1.
-    intros Heqv.
-    apply Heq.
-    simpl ; apply in_app_iff ; left ; assumption.
-  + apply IHv2.
-    intros Heqv.
-    apply Heq.
-    simpl ; apply in_app_iff ; right ; assumption.
-Qed.
+Proof. simpl_term_induction v. Qed.
 Hint Rewrite nfree_tsubs using try (intuition ; fail) ;
                                (try apply closed_nofreevars) ; intuition ; fail : term_db.
 
@@ -179,15 +131,11 @@ Proof. simpl_term_induction w. Qed.
 Hint Rewrite ntsubs_tsubs_com using try (intuition ; fail) ;
                                     (try apply closed_nofreevars) ; intuition ; fail : term_db.
 
-Lemma tsubs_tsubs_com : forall x v y u, beq_vat x y = false -> ~ In x (freevars u) ->
+Lemma tsubs_tsubs_com : forall x v y u, x <> y -> ~ In x (freevars u) ->
   forall {m} (w : term m), tsubs y u (tsubs x v w) = tsubs x (tsubs y u v) (tsubs y u w).
-Proof. simpl_term_induction w ;
-rnow case_eq (beq_vat v0 x) ; case_eq (beq_vat v0 y) then try rewrite H1 ; try rewrite H2.
-- exfalso.
-  now rewrite eqb_neq in H ; rewrite beq_eq_vat in H1 ; rewrite beq_eq_vat in H2 ; subst.
-- exfalso.
-  now rewrite eqb_neq in H ; rewrite beq_eq_vat in H1 ; rewrite beq_eq_vat in H2 ; subst.
-Qed.
+Proof. simpl_term_induction w. Qed.
+(*
 Hint Rewrite tsubs_tsubs_com using try (intuition ; fail) ;
                                    (try apply closed_nofreevars) ; intuition ; fail : term_db.
+*)
 

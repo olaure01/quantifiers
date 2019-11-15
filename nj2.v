@@ -77,8 +77,8 @@ match A with
 | var Y => if (eqb Y X) then F else var Y
 | cst R => cst R
 | imp B C => imp (subs X F B) (subs X F C)
-| frl Y B as C => if (eqb Y X) then C else frl Y (subs X F B)
-| exs Y B as C => if (eqb Y X) then C else exs Y (subs X F B)
+| frl Y B => frl Y (if (eqb Y X) then B else subs X F B)
+| exs Y B => exs Y (if (eqb Y X) then B else subs X F B)
 end.
 
 Lemma fsize_subs_dvar : forall k X A, fsize (subs X (dvar k) A) = fsize A.

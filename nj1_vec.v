@@ -2,7 +2,7 @@
 
 Require Import List Lia.
 Require Import stdlib_more.
-Require Import fot_vec.
+Require Import dectype term_tactics fot_vec.
 
 Import EqNotations.
 
@@ -28,14 +28,16 @@ Ltac formula_induction A :=
   let A1 := fresh A in
   let A2 := fresh A in
   let ll := fresh "l" in
+  let lln := fresh "n" in
   let lll := fresh "l" in
   let tt := fresh "t" in
   let IHll := fresh "IHl" in
-  induction A as [ XX ll | A1 A2 | xx A ] ; simpl ; intros ;
-  [ try f_equal ; try (induction ll as [ | tt lln lll IHll ] ; simpl ; intuition ;
-                       rewrite IHll ; f_equal ; intuition)
-  | try (f_equal ; intuition)
-  | try (f_equal ; intuition) ] ; try ((rnow idtac) ; fail) ; try (rcauto ; fail).
+  induction A as [ XX ll | A1 ? A2 ? | xx A ]; simpl; intros;
+  [ try f_equal; try (induction ll as [ | tt lln lll IHll ]; simpl; intuition;
+                      rewrite IHll; f_equal; intuition)
+  | try (f_equal; intuition)
+  | try (repeat case_analysis; intuition; f_equal; intuition; (rnow idtac); fail) ];
+  try (now (rnow idtac)); try (now rcauto).
 
 (** lift indexes above [k] in [formula] [A] *)
 Fixpoint fup k A :=
@@ -57,14 +59,12 @@ Fixpoint subs x u A :=
 match A with
 | var X l => var X (Vector.map (tsubs x u) l)
 | imp B C => imp (subs x u B) (subs x u C)
-| frl y B as C => if (beq_vat y x) then C else frl y (subs x u B)
+| frl y B => frl y (if (eqb y x) then B else subs x u B)
 end.
 
 Lemma fup_subs_com : forall k x u A,
   fup k (subs x u A) = subs x (tup k u) (fup k A).
-Proof. formula_induction A.
-rnow case_eq (beq_vat x0 x) ; intros ; simpl ; f_equal.
-Qed.
+Proof. formula_induction A. Qed.
 Hint Rewrite fup_subs_com : term_db.
 
 (** substitutes [term] [u] for index [n] in [formula] [A] *)
@@ -107,8 +107,6 @@ Hint Rewrite fsize_fup : term_db.
 Lemma fsize_subs : forall u x A, fsize (subs x u A) = fsize A.
 Proof. formula_induction A. Qed.
 Hint Rewrite fsize_subs : term_db.
-
-
 
 
 (** * Proofs *)
@@ -197,9 +195,6 @@ clear k ; apply rnprove_mutrect ; intros ;
   rewrite map_map, (map_ext _ _ (fup_fup_com _)), <- map_map in IH.
   now apply rfrli.
 Qed.
-
-
-
 
 
 (** * Normalization *)
@@ -318,7 +313,6 @@ rewrite <- (app_nil_l (A :: l)) in pi2 ; rewrite <- (app_nil_l l).
 refine (snd (substitution _ (S (rsize pi2)) _ _ _ pi1) _ _ _ _ pi2 _ _)...
 Qed.
 
-
 Theorem normalization : forall l A, prove l A -> rprove l A.
 Proof with try eassumption.
 intros l A pi ; induction pi ;
@@ -335,22 +329,20 @@ intros l A pi ; induction pi ;
 Qed.
 
 
-
 (** * Free variables in [formula] *)
 Fixpoint ffreevars A :=
 match A with
 | var _ l => Vector.fold_right (fun x => app (freevars x)) l nil
 | imp B C => (ffreevars B) ++ (ffreevars C)
-| frl x B => remove vatomEq.eq_dec x (ffreevars B)
+| frl x B => remove eq_dt_dec x (ffreevars B)
 end.
 
-Lemma in_ffreevars_frl : forall x y, beq_vat y x = false -> forall A,
+Lemma in_ffreevars_frl : forall x y, y <> x -> forall A,
   In x (ffreevars A) -> In x (ffreevars (frl y A)).
 Proof.
 intros x y Heq A Hi ; simpl ; remember (ffreevars A) as l.
 revert Hi ; clear - Heq ; induction l ; intros Hi ; auto.
 inversion Hi ; subst ; simpl ; rcauto.
-exfalso ; subst ; rewrite eqb_refl in Heq ; inversion Heq.
 Qed.
 
 Lemma ffreevars_fup : forall k A, ffreevars (fup k A) = ffreevars A.
@@ -374,11 +366,10 @@ Qed.
 Hint Rewrite nfree_subs using intuition ; fail : term_db.
 
 
-
 (** * Hilbert style properties *)
 
 (* Apply all (reversible) introduction rules *)
-Ltac rev_intros := repeat (repeat apply rimpi ; repeat apply rfrli) ; apply rninj.
+Ltac rev_intros := repeat (repeat apply rimpi; repeat (apply rfrli; simpl)); apply rninj.
 
 Lemma frl_elim : forall A u x, closed u -> rprove (frl x A :: nil) (subs x u A).
 Proof. intros A u x Hf ; rev_intros.
@@ -422,31 +413,28 @@ apply (nimpe B).
 Qed.
 
 
-
-
 (** * More Lemmas *)
 
-Lemma subs_subs_com : forall x v y u, beq_vat x y = false -> closed u -> closed v ->
+Lemma subs_subs_com : forall x v y u, x <> y -> closed u -> closed v ->
   forall A, subs y u (subs x v A) = subs x (tsubs y u v) (subs y u A).
 Proof. induction A.
-- simpl ; f_equal ; rnow rewrite 2 Vector_more.map_map ; apply Vector_more.map_ext.
-  rnow idtac then rewrite (nfree_tsubs _ _ v) ; try now apply closed_nofreevars.
+- simpl ; f_equal ; rnow rewrite 2 Vector_map_map ; apply Vector_map_ext.
+  rewrite tsubs_tsubs_com; (try now apply closed_nofreevars); intuition.
 - rnow idtac then f_equal.
-- (rnow case_eq (beq_vat v0 x) ; case_eq (beq_vat v0 y)) ;
-    rnow rewrite H2 ; rewrite H3 ; simpl ; rewrite H2 ; rewrite H3 then f_equal.
+- rnow (simpl; repeat case_analysis; f_equal).
 Qed.
+(*
 Hint Rewrite subs_subs_com using intuition ; fail : term_db.
+*)
 
 End Definitions.
-
-
 
 
 Notation fupz := (fup 0).
 
 (* Apply all (reversible) introduction rules *)
-Ltac rev_intros := repeat (repeat apply rimpi ; repeat apply rfrli) ; apply rninj.
-
+Ltac rev_intros := repeat (repeat apply rimpi; repeat (apply rfrli; simpl)); apply rninj.
+Hint Rewrite (@eqb_refl vatom) : term_db.
 
 (** * Examples *)
 Section Examples.
@@ -457,37 +445,30 @@ Variable P : atom.
 Hypothesis f_ar : tarity f = 1.
 Hypothesis P_ar : arity P = 1.
 
-Hint Rewrite eqb_refl : term_db.
-Hint Rewrite (beq_eq_vat x y) : term_db.
-
 Goal forall A, rprove nil (imp (frl x (frl y A)) (frl y (frl x A))).
 Proof.
-intros ; apply rimpi ; repeat apply rfrli.
-rnow (case_eq (beq_vat x y)) then rewrite H ; rev_intros.
+intros; rev_intros; case_analysis.
 - rnow apply nfrle.
-  replace (frl x (fupz (fupz A)))
-     with (subs x (dvar 0) (frl x (fupz (fupz A))))
+  replace (frl y (fupz (fupz A)))
+     with (subs y (dvar 0) (frl y (fupz (fupz A))))
     by rnow idtac.
   rnow apply nfrle then subst.
   apply nax_hd.
 - rewrite fup_subs_com.
   rewrite subs_subs_com ; try rewrite eqb_sym ; simpl ; intuition.
   rnow apply nfrle.
-  rewrite eqb_sym in H.
   replace (frl y (subs x (dvar 0) (fupz (fupz A))))
     with (subs x (dvar 0) (frl y (fupz (fupz A))))
-    by (simpl ; rewrite H ; reflexivity).
+    by (simpl; rnow case_analysis).
   rnow apply nfrle.
   apply nax_hd.
 Qed.
 
 Definition vec_nil_f : vec term (pred (tarity f)).
-Proof.
-rewrite f_ar ; exact (Vector.nil _).
-Defined.
+Proof. rewrite f_ar; exact (Vector.nil _). Defined.
 
 Lemma SPf_ar : S (pred (tarity f)) = tarity f.
-Proof. rewrite f_ar ; reflexivity. Qed.
+Proof. rewrite f_ar; reflexivity. Qed.
 
 Goal rprove nil
   (imp (frl x (var P (rew <- P_ar in Vector.cons _
@@ -530,6 +511,4 @@ rewrite <- SPf_ar ; simpl ; f_equal.
 Qed.
 
 End Examples.
-
-
 

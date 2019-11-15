@@ -2,7 +2,7 @@
 
 Require Import Lia.
 Require Import stdlib_more.
-Require Import fot_ar.
+Require Import term_tactics dectype fot_ar.
 
 Import EqNotations.
 
@@ -47,7 +47,7 @@ match A with
 | rel X => rel X
 | fconstr t P => fconstr (tsubs x u t) (subs x u P)
 | imp B C => imp (subs x u B) (subs x u C)
-| frl y B as C => if (beq_vat y x) then C else frl y (subs x u B)
+| frl y B => frl y (if (eqb y x) then B else subs x u B)
 end.
 
 Lemma fup_subs_com : forall k x u {m} (A : formula m),
@@ -331,16 +331,15 @@ match A with
 | rel _ => nil
 | fconstr t P => freevars t ++ (ffreevars P)
 | imp B C => (ffreevars B) ++ (ffreevars C)
-| frl x B => remove vatomEq.eq_dec x (ffreevars B)
+| frl x B => remove eq_dt_dec x (ffreevars B)
 end.
 
-Lemma in_ffreevars_frl : forall x y, beq_vat y x = false -> forall A,
+Lemma in_ffreevars_frl : forall x y, y <> x -> forall A,
   In x (ffreevars A) -> In x (ffreevars (frl y A)).
 Proof.
 intros x y Heq A Hi ; simpl ; remember (ffreevars A) as l.
 revert Hi ; clear - Heq ; induction l ; intros Hi ; auto.
 inversion Hi ; subst ; simpl ; rcauto.
-exfalso ; subst ; rewrite eqb_refl in Heq ; inversion Heq.
 Qed.
 
 Lemma ffreevars_fup : forall k {m} (A : formula m), ffreevars (fup k A) = ffreevars A.
@@ -350,7 +349,7 @@ Hint Rewrite ffreevars_fup : term_db.
 Lemma nfree_subs : forall x u {m} (A : formula m), ~ In x (ffreevars A) -> subs x u A = A.
 Proof. simpl_formula_induction A; try now f_equal.
 rnow rewrite IHA.
-now apply H0 ; apply in_ffreevars_frl.
+now apply H ; apply in_ffreevars_frl.
 Qed.
 Hint Rewrite nfree_subs using intuition ; fail : term_db.
 
@@ -359,7 +358,7 @@ Hint Rewrite nfree_subs using intuition ; fail : term_db.
 (** * Hilbert style properties *)
 
 (* Apply all (reversible) introduction rules *)
-Ltac rev_intros := repeat (repeat apply rimpi ; repeat apply rfrli) ; apply rninj.
+Ltac rev_intros := repeat (repeat apply rimpi; repeat (apply rfrli; simpl)); apply rninj.
 
 Lemma frl_elim : forall A u x, closed u -> rprove (frl x A :: nil) (subs x u A).
 Proof. intros A u x Hf ; rev_intros.
@@ -407,14 +406,15 @@ Qed.
 
 (** * More Lemmas *)
 
-Lemma subs_subs_com : forall x v y u, beq_vat x y = false -> closed u -> closed v ->
+Lemma subs_subs_com : forall x v y u, x <> y -> closed u -> closed v ->
   forall m (A : formula m), subs y u (subs x v A) = subs x (tsubs y u v) (subs y u A).
-Proof. simpl_formula_induction A.
-- (rnow case_eq (beq_vat v0 x) ; case_eq (beq_vat v0 y)) ; rnow rewrite H2.
-- (rnow case_eq (beq_vat v0 x) ; case_eq (beq_vat v0 y)) ; rnow rewrite H2 ; f_equal.
+Proof.
+simpl_formula_induction A.
+rnow rewrite tsubs_tsubs_com then apply closed_nofreevars in H2.
 Qed.
+(*
 Hint Rewrite subs_subs_com using intuition ; fail : term_db.
-
+*)
 
 (** * Examples *)
 Section Examples.
@@ -426,24 +426,22 @@ Variable P : atom.
 Hypothesis farity : tarity f = 1.
 Hypothesis Parity : arity P = 1.
 
-Hint Rewrite eqb_refl : term_db.
-Hint Rewrite (beq_eq_vat x y) : term_db.
+Hint Rewrite (@eqb_refl vatom): term_db.
 
 Goal forall A, rprove nil (imp (frl x (frl y A)) (frl y (frl x A))).
 Proof.
-intros ; apply rimpi ; repeat apply rfrli.
-rnow (case_eq (beq_vat x y)) then rewrite H ; rev_intros.
-- rnow apply nfrle.
-  replace (frl x (fupz (fupz A)))
-     with (subs x (dvar 0) (frl x (fupz (fupz A))))
+intros; rev_intros.
+rnow case_analysis.
+- apply nfrle; intuition.
+  replace (frl y (fupz (fupz A)))
+     with (subs y (dvar 0) (frl y (fupz (fupz A))))
     by rnow idtac.
   rnow apply nfrle then subst.
-- rnow idtac then rewrite subs_subs_com ; try rewrite eqb_sym.
+- rewrite subs_subs_com; intuition.
   rnow apply nfrle.
-  rewrite eqb_sym in H.
   replace (frl y (subs x (dvar 0) (fupz (fupz A))))
-    with (subs x (dvar 0) (frl y (fupz (fupz A))))
-    by (simpl ; rewrite H ; reflexivity).
+     with (subs x (dvar 0) (frl y (fupz (fupz A))))
+    by (simpl; rnow case_analysis).
   rnow apply nfrle.
 Qed.
 
