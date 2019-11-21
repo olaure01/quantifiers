@@ -133,8 +133,7 @@ Fixpoint fsize A :=
 match A with
 | var _ _ => 1
 | imp B C => S (fsize B + fsize C)
-| frl _ B => S (fsize B)
-| exs _ B => S (fsize B)
+| frl _ B | exs _ B => S (fsize B)
 end.
 
 Lemma fsize_fup : forall k A, fsize (fup k A) = fsize A.
@@ -487,8 +486,7 @@ Fixpoint ffreevars A :=
 match A with
 | var _ l => flat_map freevars l
 | imp B C => ffreevars B ++ ffreevars C
-| frl x B => remove eq_dt_dec x (ffreevars B)
-| exs x B => remove eq_dt_dec x (ffreevars B)
+| frl x B | exs x B => remove eq_dt_dec x (ffreevars B)
 end.
 
 Lemma in_ffreevars_frl : forall x y, y <> x -> forall A,
@@ -554,8 +552,7 @@ Fixpoint good_for x y A :=
 match A with
 | var X l => True
 | imp B C => good_for x y B /\ good_for x y C
-| frl z B => In x (ffreevars (frl z B)) -> good_for x y B /\ y <> z
-| exs z B => In x (ffreevars (exs z B)) -> good_for x y B /\ y <> z
+| frl z B | exs z B => In x (ffreevars (exs z B)) -> good_for x y B /\ y <> z
 end.
 
 Lemma good_for_subs : forall x y z t A, closed t -> x <> z ->
@@ -630,8 +627,36 @@ repeat case_analysis; intuition.
 Qed.
 Hint Rewrite (@remove_snd_remove formula) : term_db.
 
+Lemma remove_snd_notin {T} x (L : list (vatom * T)) :
+  forall y a, x <> y -> In (y, a) L -> In (y, a) (remove_snd x L).
+Proof.
+induction L; simpl; intros y b Hneq Hin; [ assumption | destruct a ].
+destruct Hin as [Hin|Hin]; case_analysis; intuition.
+exfalso; apply Hneq.
+now inversion Hin.
+Qed.
+
+Lemma snd_remove_snd {T} x (L : list (vatom * T)) :
+  incl (map snd (remove_snd x L)) (map snd L).
+Proof.
+induction L; simpl; intros z Hz; intuition.
+destruct a; simpl.
+revert Hz; case_analysis; intros Hz; intuition.
+Qed.
+
+Lemma NoDup_remove_snd {T} x (L : list (vatom * T)) :
+  NoDup (map snd L) -> NoDup (map snd (remove_snd x L)).
+Proof.
+induction L; simpl; intros Hnd; [ constructor | destruct a ].
+inversion_clear Hnd.
+case_analysis; intuition.
+constructor; intuition.
+apply snd_remove_snd in H2.
+now apply H.
+Qed.
+
 (* iterated substitution *)
-Definition multi_subs L A := fold_left (fun F p => subs (fst p) (snd p) F) L A.
+Definition multi_subs L A := fold_left (fun F '(x,u) => subs x u F) L A.
 
 Lemma multi_subs_nil : multi_subs nil = id.
 Proof. reflexivity. Qed.
@@ -641,12 +666,12 @@ Lemma multi_subs_var : forall L X l, multi_subs L (var X l) = var X (map (multi_
 Proof.
 induction L; intros X l; simpl.
 - now rewrite multi_tsubs_nil, map_id.
-- now rewrite IHL, map_map.
+- now destruct a; rewrite IHL, map_map.
 Qed.
 Hint Rewrite multi_subs_var : term_db.
 
 Lemma multi_subs_imp : forall L A B, multi_subs L (imp A B) = imp (multi_subs L A) (multi_subs L B).
-Proof. now induction L; intros A B; simpl; [ | rewrite IHL ]. Qed.
+Proof. now induction L; intros A B; simpl; [ | destruct a; rewrite IHL ]. Qed.
 Hint Rewrite multi_subs_imp : term_db.
 
 Lemma multi_subs_frl : forall L x A, multi_subs L (frl x A) = frl x (multi_subs (remove_snd x L) A).
@@ -739,7 +764,7 @@ Proof.
 intros L A Hcl Hsub L'.
 unfold multi_subs at 2; rewrite fold_left_app.
 rewrite multi_subs_closed
-  with (A:= fold_left (fun F p => subs (fst p) (snd p) F) L A); trivial.
+  with (A:= fold_left (fun F '(x,u) => subs x u F) L A); trivial.
 now apply multi_subs_is_closed.
 Qed.
 
@@ -748,8 +773,7 @@ Fixpoint allvars A :=
 match A with
 | var _ l => flat_map freevars l
 | imp B C => allvars B ++ allvars C
-| frl x B => x :: allvars B
-| exs x B => x :: allvars B
+| frl x B | exs x B => x :: allvars B
 end.
 
 Lemma ffreevars_allvars : forall A, incl (ffreevars A) (allvars A).
@@ -771,6 +795,15 @@ Proof. formula_induction A; f_equal.
   intros Hin; apply H1.
   now apply ffreevars_allvars.
 Qed.
+
+(* Eigen variables *)
+
+Fixpoint eigen_max A :=
+match A with
+| var _ l => list_max (map teigen_max l)
+| imp B C => max (eigen_max B) (eigen_max C)
+| frl _ B | exs _ B => eigen_max B
+end.
 
 
 (** * Sub-Formula Property *)

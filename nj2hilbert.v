@@ -1,7 +1,7 @@
 (* From Natural Deduction to Hilbert System *)
 
 Require Import stdlib_more.
-Require Import nj1 hilbert.
+Require Export nj1 hilbert.
 
 
 Section N2H.
@@ -314,11 +314,6 @@ Qed.
 
 (* Turn sequents into formulas *)
 Definition s2f l (A : formula) := fold_left (fun x y => imp y x) l A.
-
-(* TODO remove?
-Lemma allvars_s2f : forall l A, incl (allvars (s2f l A)) (allvars A ++ flat_map allvars l).
-Proof. induction l; simpl; intros A z Hz; intuition; apply IHl in Hz; in_solve. Qed.
-*)
 
 Lemma good_for_s2f : forall lv l A, lgood_for lv (s2f l A) <-> Forall (lgood_for lv) (A :: l).
 Proof.
@@ -902,7 +897,6 @@ intros l A pi; induction pi; intros r Hg.
       now inversion Hg1.
     * now inversion Hg1.
   + inversion Hg1; now constructor.
-(*** TODO HERE ***)
 - remember (rrefresh (hallvars (n2h_formula r (exs x A)))
                      (flat_map (fun C => hallvars (n2h_formula r C)) (C :: l)) r) as r1.
   assert (Forall (rgood_for r1) (C :: l)) as HgCl1.

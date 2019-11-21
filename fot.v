@@ -121,7 +121,7 @@ Fixpoint freevars t :=
 match t with
 | tvar x => x :: nil
 | dvar _ => nil
-| tconstr f l => flat_map freevars l
+| tconstr _ l => flat_map freevars l
 end.
 Notation closed t := (freevars t = nil).
 
@@ -206,14 +206,14 @@ Qed.
 
 (* Iterated substitution *)
 
-Definition multi_tsubs L t := fold_left (fun F p => tsubs (fst p) (snd p) F) L t.
+Definition multi_tsubs L t := fold_left (fun F '(x,u) => tsubs x u F) L t.
 
 Lemma multi_tsubs_nil : multi_tsubs nil = id.
 Proof. reflexivity. Qed.
 Hint Rewrite multi_tsubs_nil : term_db.
 
 Lemma multi_tsubs_dvar : forall L n, multi_tsubs L (dvar n) = dvar n.
-Proof. now induction L; intros n; simpl; [ | rewrite IHL ]. Qed.
+Proof. now induction L; intros n; simpl; [ | destruct a; rewrite IHL ]. Qed.
 Hint Rewrite multi_tsubs_dvar : term_db.
 
 Lemma multi_tsubs_nvar : forall L x, ~ In x (map fst L) -> multi_tsubs L (tvar x) = tvar x.
@@ -231,7 +231,7 @@ Lemma multi_tsubs_tconstr : forall L f l,
 Proof.
 induction L; intros f l; simpl.
 - f_equal; now induction l; simpl; [ | rewrite <- IHl ].
-- rewrite IHL; f_equal; rewrite map_map; f_equal.
+- destruct a; rewrite IHL; f_equal; rewrite map_map; f_equal.
 Qed.
 Hint Rewrite multi_tsubs_tconstr : term_db.
 
@@ -282,6 +282,15 @@ induction L; simpl; intros t Hc Hf.
     apply in_remove in Hinz; destruct Hinz as [Hinz Hneq].
     apply Hf in Hinz; inversion Hinz; [ exfalso | ]; intuition.
 Qed.
+
+(* * Eigen variables *)
+
+Fixpoint teigen_max t :=
+match t with
+| tvar _ => 0
+| dvar n => n
+| tconstr _ l => list_max (map teigen_max l)
+end.
 
 End Terms.
 

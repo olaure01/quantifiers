@@ -1,7 +1,7 @@
 (* From Hilbert System to Natural Deduction *)
 
 Require Import stdlib_more.
-Require Import nj1 hilbert.
+Require Export nj1 hilbert.
 
 
 Section H2N.

@@ -27,6 +27,7 @@ Content:
 * `hilbert.v`: Hilbert system for _first-order_ Intuitionistic Logic (standard alpha-equivalence-free presentation)
 * `hilbert2nj.v`: translation of Hilbert system into natural deduction
 * `nj2hilbert.v`: translation of natural deduction into hilbert system
+* `nj_vs_hilbert.v` : equivalence of the two systems through the previous translations
 
 Variations:
 
@@ -39,3 +40,4 @@ The presentation is shown to be equivalent with Hilbert system as far as provabi
 
 Current examples are developed in Coq, but formalization does not depend on the surrounding meta-theory and should be adaptable to (any?) proof assistant.
 
+*(Thanks to Damien Pous for important suggestions and support.)*

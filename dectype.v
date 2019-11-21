@@ -1,5 +1,5 @@
 (* Types with decidable equality formalized as types with Boolean valued equality *)
-(*   as well as study of inifinite types *)
+(*   as well as study of infinite types *)
 
 Require Import Bool PeanoNat Wf_nat Lia List.
 Require Import stdlib_more.

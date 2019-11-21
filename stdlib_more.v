@@ -371,3 +371,43 @@ intros P n v ; split.
     apply Hin ; now constructor.
 Qed.
 
+Definition list_max l := fold_right max 0 l.
+
+Lemma list_max_lt : forall l n, l <> nil ->
+  list_max l < n <-> Forall (fun k => k < n) l.
+Proof.
+induction l; simpl; intros n Hnil; split; intros H; intuition; try lia.
+- destruct l.
+  + repeat constructor; lia.
+  + constructor; [ | apply IHl ]; try lia.
+    intros Heq; inversion Heq.
+- destruct l; inversion_clear H.
+  + simpl; lia.
+  + apply IHl in H1; try lia.
+    intros Heq; inversion Heq.
+Qed.
+
+Lemma NoDup_rev {A} : forall l : list A, NoDup l -> NoDup (rev l).
+Proof.
+induction l; simpl; intros Hnd; [ constructor | ].
+inversion_clear Hnd as [ | ? ? Hnin Hndl ].
+assert (Add a (rev l) (rev l ++ a :: nil)) as Hadd
+  by (rewrite <- (app_nil_r (rev l)) at 1; apply Add_app).
+apply NoDup_Add in Hadd; apply Hadd; intuition.
+now apply Hnin, in_rev.
+Qed.
+
+Lemma seq_S : forall s l, seq s (S l) = seq s l ++ s + l :: nil.
+Proof.
+intros s l.
+change (s + l :: nil) with (seq (s + l) 1).
+rewrite <- seq_app.
+f_equal; lia.
+Qed.
+
+Lemma NoDup_seq : forall s l, NoDup (seq s l).
+Proof.
+intros s l; revert s; induction l; simpl; intros s; constructor; intuition.
+apply in_seq in H; lia.
+Qed.
+
