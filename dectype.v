@@ -1,5 +1,5 @@
 (* Types with decidable equality formalized as types with Boolean valued equality *)
-(*   as well as study of infinite types *)
+(*   as well as a study of infinite types *)
 
 Require Import Bool PeanoNat Wf_nat Lia List.
 Require Import stdlib_more.
@@ -99,7 +99,7 @@ end; simpl.
 Definition pigeon X := forall (l1 l2 : list X),
   NoDup l1 -> length l2 < length l1 -> { x | In x l1 & ~ In x l2 }.
 
-(* injective functions*)
+(* injective functions *)
 Notation injective f := (forall x y, f x = f y -> x = y).
 
 Lemma comp_inj {A B C} : forall (f : B -> C) (g : A -> B),

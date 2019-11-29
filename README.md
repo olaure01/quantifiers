@@ -22,6 +22,7 @@ Content:
 * `all2.v`: sequent calculus for propositional _second-order_ Additive Linear Logic (cut elimination proof)
 * `nj1.v`: formulas and natural deduction for _first-order_ Intuitionistic Logic (normalization proof)
 * `nj2.v`: formulas and natural deduction for propositional _second-order_ Intuitionistic Logic
+* `F.v`: formulas and natural deduction for propositional _second-order_ Intuitionistic Logic (universal quantification only, i.e. System F)
 
 
 * `hilbert.v`: Hilbert system for _first-order_ Intuitionistic Logic (standard alpha-equivalence-free presentation)

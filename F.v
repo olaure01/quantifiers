@@ -1,5 +1,5 @@
 (* Natural Deduction for Second-Order Propositional Intuitionistic Logic *)
-(*   with universal and existential second-order quantifications *)
+(*  aka System F *)
 
 Require Import PeanoNat Lia List.
 Require Import stdlib_more.
@@ -20,8 +20,7 @@ Inductive formula :=
 | dvar : nat -> formula
 | cst : atom -> formula
 | imp : formula -> formula -> formula
-| frl : vatom -> formula -> formula
-| exs : vatom -> formula -> formula.
+| frl : vatom -> formula -> formula.
 
 Ltac formula_induction A :=
   (try intros until A) ;
@@ -31,7 +30,7 @@ Ltac formula_induction A :=
   let A1 := fresh A in
   let A2 := fresh A in
   let Y := fresh "X" in
-  induction A as [ X | K | P | A1 A2 | Y A | Y A ] ; simpl ; intros ;
+  induction A as [ X | K | P | A1 A2 | Y A ] ; simpl ; intros ;
     try (f_equal ; intuition) ; try ((rnow idtac) ; fail) ; try (rcauto ; fail).
 
 
@@ -43,7 +42,6 @@ match A with
 | cst _ => 1
 | imp B C => S (fsize B + fsize C)
 | frl _ B => S (fsize B)
-| exs _ B => S (fsize B)
 end.
 
 
@@ -55,7 +53,6 @@ match A with
 | cst R => cst R
 | imp B C => imp (fup k B) (fup k C)
 | frl X B => frl X (fup k B)
-| exs X B => exs X (fup k B)
 end.
 Notation fupz := (fup 0).
 
@@ -77,7 +74,6 @@ match A with
 | cst R => cst R
 | imp B C => imp (subs X F B) (subs X F C)
 | frl Y B => frl Y (if (eqb Y X) then B else subs X F B)
-| exs Y B => exs Y (if (eqb Y X) then B else subs X F B)
 end.
 
 Lemma fsize_subs_dvar : forall k X A, fsize (subs X (dvar k) A) = fsize A.
@@ -103,7 +99,6 @@ match A with
 | cst R => cst R
 | imp B C => imp (nsubs n F B) (nsubs n F C)
 | frl X B => frl X (nsubs n F B)
-| exs X B => exs X (nsubs n F B)
 end.
 
 Lemma nsubs_fup_com : forall k F A,
@@ -121,7 +116,6 @@ match A with
 | cst _ => nil
 | imp B C => (freevars B) ++ (freevars C)
 | frl X B => remove eq_dt_dec X (freevars B)
-| exs X B => remove eq_dt_dec X (freevars B)
 end.
 Notation closed A := (freevars A = nil).
 
@@ -161,10 +155,7 @@ Inductive prove : list formula -> formula -> Type :=
 | impi { l A B } : prove (A :: l) B -> prove l (imp A B)
 | impe { l B } : forall A, prove l (imp A B) -> prove l A -> prove l B
 | frli { X l A } : prove (map fupz l) (subs X (dvar 0) (fupz A)) -> prove l (frl X A)
-| frle { X l A } : forall C, closed C -> prove l (frl X A) -> prove l (subs X C A)
-| exsi { X l A } : forall C, closed C -> prove l (subs X C A) -> prove l (exs X A)
-| exse { X l C } : forall A, prove l (exs X A) ->
-                             prove (subs X (dvar 0) (fupz A) :: map fupz l) (fupz C) -> prove l C.
+| frle { X l A } : forall C, closed C -> prove l (frl X A) -> prove l (subs X C A).
 Hint Constructors prove : term_db.
 
 (** Normal Forms *)
@@ -175,10 +166,7 @@ Inductive nprove : list formula -> formula -> Type := (* neutral terms *)
 with rprove : list formula -> formula -> Type := (* normal forms *)
 | rninj { l A } : nprove l A -> rprove l A
 | rimpi { l A B } : rprove (A :: l) B -> rprove l (imp A B)
-| rfrli { x l A } : rprove (map fupz l) (subs x (dvar 0) (fupz A)) -> rprove l (frl x A)
-| rexsi { x l A } : forall u, closed u -> rprove l (subs x u A) -> rprove l (exs x A)
-| rexse { l C } : forall x A, nprove l (exs x A) ->
-                              rprove (subs x (dvar 0) (fupz A) :: map fupz l) (fupz C) -> rprove l C.
+| rfrli { x l A } : rprove (map fupz l) (subs x (dvar 0) (fupz A)) -> rprove l (frl x A).
 Hint Constructors nprove rprove : term_db.
 
 Scheme nrprove_rect := Induction for nprove Sort Type
@@ -200,8 +188,6 @@ match pi with
 | rninj pi0 => S (nsize pi0)
 | rimpi pi0 => S (rsize pi0)
 | rfrli pi0 => S (rsize pi0)
-| rexsi _ _ pi0 => S (rsize pi0)
-| rexse _ _ pi1 pi2 => S (nsize pi1 + rsize pi2)
 end.
 
 
@@ -223,12 +209,6 @@ clear n u Hc ; apply rnprove_mutrect ; intros ; (try simpl in X) ;
   specialize X with (S n) (fup 0 u).
   rewrite map_map in X ; rewrite (map_ext _ _ (nsubs_fup_com _ _)) in X ; rewrite <- map_map in X.
   rnow autorewrite with term_db in X.
-- rnow specialize X with n u0 then rnow eapply (rexsi (nsubs n u0 u)).
-- rewrite <- (freevars_fup 0) in H.
-  clear IH2 ; assert (IH2 := X0 (S n0) (fup 0 u) H) ; simpl in IH2.
-  rewrite map_map in IH2 ; rewrite (map_ext _ _ (nsubs_fup_com _ _)) in IH2 ;
-    rewrite <- map_map in IH2.
-  rnow eapply rexse.
 Qed.
 
 Lemma rpsubsz_r {l A x u} : closed u ->
@@ -268,11 +248,6 @@ clear k ; apply rnprove_mutrect ; intros ;
   rnow change (dvar 0) with (fup (S k) (dvar 0)) in X.
   rewrite map_map in IH ; rewrite (map_ext _ _ (fup_fup_com _)) in IH ; rewrite <- map_map in IH.
   now apply rfrli.
-- rnow idtac then rnow apply (rexsi (fup k u)).
-- clear IH2 ; assert (IH2 := X0 (S k)) ; simpl in IH2.
-  rnow change (dvar 0) with (tup (S k) (dvar 0)) in X.
-  rewrite map_map in IH2 ; rewrite (map_ext _ _ (fup_fup_com _)) in IH2 ; rewrite <- map_map in IH2.
-  rnow apply (rexse x (fup k A)).
 Qed.
 
 Theorem denormalization :
@@ -298,8 +273,116 @@ apply rnprove_mutrect ; intros ; try (econstructor ; intuition ; intuition ; fai
     now apply IHl1.
 - apply rimpi ; rewrite app_comm_cons ; intuition.
 - apply rfrli ; rewrite ? map_app ; apply X ; rewrite map_app ; reflexivity.
-- apply (rexse x A).
-  + apply X ; reflexivity.
-  + rewrite ? map_app ; rewrite app_comm_cons ; apply X0 ; rewrite map_app ; reflexivity.
+Qed.
+
+
+Lemma imp_reduction : forall A B l, rprove l (imp A B) ->
+(forall D l B, fsize D = fsize A -> rprove (D :: l) B -> rprove l D -> rprove l B) -> 
+  rprove l A -> rprove l B.
+Proof with try eassumption ; try reflexivity.
+intros A B l pi.
+remember (imp A B) as C ; revert A B HeqC ; induction pi ;
+  intros A1 B1 HeqC ; inversion HeqC ; subst ; intros Hsub pi2.
+- apply rninj ; eapply nimpe...
+- eapply Hsub...
+Qed.
+
+Lemma frl_reduction : forall A x l, rprove l (frl x A) ->
+  forall u, closed u -> rprove l (subs x u A).
+Proof with try eassumption ; try reflexivity.
+intros A x l pi.
+remember (frl x A) as C ; revert A x HeqC ; induction pi ;
+  intros A1 x1 HeqC ; inversion HeqC ; subst ; intros u Hc.
+- apply rninj ; eapply nfrle...
+- eapply rpsubsz_r in pi...
+Qed.
+
+Lemma substitution : forall n m A, fsize A = n ->
+   (forall B l1 l2 (pi : nprove (l1 ++ A :: l2) B),
+      nsize pi < m -> fsize A < fsize B -> rprove (l1 ++ l2) A -> nprove (l1 ++ l2) B)
+ * (forall B l1 l2 (pi : nprove (l1 ++ A :: l2) B),
+      nsize pi < m -> rprove (l1 ++ l2) A -> rprove (l1 ++ l2) B)
+ * (forall B l1 l2 (pi : rprove (l1 ++ A :: l2) B),
+      rsize pi < m -> rprove (l1 ++ l2) A -> rprove (l1 ++ l2) B).
+Proof with try eassumption ; try reflexivity ; try lia.
+apply (lt_wf_double_rect (fun n m =>
+ forall A, fsize A = n ->
+   (forall B l1 l2 (pi : nprove (l1 ++ A :: l2) B),
+      nsize pi < m -> fsize A < fsize B -> rprove (l1 ++ l2) A -> nprove (l1 ++ l2) B)
+ * (forall B l1 l2 (pi : nprove (l1 ++ A :: l2) B),
+      nsize pi < m -> rprove (l1 ++ l2) A -> rprove (l1 ++ l2) B)
+ * (forall B l1 l2 (pi : rprove (l1 ++ A :: l2) B),
+      rsize pi < m -> rprove (l1 ++ l2) A -> rprove (l1 ++ l2) B))) ;
+  intros n m IHn IHm A HA ; (split ; [ split | ] ) ; subst ;
+  intros B l1 l2 pi2 Hpi ; [ intros HF | | ] ; intros pi1 ;
+  remember (l1 ++ A :: l2) as ll ; destruct pi2 ; subst ;
+  simpl in IHm ; simpl in IHn ; simpl in Hpi ; try simpl in HF.
+(* first statement *)
+- clear - Heqll HF ; revert l1 l2 Heqll HF ; induction l0 ; intros l1 l2 Heqll HF ;
+    destruct l1 ; inversion Heqll ; subst.
+  + exfalso...
+  + apply nax_hd.
+  + apply nax.
+  + apply IHl0 in H1...
+    change (f :: l1) with (nil ++ (f :: nil) ++ l1) ; rewrite <- ? app_assoc.
+    eapply weakening...
+- assert (nsize pi2 < S (nsize pi2 + rsize r)) as IH1 by lia.
+  assert (rsize r < S (nsize pi2 + rsize r)) as IH2 by lia.
+  eapply nimpe ; eapply (IHm (S (nsize pi2 + rsize r))) ; simpl...
+- apply nfrle...
+  rnow eapply (IHm _ Hpi)...
+  etransitivity...
+admit.
+(* second statement *)
+- enough (forall l l1 l2, l0 ++ A0 :: l3 = l1 ++ A :: l2 ->
+      rprove (l ++ l1 ++ l2) A -> rprove (l ++ l1 ++ l2) A0)
+    as HI by (eapply (HI nil) ; eassumption) ; clear.
+  induction l0 ; intros l l1 l2 Heq pi ; destruct l1 ; inversion Heq ; subst...
+  + rewrite <- app_comm_cons ; apply rninj ; apply nax.
+  + rewrite 2 app_assoc ; apply rninj ; apply nax.
+  + rewrite <- app_comm_cons ; rewrite <- (app_nil_l l1) ;
+      rewrite <- app_assoc ; rewrite app_comm_cons ; rewrite app_assoc.
+    apply IHl0...
+    rewrite <- ? app_assoc ; rewrite <- app_comm_cons...
+- assert (nsize pi2 < S (nsize pi2 + rsize r)) as IH1 by lia.
+  assert (rsize r < S (nsize pi2 + rsize r)) as IH2 by lia.
+  destruct (Compare_dec.le_lt_dec (fsize (imp A0 B)) (fsize A)).
+  + eapply IHm in IH1 ; eapply IHm in IH2...
+    eapply imp_reduction...
+    simpl in l ; intros D l' B' Heq pi1' pi2'.
+    rewrite <- (app_nil_l _) in pi1'.
+    refine (snd (IHn (fsize D) (S (rsize pi1')) _ _ _) _ _ _ pi1' _ pi2')...
+  + apply rninj ; eapply nimpe ; eapply IHm...
+- assert (nsize pi2 < S (nsize pi2)) as IH1 by lia.
+  eapply IHm in IH1...
+  eapply frl_reduction...
+(* third statement *)
+- refine (snd (fst (IHm _ _ _ _)) _ _ _ n _ _)...
+- revert pi2 Hpi ; rewrite app_comm_cons ; intros pi2 Hpi.
+  apply rimpi.
+  refine (snd (IHm _ _ _ _) _ _ _ pi2 _ _)...
+  rewrite <- app_comm_cons ; rewrite <- (app_nil_l (l1 ++ l2)) ; rewrite app_comm_cons ;
+    rewrite <- (app_nil_l _).
+  eapply weakening...
+- apply rfrli ; rewrite map_app.
+  apply (rnpup 0) in pi1.
+  revert pi1 pi2 Hpi ; rewrite ? map_app ; simpl ; intros pi1 pi2 Hpi.
+  rnow refine (snd (IHm _ _ _ _) _ _ _ pi2 _ _)...
+Admitted.
+
+Lemma smp_substitution : forall l A B, rprove l A -> rprove (A :: l) B -> rprove l B.
+Proof with try eassumption ; try reflexivity ; try lia.
+intros l A B pi1 pi2.
+rewrite <- (app_nil_l (A :: l)) in pi2 ; rewrite <- (app_nil_l l).
+refine (snd (substitution _ (S (rsize pi2)) _ _ ) _ _ _ pi2 _ _)...
+Qed.
+
+Theorem normalization : forall l A, prove l A -> rprove l A.
+Proof with try eassumption ; try reflexivity ; try lia.
+intros l A pi ; induction pi ;
+   try (econstructor ; (idtac + econstructor) ; eassumption).
+- eapply imp_reduction...
+  clear ; intros ; eapply smp_substitution...
+- eapply frl_reduction...
 Qed.
 
