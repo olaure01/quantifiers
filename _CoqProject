@@ -4,7 +4,8 @@ stdlib_more.v
 
 dectype.v
 term_tactics.v
-fot.v
+foterms.v
+foformulas.v
 
 all1.v
 all2.v
