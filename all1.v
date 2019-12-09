@@ -2,152 +2,64 @@
 
 Require Import Lia.
 Require Import stdlib_more.
-Require Import fot.
+Require Import foformulas.
+
+Set Implicit Arguments.
+
 
 Parameter vatom : DecType.
 Parameter tatom : Type.
-Notation term := (@term vatom tatom).
-Notation closed t := (freevars t = nil).
-Notation tup := (@tup vatom tatom).
+Parameter fatom : Type.
+Inductive Ncon := top_con.
+Inductive Bcon := wth_con.
+Inductive Qcon := frl_con.
 
-Hint Rewrite
-  (@tup_tup_com vatom tatom) (@tup_tsubs_com vatom tatom)
-  (@ntsubs_tup_com vatom tatom) (@ntsubs_z_tup vatom tatom)
-  (@freevars_tup vatom tatom) (@tsubs_tsubs_eq vatom tatom) : term_db.
-Hint Resolve (@closed_nofreevars vatom tatom) : term_db.
-Hint Rewrite (@freevars_ntsubs vatom tatom) using intuition; fail : term_db.
-Hint Rewrite (@nfree_tsubs vatom tatom)
-  using try intuition; (try apply closed_nofreevars); intuition; fail : term_db.
-Hint Rewrite (@ntsubs_tsubs_com vatom tatom)
-  using try intuition; (try apply closed_nofreevars); intuition; fail : term_db.
-Hint Rewrite (@tsubs_tsubs_com vatom tatom)
-  using try intuition; (try apply closed_nofreevars); intuition; fail : term_db.
-Hint Rewrite (@freevars_tsubs_closed vatom tatom)
-  using intuition; fail : term_db.
+Notation term := (@term vatom tatom nat).
+Notation closed t := (tvars t = nil).
+Notation fclosed r := (forall n, closed (r n)).
+Notation "↑ r" := (fdblift r) (at level 25, format "↑ r").
+Notation "v // ↓ k" := (fdbsubs k v) (at level 18, format "v // ↓ k").
+Notation "A ⟦ r ⟧" := (dbsubs r A) (at level 8, left associativity, format "A ⟦ r ⟧").
+Notation "A [ u // x ]" := (subs x u A) (at level 8, format "A [ u // x ]").
+Notation "⇑" := fup.
+Notation "A ↑" := (A⟦⇑⟧) (at level 8, format "A ↑").
+Notation "x ∈ A" := (In x (freevars A)) (at level 30).
 
+Notation formula := (@formula vatom tatom fatom Ncon Bcon Qcon nat).
+(*
+Notation top := (fnul nat top_con).
+Notation wth := (fbin wth_con).
+Notation frl := (fqtf frl_con).
+*)
+Notation "⟙" := (fnul nat top_con).
+Infix "﹠" := (fbin wth_con) (at level 50).
+Notation "∀" := (fqtf frl_con).
 
+Hint Rewrite (@freevars_fup vatom tatom fatom Ncon Bcon Qcon) : term_db.
+Hint Rewrite (@dbsubs_z_fup vatom tatom fatom Ncon Bcon Qcon) : term_db.
+Hint Rewrite (@nfree_subs vatom tatom fatom Ncon Bcon Qcon nat) using intuition; fail : term_db.
 
-
-(** * Formulas *)
-
-Parameter atom : Type.  (* propositional variables for [formula] *)
-
-(** formulas *)
-(** first-order formulas in the langage: true, conjunction, universal quantification *)
-Inductive formula :=
-| var : atom -> list term -> formula
-| top : formula
-| wdg : formula -> formula -> formula
-| frl : vatom -> formula -> formula.
-
-Ltac formula_induction A :=
-  (try intros until A) ;
-  let XX := fresh "X" in
-  let xx := fresh "x" in
-  let A1 := fresh A in
-  let A2 := fresh A in
-  let ll := fresh "l" in
-  let lll := fresh "l" in
-  let tt := fresh "t" in
-  let IHll := fresh "IHl" in
-  induction A as [ XX ll | | A1 A2 | xx A ] ; simpl ; intros ;
-  [ try f_equal ; try (induction ll as [ | tt lll IHll ] ; simpl ; intuition ;
-                       rewrite IHll ; f_equal ; intuition)
-  | auto
-  | try (f_equal ; intuition)
-  | try (f_equal ; intuition) ] ; try ((rnow idtac) ; fail) ; try (rcauto ; fail).
-
-
-(** lift indexes above [k] in [formula] [A] *)
-Fixpoint fup k A :=
-match A with
-| var X l => var X (map (tup k) l)
-| top => top
-| wdg B C => wdg (fup k B) (fup k C)
-| frl x B => frl x (fup k B)
-end.
-
-Lemma fup_fup_com : forall k A,
-  fup (S k) (fup 0 A) = fup 0 (fup k A).
-Proof. formula_induction A. Qed.
-Hint Rewrite fup_fup_com : term_db.
-
-
-(** substitutes [term] [u] for variable [x] in [formula] [A] *)
-(* capture is not avoided *)
-Fixpoint subs x u A :=
-match A with
-| var X l => var X (map (tsubs x u) l)
-| top => top
-| wdg B C => wdg (subs x u B) (subs x u C)
-| frl y B => frl y (if (eqb y x) then B else subs x u B)
-end.
-
-Lemma fup_subs_com : forall k x u A,
-  fup k (subs x u A) = subs x (tup k u) (fup k A).
-Proof. formula_induction A. Qed.
-Hint Rewrite fup_subs_com : term_db.
-
-(** substitutes [term] [u] for index [n] in [formula] [A] *)
-(* capture is not avoided *)
-Fixpoint nsubs n u A :=
-match A with
-| var X l => var X (map (ntsubs n u) l)
-| top => top
-| wdg B C => wdg (nsubs n u B) (nsubs n u C)
-| frl x B => frl x (nsubs n u B)
-end.
-
-Lemma nsubs_fup_com : forall k u A,
-  nsubs (S k) (tup 0 u) (fup 0 A) = fup 0 (nsubs k u A).
-Proof. formula_induction A. Qed.
-Hint Rewrite nsubs_fup_com : term_db.
-
-Lemma nsubs_z_fup : forall u A, nsubs 0 u (fup 0 A) = A.
-Proof. formula_induction A. Qed.
-Hint Rewrite nsubs_z_fup : term_db.
-
-Lemma nsubs_subs_com : forall x v n u, ~ In x (freevars u) -> forall A,
-  nsubs n u (subs x v A) = subs x (ntsubs n u v) (nsubs n u A).
-Proof. now formula_induction A ; rcauto ; f_equal. Qed.
-Hint Rewrite nsubs_subs_com using try (intuition ; fail) ;
-                                  (try apply closed_nofreevars) ; intuition ; fail : term_db.
-
-
-(** size of formulas *)
-Fixpoint fsize A :=
-match A with
-| var _ _ => 1
-| top => 1
-| wdg B C => S (fsize B + fsize C)
-| frl _ B => S (fsize B)
-end.
-
-Lemma fsize_fup : forall k A, fsize (fup k A) = fsize A.
-Proof. formula_induction A. Qed.
-Hint Rewrite fsize_fup : term_db.
-
-Lemma fsize_subs : forall u x A, fsize (subs x u A) = fsize A.
-Proof. formula_induction A. Qed.
-Hint Rewrite fsize_subs : term_db.
-
+Hint Resolve (@fclosed_notvars vatom tatom nat nat) : term_db.
+Hint Resolve (@fclosed_fdbsubs vatom tatom) : term_db.
+Hint Resolve (@fclosed_fdblift vatom tatom) : term_db.
+Hint Rewrite (@subs_dbsubs vatom tatom fatom Ncon Bcon Qcon nat)
+                         using try (intuition; fail);
+                              (try apply fclosed_notvars); intuition; fail : term_db.
 
 
 (** * Proofs *)
-
-Notation fupz := (fup 0).
 
 (** Proofs *)
 (** two-sided sequent calculus for first-order (additive) linear logic with connectives: 
     top, with, forall *)
 Inductive prove : formula -> formula -> Type :=
 | ax : forall A, prove A A
-| topr : forall C, prove C top
-| wdgr { C A B } : prove C A -> prove C B -> prove C (wdg A B)
-| wdgll { A C } : forall B, prove A C -> prove (wdg A B) C
-| wdglr { A C } : forall B, prove A C -> prove (wdg B A) C
-| frlr { x C A } : prove (fupz C) (subs x (dvar 0) (fupz A)) -> prove C (frl x A)
-| frll { x A C } : forall u, closed u -> prove (subs x u A) C -> prove (frl x A) C.
+| topr : forall C, prove C ⟙
+| wdgr { C A B } : prove C A -> prove C B -> prove C (A﹠B)
+| wdgll { A C } : forall B, prove A C -> prove (A﹠B) C
+| wdglr { A C } : forall B, prove A C -> prove (B﹠A) C
+| frlr { x C A } : prove C↑ A↑[dvar 0//x] -> prove C (∀x A)
+| frll { x A C } : forall u, closed u -> prove A[u//x] C -> prove (∀x A) C.
 Hint Constructors prove : term_db.
 
 (** height of proofs *)
@@ -162,162 +74,105 @@ match pi with
 | frll _ _ pi1 => S (psize pi1)
 end.
 
-(** substitutes [cterm] [u] for index [n] in proof [pi] and decreases indexes above [n] *)
-Theorem psubs n u (Hc : closed u) {C A} (pi : prove C A) :
-  { pi' : prove (nsubs n u C) (nsubs n u A) | psize pi' = psize pi }.
-Proof with try assumption.
-revert n u Hc ; induction pi ; intros n u' Hc ;
-  try (destruct (IHpi n u') as [pi' Hs]) ;
-  try (destruct (IHpi1 n u') as [pi1' Hs1]) ;
-  try (destruct (IHpi2 n u') as [pi2' Hs2])...
+(** apply [r] in proof [pi] *)
+Theorem pdbsubs r (Hc : fclosed r) C A (pi : prove C A) :
+  { pi' : prove C⟦r⟧ A⟦r⟧ & psize pi' = psize pi }.
+Proof.
+revert r Hc ; induction pi ; intros r Hc ;
+  try (destruct (IHpi r) as [pi' Hs]) ;
+  try (destruct (IHpi1 r) as [pi1' Hs1]) ;
+  try (destruct (IHpi2 r) as [pi2' Hs2]); intuition.
 - now exists (ax _).
 - now exists (topr _).
 - exists (wdgr pi1' pi2') ; simpl ; auto.
 - exists (wdgll _ pi') ; simpl ; auto.
 - exists (wdglr _ pi') ; simpl ; auto.
-- clear pi' Hs.
-  rewrite <- (freevars_tup 0) in Hc.
-  destruct (IHpi (S n) (tup 0 u')) as [pi' Hs]...
-  simpl ; rewrite <- Hs ; clear Hs.
-  revert pi' ; autorewrite with term_db.
-  intros pi' ; exists (frlr pi') ; reflexivity.
-- simpl ; rewrite <- Hs ; clear Hs.
-  revert pi' ; autorewrite with term_db.
-  rewrite <- (freevars_ntsubs n u' Hc) in e.
-  intros pi' ; exists (frll _ e pi') ; reflexivity.
-Qed.
-
-(** lift indexes above [k] in proof [pi] *)
-Theorem pup k {C A} (pi : prove C A) :
-  { pi' : prove (fup k C) (fup k A) | psize pi' = psize pi }.
-Proof with autorewrite with term_db.
-revert k ; induction pi ; intros k ;
-  try (destruct (IHpi k) as [pi' Hs]) ;
-  try (destruct (IHpi1 k) as [pi1' Hs1]) ;
-  try (destruct (IHpi2 k) as [pi2' Hs2]).
-- now exists (ax _).
-- now exists (topr _).
-- exists (wdgr pi1' pi2') ; simpl ; auto.
-- exists (wdgll _ pi') ; simpl ; auto.
-- exists (wdglr _ pi') ; simpl ; auto.
-- clear pi' Hs.
-  destruct (IHpi (S k)) as [pi' Hs].
-  simpl ; rewrite <- Hs ; clear Hs.
-  revert pi'.
-  change (dvar 0) with (tup (S k) (dvar 0))...
-  intros pi' ; exists (frlr pi') ; reflexivity.
-- simpl ; rewrite <- Hs ; clear Hs.
-  revert pi'...
-  rewrite <- (freevars_tup k) in e.
-  intros pi' ; exists (frll _ e pi') ; reflexivity.
+- clear pi' Hs; destruct (IHpi (↑r)) as [pi' Hs]; intuition.
+  simpl; rewrite <- Hs; clear Hs.
+  revert pi'; rnow idtac.
+  revert pi'; rewrite <- 2 lift_dbsubs; intros pi'.
+  exists (frlr pi'); reflexivity.
+- simpl; rewrite <- Hs; clear Hs.
+  revert pi'; rnow idtac.
+  rewrite <- (tvars_tdbsubs_fclosed r Hc) in e.
+  exists (frll _ e pi'); reflexivity.
 Qed.
 
 
 (** * Cut Elimination *)
 
 Theorem cutr : forall A B C, prove A B -> prove B C -> prove A C.
-Proof with try assumption ; try lia.
+Proof with try assumption.
 enough (IH : forall n, forall A B C (pi1 : prove A B) (pi2 : prove B C),
           n = psize pi1 + psize pi2 -> prove A C)
   by (intros A B C pi1 pi2 ; apply (IH _ _ _ _ pi1 pi2 eq_refl)).
 induction n as [n IH0] using lt_wf_rect ; intros ; subst.
 assert (IH : forall A B C (pi1' : prove A B) (pi2' : prove B C),
                psize pi1' + psize pi2' < psize pi1 + psize pi2 -> prove A C)
-  by (intros ; eapply IH0 ; [ eassumption | reflexivity ]) ; clear IH0.
-destruct pi2 ; intuition.
+  by (intros; eapply IH0; [ eassumption | reflexivity ]); clear IH0.
+destruct pi2; intuition.
 - apply wdgr.
-  + apply (IH _ _ _ pi1 pi2_1) ; simpl...
-  + apply (IH _ _ _ pi1 pi2_2) ; simpl...
+  + apply (IH _ _ _ pi1 pi2_1); simpl; lia.
+  + apply (IH _ _ _ pi1 pi2_2); simpl; lia.
 - enough (forall A D (pi1 : prove A D) A0 B C (pi2 : prove A0 C)
               (IH : forall A1 B0 C0 (pi1' : prove A1 B0) (pi2' : prove B0 C0),
                 psize pi1' + psize pi2' < psize pi1 + psize (wdgll B pi2) -> prove A1 C0),
-         D = wdg A0 B -> prove A C)
-    as IH2 by (eapply IH2 ; [ eassumption | reflexivity ]) ; clear.
+         D = A0﹠B -> prove A C)
+    as IH2 by (eapply IH2; [ eassumption | reflexivity ]); clear.
   intros A D pi1 ; destruct pi1 ; intros ; inversion H ; subst ;
-    try (constructor ; apply (IH _ _ _ pi1 (wdgll _ pi2)) ; simpl ; lia).
-  + apply wdgll...
-  + apply (IH _ _ _ pi1_1 pi2) ; simpl...
+    try (constructor ; apply (IH _ _ _ pi1 (wdgll _ pi2)); simpl; lia).
+  + now apply wdgll.
+  + apply (IH _ _ _ pi1_1 pi2); simpl; lia.
   + apply (frll u)...
-    apply (IH _ _ _ pi1 (wdgll _ pi2)) ; simpl...
+    apply (IH _ _ _ pi1 (wdgll _ pi2)); simpl; lia.
 - enough (forall A D (pi1 : prove A D) A0 B C (pi2 : prove A0 C)
               (IH : forall A1 B0 C0 (pi1' : prove A1 B0) (pi2' : prove B0 C0),
                  psize pi1' + psize pi2' < psize pi1 + psize (wdglr B pi2) -> prove A1 C0),
-         D = wdg B A0 -> prove A C)
+         D = B﹠A0 -> prove A C)
     as IH2 by (eapply IH2 ; [ eassumption | reflexivity ]) ; clear.
-  intros A D pi1 ; destruct pi1 ; intros ; inversion H ; subst ;
-    try (constructor ; apply (IH _ _ _ pi1 (wdglr _ pi2)) ; simpl ; lia).
-  + apply wdglr...
-  + apply (IH _ _ _ pi1_2 pi2) ; simpl...
+  intros A D pi1; destruct pi1; intros; inversion H; subst;
+    try (constructor; apply (IH _ _ _ pi1 (wdglr _ pi2)); simpl; lia).
+  + now apply wdglr.
+  + apply (IH _ _ _ pi1_2 pi2); simpl; lia.
   + apply (frll u)...
-    apply (IH _ _ _ pi1 (wdglr _ pi2)) ; simpl...
-- destruct (pup 0 pi1) as [pi1' Hs].
+    apply (IH _ _ _ pi1 (wdglr _ pi2)); simpl; lia.
+- destruct (pdbsubs ⇑ fclosed_fup pi1) as [pi1' Hs].
   apply frlr.
-  apply (IH _ _ _ pi1' pi2) ; simpl...
-- enough (forall A D (pi1 : prove A D) x A0 C u e (pi2 : prove (subs x u A0) C)
+  apply (IH _ _ _ pi1' pi2); simpl; lia.
+- enough (forall A D (pi1 : prove A D) x A0 C u e (pi2 : prove A0[u//x] C)
               (IH : forall A1 B C0 (pi1' : prove A1 B) (pi2' : prove B C0),
                  psize pi1' + psize pi2' < psize pi1 + psize (frll u e pi2) -> prove A1 C0),
-         D = frl x A0 -> prove A C)
-    as IH2 by (eapply IH2 ; [ eassumption | reflexivity ]) ; clear.
-  intros A D pi1 ; destruct pi1 ; intros ; inversion H ; subst ;
-    try (constructor ; apply (IH _ _ _ pi1 (frll _ e pi2)) ; simpl ; lia).
-  + apply (frll u) ; assumption.
-  + destruct (psubs 0 u e pi1) as [pi1' Hs].
-    simpl in IH ; rewrite <- Hs in IH ; clear Hs.
-    revert pi1' IH ; autorewrite with term_db.
-    intros pi1' IH ; apply (IH _ _ _ pi1' pi2) ; simpl...
+         D = ∀ x A0 -> prove A C)
+    as IH2 by (eapply IH2; [ eassumption | reflexivity ]); clear.
+  intros A D pi1; destruct pi1; intros; inversion H; subst;
+    try (constructor; apply (IH _ _ _ pi1 (frll _ e pi2)); simpl; lia).
+  + now apply (frll u).
+  + destruct (pdbsubs (u//↓0) (fclosed_fdbsubs _ _ e) pi1) as [pi1' Hs].
+    simpl in IH; rewrite <- Hs in IH; clear Hs.
+    revert pi1' IH; rnow idtac.
+    apply (IH _ _ _ pi1' pi2); lia.
   + apply (frll u)...
-    apply (IH _ _ _ pi1 (frll _ e0 pi2)) ; simpl...
+    apply (IH _ _ _ pi1 (frll _ e0 pi2)); simpl; lia.
 Qed.
-
-
-(** * Free variables in [formula] *)
-Fixpoint ffreevars A :=
-match A with
-| var _ l => concat (map freevars l)
-| top => nil
-| wdg B C => (ffreevars B) ++ (ffreevars C)
-| frl x B => remove eq_dt_dec x (ffreevars B)
-end.
-
-Lemma in_ffreevars_frl : forall x y, y <> x -> forall A,
-  In x (ffreevars A) -> In x (ffreevars (frl y A)).
-Proof.
-intros x y Heq A Hi ; simpl ; remember (ffreevars A) as l.
-revert Hi ; clear - Heq ; induction l ; intros Hi ; auto.
-inversion Hi ; subst ; simpl ; rcauto.
-Qed.
-
-Lemma ffreevars_fup : forall k A, ffreevars (fup k A) = ffreevars A.
-Proof. formula_induction A. Qed.
-Hint Rewrite ffreevars_fup : term_db.
-
-Lemma nfree_subs : forall x u A, ~ In x (ffreevars A) -> subs x u A = A.
-Proof. formula_induction A ; try rcauto.
-- rnow apply nfree_tsubs then apply H.
-- rnow apply H.
-- rnow rewrite IHA.
-  now apply H ; apply in_ffreevars_frl.
-Qed.
-Hint Rewrite nfree_subs using intuition ; fail : term_db.
 
 
 (** * Hilbert style properties *)
 
-Lemma frl_elim : forall A u x, closed u -> prove (frl x A) (subs x u A).
+Lemma frl_elim : forall A u x, closed u -> prove (∀ x A) A[u//x].
 Proof. intros A u x Hc; apply (frll u); auto with term_db. Qed.
 
-Lemma frl_wdg : forall A B x, prove (frl x (wdg A B)) (wdg (frl x A) (frl x B)).
+Lemma frl_wth : forall A B x, prove (∀ x (A﹠B)) (∀ x A ﹠ ∀ x B).
 Proof.
 intros A B x.
 repeat constructor; simpl;
   apply (frll (dvar 0)); simpl; do 2 constructor.
 Qed.
 
-Lemma frl_nfree : forall A x, ~ In x (ffreevars A) -> prove A (frl x A).
-Proof. 
-intros A X Hnf.
-rewrite <- (ffreevars_fup 0) in Hnf.
-rnow apply frlr.
+Lemma frl_nfree : forall A x, ~ x ∈ A -> prove A (∀ x A).
+Proof.
+intros A x Hnf.
+apply frlr.
+rnow rewrite nfree_subs.
 Qed.
 
 
@@ -327,13 +182,13 @@ Qed.
 Lemma ax_exp : forall A, prove A A.
 Proof.
 enough (Hn : forall n A, fsize A = n -> prove A A)
-  by (intros A ; eapply Hn ; reflexivity).
-induction n as [n IH] using lt_wf_rect ; intros ; subst.
-destruct A.
+  by (intros A; eapply Hn; reflexivity).
+induction n as [n IH] using lt_wf_rect; intros; subst.
+destruct A; [ | destruct n | destruct b | destruct q ].
 - apply ax.
 - apply topr.
-- apply wdgr ; [ apply wdgll | apply wdglr ] ; (eapply IH ; [ | reflexivity ]) ; simpl ; lia.
+- apply wdgr; [ apply wdgll | apply wdglr ]; (eapply IH; [ | reflexivity ]); simpl; lia.
 - apply frlr.
-  simpl ; apply (frll (dvar 0)) ; auto with term_db.
+  rnow apply (frll (dvar 0)).
 Qed.
 

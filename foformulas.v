@@ -63,19 +63,23 @@ Section Formulas.
 
 Context { vatom : DecType } { tatom : Type }.
 Notation term := (@term vatom tatom).
+Arguments dvar _ _ {T}.
+Notation dvar := (dvar vatom tatom).
 
 Notation "r ;; s" := (fdbcomp r s) (at level 20, format "r  ;;  s").
 Notation "x ∉ r" := (forall n, ~ In x (tvars (r n))) (at level 30).
 Notation closed t := (tvars t = nil).
-Notation rclosed r := (forall n, closed (r n)).
-Notation "⇑" := tup.
+Notation fclosed r := (forall n, closed (r n)).
+Notation "⇑" := fup.
 Notation "↑ r" := (fdblift r) (at level 25, format "↑ r").
 
+Hint Rewrite (@tdbsubs_dvar vatom tatom) : term_db.
 Hint Rewrite (@tdbsubs_comp vatom tatom) : term_db.
 Hint Rewrite (@tsubs_tsubs_eq vatom tatom) : term_db.
-Hint Rewrite (@tsubs_tsubs vatom tatom) using try (intuition; fail);
-                                             (try apply closed_notvars); intuition; fail : term_db.
-Hint Rewrite (@tvars_tdbsubs_closed vatom tatom) using intuition; fail : term_db.
+Hint Rewrite (@tsubs_tsubs vatom tatom)
+                        using try (intuition; fail);
+                             (try apply closed_notvars); intuition; fail : term_db.
+Hint Rewrite (@tvars_tdbsubs_fclosed vatom tatom) using intuition; fail : term_db.
 Hint Rewrite (@tvars_tsubs_closed vatom tatom) using intuition; fail : term_db.
 Hint Rewrite (@notin_tsubs vatom tatom)
                          using try easy;
@@ -87,7 +91,7 @@ Hint Rewrite (@notin_tsubs_bivar vatom tatom)
                                     (try apply closed_notvars); intuition; fail : term_db.
 Hint Rewrite (@tsubs_tdbsubs vatom tatom)
                            using try (intuition; fail);
-                                (try apply rclosed_notvars); intuition; fail : term_db.
+                                (try apply fclosed_notvars); intuition; fail : term_db.
 Hint Rewrite (@multi_tsubs_nil vatom tatom) : term_db.
 
 Hint Resolve (@tdbsubs_ext vatom tatom) : term_db.
@@ -95,6 +99,8 @@ Hint Resolve (@closed_notvars vatom tatom) : term_db.
 
 
 Context { fatom : Type }.  (* relation symbols for [formula] *)
+(* Generic sets of connectives (thanks D.Pous for the suggestion) *)
+Context { NCon : Type }. (* nullary connectives *)
 Context { BCon : Type }. (* binary connectives *)
 Context { QCon : Type }. (* quantifiers *)
 
@@ -102,13 +108,16 @@ Context { QCon : Type }. (* quantifiers *)
 (** first-order formulas *)
 Inductive formula T :=
 | fvar : fatom -> list (term T)-> formula T
+| fnul : NCon -> formula T
 | fbin : BCon -> formula T -> formula T -> formula T
 | fqtf : QCon -> vatom -> formula T -> formula T.
+Arguments fnul {T} _.
 
 Ltac formula_induction A :=
   (try intros until A) ;
   let XX := fresh "X" in
   let xx := fresh "x" in
+  let ncon := fresh "ncon" in
   let bcon := fresh "bcon" in
   let qcon := fresh "qcon" in
   let A1 := fresh A in
@@ -117,11 +126,12 @@ Ltac formula_induction A :=
   let lll := fresh "l" in
   let tt := fresh "t" in
   let IHll := fresh "IHl" in
-  induction A as [ XX ll | bcon A1 ? A2 ? | qcon xx A ]; simpl; intros;
+  induction A as [ XX ll | ncon | bcon A1 ? A2 ? | qcon xx A ]; simpl; intros;
   [ rewrite ? flat_map_concat_map;
     try (apply (f_equal (fvar _)));
     try (induction ll as [ | tt lll IHll ]; simpl; intuition;
          rewrite IHll; f_equal; intuition)
+  | try ((try f_equal); intuition; fail)
   | try (apply (f_equal2 (fbin _)));
     intuition
   | (try apply (f_equal (fqtf _ _))); repeat case_analysis; try (intuition; fail); 
@@ -134,6 +144,7 @@ Ltac formula_induction A :=
 Fixpoint fsize T (A : formula T) :=
 match A with
 | fvar _ _ => 1
+| fnul _ => 1
 | fbin _ B C => S (fsize B + fsize C)
 | fqtf _ _ B => S (fsize B)
 end.
@@ -146,6 +157,7 @@ end.
 Fixpoint dbsubs T1 T2 (r : T1 -> term T2) (A : formula T1) :=
 match A with
 | fvar X l => fvar X (map (tdbsubs r) l)
+| fnul ncon => fnul ncon
 | fbin bcon B C => fbin bcon (dbsubs r B) (dbsubs r C)
 | fqtf qcon x B => fqtf qcon x (dbsubs r B)
 end.
@@ -155,9 +167,15 @@ Lemma fsize_dbsubs T1 T2 : forall (r : T1 -> term T2) A, fsize A⟦r⟧ = fsize 
 Proof. formula_induction A. Qed.
 Hint Rewrite fsize_dbsubs : term_db.
 
+Lemma dbsubs_dvar T : forall (A : formula T),
+  A⟦dvar⟧ = A.
+Proof. formula_induction A. Qed.
+Hint Rewrite dbsubs_dvar : term_db.
+
 Lemma dbsubs_comp T1 T2 T3 (r : T1 -> term T2) (s : T2 -> term T3) :
   forall A, A⟦r⟧⟦s⟧ = A⟦r ;; s⟧.
 Proof. formula_induction A. Qed.
+Hint Rewrite dbsubs_comp : term_db.
 
 (* the result of substitution depends extensionnaly on the substituting function *)
 Lemma dbsubs_ext T1 T2 (r1 r2 : T1 -> term T2) :
@@ -181,6 +199,7 @@ Hint Rewrite (@remove_snd_remove vatom (formula T)) : term_db.
 Fixpoint subs x u A :=
 match A with
 | fvar X l => fvar X (map (tsubs x u) l)
+| fnul ncon => fnul ncon
 | fbin bcon B C => fbin bcon (subs x u B) (subs x u C)
 | fqtf qcon y B => fqtf qcon y (if (eqb y x) then B else subs x u B)
 end.
@@ -201,6 +220,7 @@ Hint Rewrite subs_subs_eq : term_db.
 Fixpoint freevars A :=
 match A with
 | fvar _ l => flat_map tvars l
+| fnul _ => nil
 | fbin _ B C => freevars B ++ freevars C
 | fqtf _ x B => remove eq_dt_dec x (freevars B)
 end.
@@ -210,13 +230,13 @@ Lemma freevars_qtf : forall qcon x y, y <> x -> forall A,
   x ∈ A -> x ∈ (fqtf qcon y A).
 Proof. intros; apply notin_remove; intuition. Qed.
 
-Lemma freevars_dbsubs_closed : forall r, rclosed r -> forall A,
+Lemma freevars_dbsubs_fclosed : forall r, fclosed r -> forall A,
   freevars A⟦r⟧ = freevars A.
 Proof. formula_induction A.
 - now rewrite IHA1, IHA2.
 - now rewrite IHA.
 Qed.
-Hint Rewrite freevars_dbsubs_closed using intuition; fail : term_db.
+Hint Rewrite freevars_dbsubs_fclosed using intuition; fail : term_db.
 
 Lemma nfree_subs : forall x u A, ~ x ∈ A -> A[u//x] = A.
 Proof. formula_induction A.
@@ -261,13 +281,15 @@ Qed.
 Lemma subs_dbsubs : forall x u r, x ∉ r -> forall A,
   A[u//x]⟦r⟧ = A⟦r⟧[tdbsubs r u//x].
 Proof. formula_induction A. Qed.
-Hint Rewrite subs_dbsubs using try (intuition ; fail) ;
-                              (try apply closed_notvars) ; intuition ; fail : term_db.
+Hint Rewrite subs_dbsubs using try (intuition; fail);
+                              (try apply fclosed_notvars); intuition; fail : term_db.
+
 
 (** ** No capture of [y] when susbtituted for [x] in [A] *)
 Fixpoint no_capture_at x y A :=
 match A with
-| fvar X l => True
+| fvar _ _ => True
+| fnul _ => True
 | fbin _ B C => no_capture_at x y B /\ no_capture_at x y C
 | fqtf qcon z B => x ∈ (fqtf qcon z B) -> no_capture_at x y B /\ y <> z
 end.
@@ -330,6 +352,7 @@ Hint Rewrite subs_subs using intuition; fail : term_db.
 Fixpoint fvars A :=
 match A with
 | fvar _ l => flat_map tvars l
+| fnul _ => nil
 | fbin _ B C => fvars B ++ fvars C
 | fqtf _ x B => x :: fvars B
 end.
@@ -470,16 +493,28 @@ End Fixed_Eigen_Type.
 (* We restrict to [formula nat] *)
 Section Eigen_nat.
 
+Hint Rewrite freevars_dbsubs_fclosed using intuition; fail : term_db.
+
 (** * Eigen variables *)
 
 Fixpoint eigen_max A :=
 match A with
 | fvar _ l => list_max (map teigen_max l)
+| fnul _ => 0
 | fbin _ B C => max (eigen_max B) (eigen_max C)
 | fqtf _ _ B => eigen_max B
 end.
 
 Notation "A ↑" := (A⟦⇑⟧) (at level 8, format "A ↑").
+Notation "v // ↓ k" := (fdbsubs k v) (at level 18, format "v // ↓ k").
+
+Lemma freevars_fup : forall A, freevars A↑ = freevars A.
+Proof. rcauto. Qed.
+Hint Rewrite freevars_fup : term_db.
+
+Lemma dbsubs_z_fup v A : A↑⟦v//↓0⟧ = A.
+Proof. now rewrite dbsubs_comp, (dbsubs_ext (fdbsubs_z_fup v)), dbsubs_dvar. Qed.
+Hint Rewrite dbsubs_z_fup : term_db.
 
 Lemma lift_dbsubs r : forall A, A⟦r⟧↑ = A↑⟦↑r⟧.
 Proof. intros; rewrite 2 dbsubs_comp; apply dbsubs_ext, fdblift_comp. Qed.

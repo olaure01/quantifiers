@@ -136,6 +136,7 @@ Lemma tdbsubs_ext T1 T2 (r1 r2 : T1 -> term T2) :
   r1 == r2 -> forall t, t⟦r1⟧ = t⟦r2⟧.
 Proof. term_induction t. Qed.
 Hint Resolve tdbsubs_ext : term_db.
+(* TODO could be turned into a morphism *)
 
 
 Section Fixed_Eigen_Type.
@@ -171,20 +172,20 @@ end.
 Notation "x ∈ t" := (In x (tvars t)) (at level 30).
 Notation "x ∉ r" := (forall n, ~ x ∈ r n) (at level 30).
 Notation closed t := (tvars t = nil).
-Notation rclosed r := (forall n, closed (r n)).
+Notation fclosed r := (forall n, closed (r n)).
 
 Lemma closed_notvars : forall t x, closed t -> ~ x ∈ t.
 Proof. intros t x Hc Hin ; now rewrite Hc in Hin. Qed.
 Hint Resolve closed_notvars : term_db.
 
-Lemma rclosed_notvars T0 : forall (r : T0 -> term T) x, rclosed r -> x ∉ r.
+Lemma fclosed_notvars T0 : forall (r : T0 -> term T) x, fclosed r -> x ∉ r.
 Proof. intros r x Hc n Hin ; now rewrite Hc in Hin. Qed.
-Hint Resolve rclosed_notvars : term_db.
+Hint Resolve fclosed_notvars : term_db.
 
-Lemma tvars_tdbsubs_closed : forall r, rclosed r -> forall t,
+Lemma tvars_tdbsubs_fclosed : forall r, fclosed r -> forall t,
   tvars t⟦r⟧ = tvars t.
 Proof. term_induction t. Qed.
-Hint Rewrite tvars_tdbsubs_closed using intuition; fail : term_db.
+Hint Rewrite tvars_tdbsubs_fclosed using intuition; fail : term_db.
 
 Lemma tvars_tsubs_closed : forall x u, closed u -> forall t,
   tvars t[u//x] = remove eq_dt_dec x (tvars t).
@@ -236,7 +237,7 @@ Lemma tsubs_tdbsubs : forall x u r, x ∉ r -> forall t,
   t[u//x]⟦r⟧ = t⟦r⟧[u⟦r⟧//x].
 Proof. term_induction t. Qed.
 Hint Rewrite tsubs_tdbsubs using try (intuition; fail);
-                                (try apply rclosed_notvars); intuition; fail : term_db.
+                                (try apply fclosed_notvars); intuition; fail : term_db.
 
 
 (** * Iterated substitution *)
@@ -312,6 +313,8 @@ End Fixed_Eigen_Type.
 (* We restrict to [term nat] *)
 Section Eigen_nat.
 
+Hint Rewrite tvars_tdbsubs_fclosed using intuition; fail : term_db.
+
 (** * Eigen variables *)
 
 Fixpoint teigen_max t :=
@@ -326,19 +329,19 @@ Notation tvar := (tvar nat).
 Notation "t [ u // x ]" := (tsubs x u t) (at level 8, format "t [ u // x ]").
 Notation "x ∈ t" := (In x (tvars t)) (at level 30).
 Notation closed t := (tvars t = nil).
-Notation rclosed r := (forall n, closed (r n)).
+Notation fclosed r := (forall n, closed (r n)).
 
-(* TODO useless?
-Definition tup k := fun n => dvar (if n <? k then n else S n).
-Notation "⇑_ k" := (tup k) (at level 15).
-Notation "⇑" := (tup 0).
-*)
-Definition tup := fun n => dvar (S n).
-Notation "⇑" := tup.
+Definition fup := fun n => dvar (S n).
+Notation "⇑" := fup.
 Notation "t ↑" := (t⟦⇑⟧) (at level 8, format "t ↑").
 
-Lemma rclosed_tup : rclosed ⇑.
+Lemma fclosed_fup : fclosed ⇑.
 Proof. reflexivity. Qed.
+Hint Rewrite fclosed_fup : term_db.
+
+Lemma tvars_fup : forall t, tvars t↑ = tvars t.
+Proof. rcauto. Qed.
+Hint Rewrite tvars_fup : term_db.
 
 Definition fdbsubs k v := fun n =>
   match n ?= k with
@@ -348,16 +351,19 @@ Definition fdbsubs k v := fun n =>
   end.
 Notation "v // ↓ k" := (fdbsubs k v) (at level 18, format "v // ↓ k").
 
-Lemma closed_fdbsubs : forall k v, closed v -> rclosed (v//↓k).
+Lemma fclosed_fdbsubs : forall k v, closed v -> fclosed (v//↓k).
 Proof. db_case_intuition unfolding fdbsubs. Qed.
+Hint Resolve fclosed_fdbsubs : term_db.
 
-Lemma fdbsubs_tup k v : v//↓k ;; ⇑ == ⇑ ;; v↑//↓(S k).
-Proof. intros ?; unfold fdbsubs, tup, fdbcomp; db_case_intuition. Qed.
-Hint Rewrite fdbsubs_tup : term_db.
+Lemma fdbsubs_fup k v : ⇑ ;; v↑//↓(S k) == v//↓k ;; ⇑.
+Proof. intros ?; unfold fdbsubs, fup, fdbcomp; db_case_intuition. Qed.
 
-Lemma fdbsubs_z_tup v : dvar == ⇑ ;; v↑//↓0.
+Lemma fdbsubs_z_fup v : ⇑ ;; v//↓0 == dvar.
 Proof. intros ?; reflexivity. Qed.
-Hint Rewrite fdbsubs_z_tup : term_db.
+
+Lemma tdbsubs_z_fup v t : t↑⟦v//↓0⟧ = t.
+Proof. rcauto. Qed.
+Hint Rewrite tdbsubs_z_fup : term_db.
 
 Definition fdblift r := fun n =>
   match n with
@@ -366,12 +372,17 @@ Definition fdblift r := fun n =>
   end.
 Notation "↑ r" := (fdblift r) (at level 25, format "↑ r").
 
+Lemma fclosed_fdblift r : fclosed r -> fclosed (↑r).
+Proof. intros ? n; rnow destruct n. Qed.
+Hint Resolve fclosed_fdblift : term_db.
+
 Lemma fdblift_comp r : r ;; ⇑ == ⇑ ;; ↑r.
 Proof. intros ?; reflexivity. Qed.
+Hint Rewrite fdblift_comp : term_db.
 
-Lemma lift_tdbsubs r : forall t, t⟦r⟧↑ = t↑⟦↑r⟧.
-Proof. intros; rewrite 2 tdbsubs_comp; apply tdbsubs_ext, fdblift_comp. Qed.
-Hint Rewrite lift_tdbsubs : term_db.
+Lemma fdblift_tdbsubs r : forall t, t⟦r⟧↑ = t↑⟦↑r⟧.
+Proof. rcauto. Qed.
+Hint Rewrite fdblift_tdbsubs : term_db.
 
 End Eigen_nat.
 
