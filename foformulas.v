@@ -524,3 +524,8 @@ End Eigen_nat.
 
 End Formulas.
 
+(* Some sets of connectives *)
+Inductive Nocon := .
+Inductive Icon := imp_con.
+Inductive Qcon := frl_con | exs_con.
+

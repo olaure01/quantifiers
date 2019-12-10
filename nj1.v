@@ -12,9 +12,6 @@ Set Implicit Arguments.
 Section Proofs.
 
 Context { vatom : DecType } { tatom fatom : Type }.
-Inductive Ncon := .
-Inductive Bcon := imp_con.
-Inductive Qcon := frl_con | exs_con.
 
 Arguments tvar {_} {_} {T} _.
 
@@ -29,28 +26,25 @@ Notation "⇑" := fup.
 Notation "A ↑" := (A⟦⇑⟧) (at level 8, format "A ↑").
 Notation "x ∈ A" := (In x (freevars A)) (at level 30).
 
-Notation formula := (@formula vatom tatom fatom Ncon Bcon Qcon nat).
-Notation fvar := (@fvar vatom tatom fatom Ncon Bcon Qcon nat).
+Notation formula := (@formula vatom tatom fatom Nocon Icon Qcon nat).
+Notation fvar := (@fvar vatom tatom fatom Nocon Icon Qcon nat).
 Notation imp := (fbin imp_con).
 Notation frl := (fqtf frl_con).
 Notation exs := (fqtf exs_con).
 
-Hint Rewrite (@fsize_dbsubs vatom tatom fatom Ncon Bcon Qcon) : term_db.
-Hint Rewrite (@fsize_subs vatom tatom fatom Ncon Bcon Qcon nat) : term_db.
+Hint Rewrite (@fsize_dbsubs vatom tatom fatom Nocon Icon Qcon) : term_db.
+Hint Rewrite (@fsize_subs vatom tatom fatom Nocon Icon Qcon nat) : term_db.
 Hint Rewrite (@tvars_tdbsubs_fclosed vatom tatom) using intuition; fail : term_db.
-Hint Rewrite (@freevars_dbsubs_fclosed vatom tatom fatom Ncon Bcon Qcon nat)
+Hint Rewrite (@freevars_dbsubs_fclosed vatom tatom fatom Nocon Icon Qcon nat)
                  using intuition; fail : term_db.
-Hint Rewrite (@subs_dbsubs vatom tatom fatom Ncon Bcon Qcon nat)
+Hint Rewrite (@subs_dbsubs vatom tatom fatom Nocon Icon Qcon nat)
                          using try (intuition; fail);
                               (try apply fclosed_notvars); intuition; fail : term_db.
-Hint Rewrite <- (@lift_dbsubs vatom tatom fatom Ncon Bcon Qcon) : term_db.
-Hint Rewrite (@dbsubs_z_fup vatom tatom fatom Ncon Bcon Qcon) : term_db.
+Hint Rewrite <- (@lift_dbsubs vatom tatom fatom Nocon Icon Qcon) : term_db.
+Hint Rewrite (@dbsubs_z_fup vatom tatom fatom Nocon Icon Qcon) : term_db.
 
 Hint Resolve (@fclosed_fdblift vatom tatom) : term_db.
 Hint Resolve (@fclosed_fdbsubs vatom tatom) : term_db.
-
-
-(** * Proofs *)
 
 (** Proofs *)
 Inductive prove : list formula -> formula -> Type :=
