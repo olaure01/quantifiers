@@ -23,10 +23,7 @@ Notation "y #[ x ] A" := (no_capture_at x y A) (at level 30, format "y  #[ x ]  
 
 Notation formula := (@formula vatom tatom fatom Nocon Icon Qcon Empty_set).
 Notation fvar := (@fvar vatom tatom fatom Nocon Icon Qcon Empty_set).
-Notation imp := (fbin imp_con).
-Notation frl := (fqtf frl_con).
-Notation exs := (fqtf exs_con).
-Infix "→" := (fbin imp_con) (at level 70, right associativity).
+Infix "→" := (fbin imp_con) (at level 55, right associativity).
 
 (** Proofs *)
 Inductive hprove : formula -> Type :=

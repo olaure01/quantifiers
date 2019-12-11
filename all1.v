@@ -17,9 +17,9 @@ Inductive Qcon := frl_con.
 Notation term := (@term vatom tatom nat).
 Notation closed t := (tvars t = nil).
 Notation fclosed r := (forall n, closed (r n)).
-Notation "↑ r" := (fdblift r) (at level 25, format "↑ r").
-Notation "v // ↓ k" := (fdbsubs k v) (at level 18, format "v // ↓ k").
-Notation "A ⟦ r ⟧" := (dbsubs r A) (at level 8, left associativity, format "A ⟦ r ⟧").
+Notation "↑ r" := (felift (dvar 0) r) (at level 25, format "↑ r").
+Notation "v // ↓ k" := (fesubs k v) (at level 18, format "v // ↓ k").
+Notation "A ⟦ r ⟧" := (esubs r A) (at level 8, left associativity, format "A ⟦ r ⟧").
 Notation "A [ u // x ]" := (subs x u A) (at level 8, format "A [ u // x ]").
 Notation "⇑" := fup.
 Notation "A ↑" := (A⟦⇑⟧) (at level 8, format "A ↑").
@@ -36,13 +36,13 @@ Infix "﹠" := (fbin wth_con) (at level 50).
 Notation "∀" := (fqtf frl_con).
 
 Hint Rewrite (@freevars_fup vatom tatom fatom Ncon Bcon Qcon) : term_db.
-Hint Rewrite (@dbsubs_z_fup vatom tatom fatom Ncon Bcon Qcon) : term_db.
+Hint Rewrite (@esubs_z_fup vatom tatom fatom Ncon Bcon Qcon) : term_db.
 Hint Rewrite (@nfree_subs vatom tatom fatom Ncon Bcon Qcon nat) using intuition; fail : term_db.
 
 Hint Resolve (@fclosed_notvars vatom tatom nat nat) : term_db.
-Hint Resolve (@fclosed_fdbsubs vatom tatom) : term_db.
-Hint Resolve (@fclosed_fdblift vatom tatom) : term_db.
-Hint Rewrite (@subs_dbsubs vatom tatom fatom Ncon Bcon Qcon nat)
+Hint Resolve (@fclosed_fesubs vatom tatom) : term_db.
+Hint Resolve (@fclosed_felift vatom tatom) : term_db.
+Hint Rewrite (@subs_esubs vatom tatom fatom Ncon Bcon Qcon nat)
                          using try (intuition; fail);
                               (try apply fclosed_notvars); intuition; fail : term_db.
 
@@ -75,7 +75,7 @@ match pi with
 end.
 
 (** apply [r] in proof [pi] *)
-Theorem pdbsubs r (Hc : fclosed r) C A (pi : prove C A) :
+Theorem pesubs r (Hc : fclosed r) C A (pi : prove C A) :
   { pi' : prove C⟦r⟧ A⟦r⟧ & psize pi' = psize pi }.
 Proof.
 revert r Hc ; induction pi ; intros r Hc ;
@@ -90,11 +90,11 @@ revert r Hc ; induction pi ; intros r Hc ;
 - clear pi' Hs; destruct (IHpi (↑r)) as [pi' Hs]; intuition.
   simpl; rewrite <- Hs; clear Hs.
   revert pi'; rnow idtac.
-  revert pi'; rewrite <- 2 lift_dbsubs; intros pi'.
+  revert pi'; rewrite <- 2 lift_esubs; intros pi'.
   exists (frlr pi'); reflexivity.
 - simpl; rewrite <- Hs; clear Hs.
   revert pi'; rnow idtac.
-  rewrite <- (tvars_tdbsubs_fclosed r Hc) in e.
+  rewrite <- (tvars_tesubs_fclosed r Hc) in e.
   exists (frll _ e pi'); reflexivity.
 Qed.
 
@@ -136,7 +136,7 @@ destruct pi2; intuition.
   + apply (IH _ _ _ pi1_2 pi2); simpl; lia.
   + apply (frll u)...
     apply (IH _ _ _ pi1 (wdglr _ pi2)); simpl; lia.
-- destruct (pdbsubs ⇑ fclosed_fup pi1) as [pi1' Hs].
+- destruct (pesubs ⇑ fclosed_fup pi1) as [pi1' Hs].
   apply frlr.
   apply (IH _ _ _ pi1' pi2); simpl; lia.
 - enough (forall A D (pi1 : prove A D) x A0 C u e (pi2 : prove A0[u//x] C)
@@ -147,7 +147,7 @@ destruct pi2; intuition.
   intros A D pi1; destruct pi1; intros; inversion H; subst;
     try (constructor; apply (IH _ _ _ pi1 (frll _ e pi2)); simpl; lia).
   + now apply (frll u).
-  + destruct (pdbsubs (u//↓0) (fclosed_fdbsubs _ _ e) pi1) as [pi1' Hs].
+  + destruct (pesubs (u//↓0) (fclosed_fesubs _ _ e) pi1) as [pi1' Hs].
     simpl in IH; rewrite <- Hs in IH; clear Hs.
     revert pi1' IH; rnow idtac.
     apply (IH _ _ _ pi1' pi2); lia.

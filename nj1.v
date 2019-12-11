@@ -18,9 +18,9 @@ Arguments tvar {_} {_} {T} _.
 Notation term := (@term vatom tatom nat).
 Notation closed t := (tvars t = nil).
 Notation fclosed r := (forall n, closed (r n)).
-Notation "↑ r" := (fdblift r) (at level 25, format "↑ r").
-Notation "v // ↓ k" := (fdbsubs k v) (at level 18, format "v // ↓ k").
-Notation "A ⟦ r ⟧" := (dbsubs r A) (at level 8, left associativity, format "A ⟦ r ⟧").
+Notation "↑ r" := (felift (dvar 0) r) (at level 25, format "↑ r").
+Notation "v // ↓ k" := (fesubs k v) (at level 18, format "v // ↓ k").
+Notation "A ⟦ r ⟧" := (esubs r A) (at level 8, left associativity, format "A ⟦ r ⟧").
 Notation "A [ u // x ]" := (subs x u A) (at level 8, format "A [ u // x ]").
 Notation "⇑" := fup.
 Notation "A ↑" := (A⟦⇑⟧) (at level 8, format "A ↑").
@@ -28,23 +28,20 @@ Notation "x ∈ A" := (In x (freevars A)) (at level 30).
 
 Notation formula := (@formula vatom tatom fatom Nocon Icon Qcon nat).
 Notation fvar := (@fvar vatom tatom fatom Nocon Icon Qcon nat).
-Notation imp := (fbin imp_con).
-Notation frl := (fqtf frl_con).
-Notation exs := (fqtf exs_con).
 
-Hint Rewrite (@fsize_dbsubs vatom tatom fatom Nocon Icon Qcon) : term_db.
+Hint Rewrite (@fsize_esubs vatom tatom fatom Nocon Icon Qcon) : term_db.
 Hint Rewrite (@fsize_subs vatom tatom fatom Nocon Icon Qcon nat) : term_db.
-Hint Rewrite (@tvars_tdbsubs_fclosed vatom tatom) using intuition; fail : term_db.
-Hint Rewrite (@freevars_dbsubs_fclosed vatom tatom fatom Nocon Icon Qcon nat)
+Hint Rewrite (@tvars_tesubs_fclosed vatom tatom) using intuition; fail : term_db.
+Hint Rewrite (@freevars_esubs_fclosed vatom tatom fatom Nocon Icon Qcon nat)
                  using intuition; fail : term_db.
-Hint Rewrite (@subs_dbsubs vatom tatom fatom Nocon Icon Qcon nat)
+Hint Rewrite (@subs_esubs vatom tatom fatom Nocon Icon Qcon nat)
                          using try (intuition; fail);
                               (try apply fclosed_notvars); intuition; fail : term_db.
-Hint Rewrite <- (@lift_dbsubs vatom tatom fatom Nocon Icon Qcon) : term_db.
-Hint Rewrite (@dbsubs_z_fup vatom tatom fatom Nocon Icon Qcon) : term_db.
+Hint Rewrite <- (@lift_esubs vatom tatom fatom Nocon Icon Qcon) : term_db.
+Hint Rewrite (@esubs_z_fup vatom tatom fatom Nocon Icon Qcon) : term_db.
 
-Hint Resolve (@fclosed_fdblift vatom tatom) : term_db.
-Hint Resolve (@fclosed_fdbsubs vatom tatom) : term_db.
+Hint Resolve (@fclosed_felift vatom tatom) : term_db.
+Hint Resolve (@fclosed_fesubs vatom tatom) : term_db.
 
 (** Proofs *)
 Inductive prove : list formula -> formula -> Type :=
@@ -71,11 +68,11 @@ Inductive nprove : list formula -> formula -> Type := (* neutral terms *)
 with rprove : list formula -> formula -> Type := (* normal forms *)
 | rninj { l A } : nprove l A -> rprove l A
 | rimpi { l A B } : rprove (A :: l) B -> rprove l (imp A B)
-| rfrli { x l A } : rprove (map (dbsubs ⇑) l) A↑[dvar 0//x] -> rprove l (frl x A)
+| rfrli { x l A } : rprove (map (esubs ⇑) l) A↑[dvar 0//x] -> rprove l (frl x A)
 | rexsi { x l A } : forall u, closed u -> rprove l (subs x u A) -> rprove l (exs x A)
 | rexse { l C } : forall x A,
                      nprove l (exs x A) ->
-                     rprove (A↑[dvar 0//x] :: map (dbsubs ⇑) l) C↑ -> rprove l C.
+                     rprove (A↑[dvar 0//x] :: map (esubs ⇑) l) C↑ -> rprove l C.
 Hint Constructors nprove rprove : term_db.
 Global Arguments nimpe { l B } _ _ _.
 Global Arguments rexse { l C } _ _ _ _.
@@ -116,15 +113,15 @@ end.
 
 
 (** apply [r] in normal form *)
-Theorem rnpdbsubs r (Hc : fclosed r) {l A} :
-   (nprove l A -> nprove (map (dbsubs r) l) A⟦r⟧)
- * (rprove l A -> rprove (map (dbsubs r) l) A⟦r⟧).
+Theorem rnpesubs r (Hc : fclosed r) {l A} :
+   (nprove l A -> nprove (map (esubs r) l) A⟦r⟧)
+ * (rprove l A -> rprove (map (esubs r) l) A⟦r⟧).
 Proof with try eassumption.
 revert l A.
 enough ((forall l A, nprove l A ->
-                       forall r, fclosed r -> nprove (map (dbsubs r) l) A⟦r⟧)
+                       forall r, fclosed r -> nprove (map (esubs r) l) A⟦r⟧)
       * (forall l A, rprove l A ->
-                       forall r, fclosed r -> rprove (map (dbsubs r) l) A⟦r⟧))
+                       forall r, fclosed r -> rprove (map (esubs r) l) A⟦r⟧))
   as He by (split; intros; apply He; assumption).
 clear r Hc; apply rnprove_mutrect; intros; (try simpl in X);
   (try assert (IH1 := X r H)); (try assert (IH2 := X0 r H));
@@ -134,30 +131,30 @@ clear r Hc; apply rnprove_mutrect; intros; (try simpl in X);
 - assert (fclosed (↑r0)) by rnow idtac.
   specialize X with (↑r0).
   revert X; rnow idtac.
-  rewrite map_map, <- (map_ext _ _ (lift_dbsubs _)), <- map_map in X0; intuition.
-- rnow specialize X with r0 then rnow eapply (rexsi (tdbsubs r0 u)).
+  rewrite map_map, <- (map_ext _ _ (lift_esubs (dvar 0) _)), <- map_map in X0; intuition.
+- rnow specialize X with r0 then rnow eapply (rexsi (tesubs r0 u)).
 - assert (fclosed (↑r0)) as Hup by rnow idtac.
   assert (IH := X0 (↑r0) Hup); simpl in IH.
-  rewrite map_map, <- (map_ext _ _ (lift_dbsubs _)), <- map_map in IH.
+  rewrite map_map, <- (map_ext _ _ (lift_esubs (dvar 0) _)), <- map_map in IH.
   rnow eapply rexse.
 Qed.
 
 Lemma rpsubsz_r {l A x u} : closed u ->
-  rprove (map (dbsubs ⇑) l) A↑[dvar 0//x] -> rprove l (subs x u A).
+  rprove (map (esubs ⇑) l) A↑[dvar 0//x] -> rprove l (subs x u A).
 Proof.
 intros Hc pi.
-apply (rnpdbsubs (u//↓0)) in pi; [ | intuition ].
+apply (rnpesubs (u//↓0)) in pi; [ | intuition ].
 rnow simpl in pi then cbn in pi.
-now rewrite map_map, (map_ext _ _ (dbsubs_z_fup _)), map_id in pi.
+now rewrite map_map, (map_ext _ _ (esubs_z_fup _)), map_id in pi.
 Qed.
 
 Lemma rpsubsz_l {l A x u C} : closed u ->
-  rprove (A↑[dvar 0//x] :: map (dbsubs ⇑) l) C↑ -> rprove (subs x u A :: l) C.
+  rprove (A↑[dvar 0//x] :: map (esubs ⇑) l) C↑ -> rprove (subs x u A :: l) C.
 Proof.
 intros Hc pi.
-apply (rnpdbsubs (u//↓0)) in pi; [ | intuition ].
+apply (rnpesubs (u//↓0)) in pi; [ | intuition ].
 rnow simpl in pi then simpl in pi.
-now rewrite map_map, (map_ext _ _ (dbsubs_z_fup _)), map_id in pi.
+now rewrite map_map, (map_ext _ _ (esubs_z_fup _)), map_id in pi.
 Qed.
 
 
@@ -201,9 +198,9 @@ remember (imp A B) as C ; revert A B HeqC ; induction pi ;
   eapply (IHpi (A1↑) (B1↑)); [ reflexivity | | ].
   + clear - Hsub ; intros D l B Hs pi1 pi2.
     rnow eapply (Hsub D).
-  + rewrite <- (app_nil_l (map (dbsubs ⇑) l)) ; rewrite app_comm_cons ; rewrite <- (app_nil_l _).
+  + rewrite <- (app_nil_l (map (esubs ⇑) l)) ; rewrite app_comm_cons ; rewrite <- (app_nil_l _).
     eapply weakening; [ | reflexivity ].
-    now apply rnpdbsubs.
+    now apply rnpesubs.
 Qed.
 
 Lemma frl_reduction : forall A x l, rprove l (frl x A) ->
@@ -220,7 +217,7 @@ Qed.
 
 Lemma exs_reduction : forall A x l, rprove l (exs x A) ->
 (forall D l B, fsize D = fsize A -> rprove (D :: l) B -> rprove l D -> rprove l B) -> 
-  forall C, rprove (A↑[dvar 0//x] :: map (dbsubs ⇑) l) C↑ -> rprove l C.
+  forall C, rprove (A↑[dvar 0//x] :: map (esubs ⇑) l) C↑ -> rprove l C.
 Proof.
 intros A x l pi.
 remember (exs x A) as A'; revert A x HeqA'; induction pi;
@@ -234,11 +231,11 @@ remember (exs x A) as A'; revert A x HeqA'; induction pi;
   + clear - Hsub ; intros D l B Hs pi1 pi2.
     rnow eapply (Hsub D).
   + simpl ; rewrite <- (app_nil_l (subs x _ _ :: _)) ; rewrite app_comm_cons;
-      rewrite <- (app_nil_l (map (dbsubs ⇑) _)) ; rewrite app_comm_cons.
+      rewrite <- (app_nil_l (map (esubs ⇑) _)) ; rewrite app_comm_cons.
     eapply weakening; [ | reflexivity ].
-    apply (rnpdbsubs (↑⇑)) in pi2; intuition.
+    apply (rnpesubs (↑⇑)) in pi2; intuition.
     rnow simpl in pi2 then simpl in pi2.
-    now rewrite map_map, <- (map_ext _ _ (lift_dbsubs _)), <- map_map in pi2.
+    now rewrite map_map, <- (map_ext _ _ (lift_esubs (dvar 0) _)), <- map_map in pi2.
 Qed.
 
 Lemma substitution : forall n m A, fsize A = n ->
@@ -307,13 +304,13 @@ apply (lt_wf_double_rect (fun n m =>
     rewrite <- (app_nil_l _).
   eapply weakening...
 - apply rfrli ; rewrite map_app.
-  apply (rnpdbsubs ⇑) in pi1; intuition.
+  apply (rnpesubs ⇑) in pi1; intuition.
   revert pi1 pi2 Hpi ; rewrite ? map_app ; simpl ; intros pi1 pi2 Hpi.
   rnow refine (snd (IHm _ _ _ _) _ _ _ pi2 _ _)...
 - eapply rexsi...
   refine (snd (IHm _ _ _ _) _ _ _ pi2 _ _)...
 - rewrite <- (app_nil_l _) in pi1.
-  assert (pi1' := snd weakening _ _ (snd (rnpdbsubs ⇑ fclosed_fup) pi1)
+  assert (pi1' := snd weakening _ _ (snd (rnpesubs ⇑ fclosed_fup) pi1)
                   (A0↑[dvar 0//x] :: nil) nil _ eq_refl) ; simpl in pi1'.
   rewrite map_app in pi1' ; rewrite app_comm_cons in pi1'.
   revert pi2 pi1' Hpi ; rewrite ? map_app ; simpl ; rewrite app_comm_cons ;
@@ -451,7 +448,7 @@ intros P Hfup; apply rnprove_mutrect.
   constructor; intuition.
   inversion_clear H1.
   apply Forall_forall; intros C HC.
-  apply in_map with (f:= dbsubs ⇑) in HC.
+  apply in_map with (f:= esubs ⇑) in HC.
   specialize_Forall H3 with (C↑); intuition.
 - intros x l A u Hc pi1 HP1 pi; inversion_clear pi; intuition.
   constructor; intuition.
@@ -625,7 +622,7 @@ intros; rev_intros; case_analysis.
      with (subs y (dvar 0) (frl y A↑↑))
     by rcauto.
   rnow apply nfrle then subst; rcauto.
-- rewrite subs_dbsubs, subs_subs_closed; intuition.
+- rewrite subs_esubs, subs_subs_closed; intuition.
   apply nfrle; intuition.
   replace (frl y A↑↑[dvar 0//x]) with ((frl y A↑↑)[dvar 0//x])
     by (simpl; case_analysis; intuition).

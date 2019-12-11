@@ -17,14 +17,14 @@ end.
 Notation "L ∖ x" := (remove_snd x L) (at level 18).
 
 Lemma remove_snd_remove {T1 : DecType} {T2} x (L : list (T1 * T2)) :
-  remove eq_dt_dec x (map fst L) = map fst (remove_snd x L).
+  remove eq_dt_dec x (map fst L) = map fst (L ∖ x).
 Proof.
 induction L; simpl; [ reflexivity | rewrite IHL ]; destruct a; simpl.
 repeat case_analysis; intuition.
 Qed.
 
 Lemma remove_snd_notin {T1 : DecType} {T2} x (L : list (T1 * T2)) :
-  forall y a, x <> y -> In (y, a) L -> In (y, a) (remove_snd x L).
+  forall y a, x <> y -> In (y, a) L -> In (y, a) (L ∖ x).
 Proof.
 induction L; simpl; intros y b Hneq Hin; [ assumption | destruct a ].
 destruct Hin as [Hin|Hin]; case_analysis; intuition.
@@ -33,7 +33,7 @@ now inversion Hin.
 Qed.
 
 Lemma snd_remove_snd  {T1 : DecType} {T2} x (L : list (T1 * T2)) :
-  incl (map snd (remove_snd x L)) (map snd L).
+  incl (map snd (L ∖ x)) (map snd L).
 Proof.
 induction L; simpl; intros z Hz; intuition.
 destruct a; simpl.
@@ -41,7 +41,7 @@ revert Hz; case_analysis; intros Hz; intuition.
 Qed.
 
 Lemma NoDup_remove_snd {T1 : DecType} {T2} x (L : list (T1 * T2)) :
-  NoDup (map snd L) -> NoDup (map snd (remove_snd x L)).
+  NoDup (map snd L) -> NoDup (map snd (L ∖ x)).
 Proof.
 induction L; simpl; intros Hnd; [ constructor | destruct a ].
 inversion_clear Hnd.
@@ -50,10 +50,6 @@ constructor; intuition.
 apply snd_remove_snd in H2.
 now apply H.
 Qed.
-
-
-
-
 
 
 (** * First-Order Formulas *)
@@ -66,20 +62,19 @@ Notation term := (@term vatom tatom).
 Arguments dvar _ _ {T}.
 Notation dvar := (dvar vatom tatom).
 
-Notation "r ;; s" := (fdbcomp r s) (at level 20, format "r  ;;  s").
+Notation "r ;; s" := (fecomp r s) (at level 20, format "r  ;;  s").
 Notation "x ∉ r" := (forall n, ~ In x (tvars (r n))) (at level 30).
 Notation closed t := (tvars t = nil).
-Notation fclosed r := (forall n, closed (r n)).
 Notation "⇑" := fup.
-Notation "↑ r" := (fdblift r) (at level 25, format "↑ r").
+Notation "↑[ u ] r" := (felift u r) (at level 25, format "↑[ u ] r").
 
-Hint Rewrite (@tdbsubs_dvar vatom tatom) : term_db.
-Hint Rewrite (@tdbsubs_comp vatom tatom) : term_db.
+Hint Rewrite (@tesubs_dvar vatom tatom) : term_db.
+Hint Rewrite (@tesubs_comp vatom tatom) : term_db.
 Hint Rewrite (@tsubs_tsubs_eq vatom tatom) : term_db.
 Hint Rewrite (@tsubs_tsubs vatom tatom)
                         using try (intuition; fail);
                              (try apply closed_notvars); intuition; fail : term_db.
-Hint Rewrite (@tvars_tdbsubs_fclosed vatom tatom) using intuition; fail : term_db.
+Hint Rewrite (@tvars_tesubs_fclosed vatom tatom) using intuition; fail : term_db.
 Hint Rewrite (@tvars_tsubs_closed vatom tatom) using intuition; fail : term_db.
 Hint Rewrite (@notin_tsubs vatom tatom)
                          using try easy;
@@ -89,13 +84,15 @@ Hint Rewrite (@notin_tsubs_bivar vatom tatom)
                                using try easy;
                                     (try (intuition; fail));
                                     (try apply closed_notvars); intuition; fail : term_db.
-Hint Rewrite (@tsubs_tdbsubs vatom tatom)
+Hint Rewrite (@tsubs_tesubs vatom tatom)
                            using try (intuition; fail);
                                 (try apply fclosed_notvars); intuition; fail : term_db.
 Hint Rewrite (@multi_tsubs_nil vatom tatom) : term_db.
 
-Hint Resolve (@tdbsubs_ext vatom tatom) : term_db.
+Hint Resolve (@tesubs_ext vatom tatom) : term_db.
 Hint Resolve (@closed_notvars vatom tatom) : term_db.
+Hint Resolve (@notin_no_tecapture vatom tatom) : term_db.
+Hint Resolve (@fclosed_no_tecapture vatom tatom) : term_db.
 
 
 Context { fatom : Type }.  (* relation symbols for [formula] *)
@@ -154,31 +151,31 @@ end.
 
 (** substitutes the [term] [r n] for index [n] in [formula] [A] *)
 (* capture is not avoided *)
-Fixpoint dbsubs T1 T2 (r : T1 -> term T2) (A : formula T1) :=
+Fixpoint esubs T1 T2 (r : T1 -> term T2) (A : formula T1) :=
 match A with
-| fvar X l => fvar X (map (tdbsubs r) l)
+| fvar X l => fvar X (map (tesubs r) l)
 | fnul ncon => fnul ncon
-| fbin bcon B C => fbin bcon (dbsubs r B) (dbsubs r C)
-| fqtf qcon x B => fqtf qcon x (dbsubs r B)
+| fbin bcon B C => fbin bcon (esubs r B) (esubs r C)
+| fqtf qcon x B => fqtf qcon x (esubs r B)
 end.
-Notation "A ⟦ r ⟧" := (dbsubs r A) (at level 8, left associativity, format "A ⟦ r ⟧").
+Notation "A ⟦ r ⟧" := (esubs r A) (at level 8, left associativity, format "A ⟦ r ⟧").
 
-Lemma fsize_dbsubs T1 T2 : forall (r : T1 -> term T2) A, fsize A⟦r⟧ = fsize A.
+Lemma fsize_esubs T1 T2 : forall (r : T1 -> term T2) A, fsize A⟦r⟧ = fsize A.
 Proof. formula_induction A. Qed.
-Hint Rewrite fsize_dbsubs : term_db.
+Hint Rewrite fsize_esubs : term_db.
 
-Lemma dbsubs_dvar T : forall (A : formula T),
+Lemma esubs_dvar T : forall (A : formula T),
   A⟦dvar⟧ = A.
 Proof. formula_induction A. Qed.
-Hint Rewrite dbsubs_dvar : term_db.
+Hint Rewrite esubs_dvar : term_db.
 
-Lemma dbsubs_comp T1 T2 T3 (r : T1 -> term T2) (s : T2 -> term T3) :
+Lemma esubs_comp T1 T2 T3 (r : T1 -> term T2) (s : T2 -> term T3) :
   forall A, A⟦r⟧⟦s⟧ = A⟦r ;; s⟧.
 Proof. formula_induction A. Qed.
-Hint Rewrite dbsubs_comp : term_db.
+Hint Rewrite esubs_comp : term_db.
 
 (* the result of substitution depends extensionnaly on the substituting function *)
-Lemma dbsubs_ext T1 T2 (r1 r2 : T1 -> term T2) :
+Lemma esubs_ext T1 T2 (r1 r2 : T1 -> term T2) :
   r1 == r2 -> forall A, A⟦r1⟧ = A⟦r2⟧.
 Proof. formula_induction A. Qed.
 
@@ -230,14 +227,6 @@ Lemma freevars_qtf : forall qcon x y, y <> x -> forall A,
   x ∈ A -> x ∈ (fqtf qcon y A).
 Proof. intros; apply notin_remove; intuition. Qed.
 
-Lemma freevars_dbsubs_fclosed : forall r, fclosed r -> forall A,
-  freevars A⟦r⟧ = freevars A.
-Proof. formula_induction A.
-- now rewrite IHA1, IHA2.
-- now rewrite IHA.
-Qed.
-Hint Rewrite freevars_dbsubs_fclosed using intuition; fail : term_db.
-
 Lemma nfree_subs : forall x u A, ~ x ∈ A -> A[u//x] = A.
 Proof. formula_induction A.
 - rnow apply notin_tsubs then apply H.
@@ -277,12 +266,6 @@ Proof. formula_induction A; try in_solve.
       apply notin_remove; intuition.
     subst; revert H; apply remove_In.
 Qed.
-
-Lemma subs_dbsubs : forall x u r, x ∉ r -> forall A,
-  A[u//x]⟦r⟧ = A⟦r⟧[tdbsubs r u//x].
-Proof. formula_induction A. Qed.
-Hint Rewrite subs_dbsubs using try (intuition; fail);
-                              (try apply fclosed_notvars); intuition; fail : term_db.
 
 
 (** ** No capture of [y] when susbtituted for [x] in [A] *)
@@ -435,15 +418,6 @@ apply freevars_subs in Hin; destruct Hin as [ [Hin _] | ]; intuition.
 exfalso; rewrite Hct in Hin; inversion Hin.
 Qed.
 
-Lemma multi_subs_dbsubs : forall L r A,
-  Forall (fun x => x ∉ r) (map fst L) ->
-  A[[L]]⟦r⟧ = A⟦r⟧[[map (fun '(x,u) => (x, tdbsubs r u)) L]].
-Proof. induction L; simpl; intros r A HF; [ reflexivity | ].
-destruct a; simpl in HF; inversion_clear HF.
-now rewrite IHL, subs_dbsubs.
-Qed.
-Hint Rewrite multi_subs_dbsubs : term_db.
-
 Lemma multi_subs_subs : forall L x u,
   Forall (fun z => closed z) (map snd L) ->
   forall A, Forall (fun y => y #[x] A) (tvars u) ->
@@ -490,10 +464,146 @@ Qed.
 End Fixed_Eigen_Type.
 
 
+Section Two_Eigen_Types.
+
+Variable T1 T2 : Type.
+Variable r : T1 -> term T2.
+
+Notation "x ∈ A" := (In x (freevars A)) (at level 30).
+Notation "x ∉ r" := (forall n, ~ In x (tvars (r n))) (at level 30).
+Notation fclosed := (forall n, closed (r n)).
+Notation "A [ u // x ]" := (subs x u A) (at level 8, format "A [ u // x ]").
+Notation "A [[ L ]]" := (multi_subs L A) (at level 8, format "A [[ L ]]").
+Notation "y #[ x ] A" := (no_capture_at x y A) (at level 30, format "y  #[ x ]  A").
+
+(** * Additional results with variable eigen type *)
+
+Lemma freevars_esubs_fclosed : fclosed -> forall A, freevars A⟦r⟧ = freevars A.
+Proof. formula_induction A.
+- now rewrite IHA1, IHA2.
+- now rewrite IHA.
+Qed.
+Hint Rewrite freevars_esubs_fclosed using intuition; fail : term_db.
+
+Lemma fvars_esubs : forall A,
+  incl (fvars A ++ freevars A⟦r⟧) (fvars A⟦r⟧).
+Proof. formula_induction A; simpl; intros z Hin; try in_solve.
+- revert Hin; induction l; simpl; intros Hin; try in_solve.
+  apply in_app_or in Hin; destruct Hin as [Hin|Hin]; auto.
+  apply in_or_app; apply in_app_or in Hin; destruct Hin as [Hin|Hin]; [left|right]; intuition.
+  now eapply tvars_tesubs.
+- inversion_clear Hin; subst; intuition.
+  apply in_cons, IHA.
+  apply in_or_app; apply in_app_or in H; destruct H as [H|H]; [left|right]; auto.
+  now apply in_remove in H.
+Qed.
+
+Lemma subs_esubs : forall x u A, x ∉ r ->
+  A[u//x]⟦r⟧ = A⟦r⟧[tesubs r u//x].
+Proof. formula_induction A. Qed.
+Hint Rewrite subs_esubs using try (intuition; fail);
+                             (try apply fclosed_notvars); intuition; fail : term_db.
+
+Lemma multi_subs_esubs : forall L A,
+  Forall (fun x => x ∉ r) (map fst L) ->
+  A[[L]]⟦r⟧ = A⟦r⟧[[map (fun '(x,u) => (x, tesubs r u)) L]].
+Proof. induction L; simpl; intros A HF; [ reflexivity | ].
+destruct a; simpl in HF; inversion_clear HF.
+rewrite IHL, subs_esubs; intuition.
+Qed.
+Hint Rewrite multi_subs_esubs : term_db.
+
+
+(** * No capture generated by [r] in [A] under virtual binders for [l] *)
+Fixpoint no_ecapture_at lv A :=
+match A with
+| fvar X l => fold_right (fun t P => and (no_tecapture_at r lv t) P) True l
+| fnul _ => True
+| fbin _ B C => no_ecapture_at lv B /\ no_ecapture_at lv C
+| fqtf _ z B => no_ecapture_at (z :: lv) B
+end.
+Notation "#[[ lv ]] A" := (no_ecapture_at lv A) (at level 30, format "#[[ lv ]]  A").
+
+Lemma no_ecapture_less : forall A lv1 lv2, incl lv1 lv2 ->
+  #[[lv2]] A -> #[[lv1]] A.
+Proof. formula_induction A.
+- apply Forall_fold_right in H0; apply Forall_fold_right.
+  eapply Forall_impl; [ intros t; apply no_tecapture_less | ]; eassumption.
+- eapply IHA1; eassumption.
+- eapply IHA2; eassumption.
+- eapply IHA; [ | eassumption ]; in_solve.
+Qed.
+
+Lemma fclosed_no_ecapture : fclosed -> forall A lv, #[[lv]] A.
+Proof. formula_induction A. Qed.
+Hint Resolve fclosed_no_ecapture : term_db.
+
+Lemma no_ecapture_subs_nfree : forall x y u A,
+  closed u -> #[[y::nil]] A[u//x] ->
+  In y (tvars (tesubs r u)) -> ~ x ∈ A.
+Proof. formula_induction A; try in_solve; intros Hinx.
+- apply Forall_fold_right in H0.
+  rewrite <- flat_map_concat_map in Hinx.
+  apply in_flat_map in Hinx; destruct Hinx as [ z [Hinzl Hinz] ].
+  apply in_map with (f:= tsubs x u) in Hinzl.
+  specialize_Forall H0 with (tsubs x u z).
+  apply no_tecapture_subs_notin in H0; intuition.
+- apply in_remove in Hinx; destruct Hinx as [Hin Hneq].
+  revert H0; case_analysis; intros Hg; intuition.
+  apply no_ecapture_less with (lv1:= y::nil) in Hg; [ intuition | in_solve ].
+Qed.
+
+Lemma subs_esubs_no_ecapture : forall x u A, #[[x::nil]] A ->
+  A[u//x]⟦r⟧ = A⟦r⟧[tesubs r u//x].
+Proof. formula_induction A.
+- now simpl in H; apply tsubs_tesubs.
+- now simpl in H.
+- apply no_ecapture_less with (lv1:= x::nil) in H; [ | in_solve ]; intuition.
+Qed.
+Hint Rewrite subs_esubs_no_ecapture using try (intuition; fail);
+                                         (try apply fclosed_notvars); intuition; fail : term_db.
+
+Lemma esubs_freevars : forall x A, #[[x::nil]] A -> x ∈ A⟦r⟧ -> x ∈ A.
+Proof. formula_induction A; try in_solve.
+- rewrite flat_map_map in H0; apply in_flat_map in H0; destruct H0 as [ t [Htin Hint] ].
+  apply Forall_fold_right in H; specialize_Forall H with t.
+  apply tesubs_tvars in Hint; intuition.
+  rewrite <- flat_map_concat_map; apply in_flat_map; exists t; intuition.
+- apply in_remove in H0; destruct H0 as [Hin Hneq].
+  apply notin_remove; intuition.
+  apply no_ecapture_less with (lv1:= x::nil) in H; [ intuition | in_solve ].
+Qed.
+
+Lemma no_ecapture_esubs_subs_closed : forall u x A,
+  closed u -> #[[nil]] A[u//x] -> #[[x::nil]] A ->
+  Forall (fun z => z #[x] A⟦r⟧) (tvars (tesubs r u)).
+Proof. formula_induction A.
+- now apply Forall_forall.
+- now apply Forall_forall.
+- apply Forall_and; intuition.
+- revert H0; case_analysis; intros H0.
+  + apply Forall_forall; intros z Hz Hin.
+    exfalso; now apply in_remove in Hin.
+  + assert (Hx0 := H0).
+    apply no_ecapture_less with (lv1:= nil) in H0; [ | in_solve ].
+    apply no_ecapture_less with (lv1:= x::nil) in H1; [ | in_solve ].
+    assert (Hx := H1).
+    apply IHA in H1; intuition.
+    apply Forall_forall; intros z Hz Hin.
+    specialize_Forall H1 with z; split; [ assumption | ].
+    intros Heq2; subst.
+    apply in_remove in Hin; destruct Hin as [Hin _].
+    apply esubs_freevars in Hin; intuition.
+    apply no_ecapture_subs_nfree in Hx0; intuition.
+Qed.
+
+End Two_Eigen_Types.
+
+
 (* We restrict to [formula nat] *)
 Section Eigen_nat.
 
-Hint Rewrite freevars_dbsubs_fclosed using intuition; fail : term_db.
+Hint Rewrite freevars_esubs_fclosed using intuition; fail : term_db.
 
 (** * Eigen variables *)
 
@@ -506,19 +616,19 @@ match A with
 end.
 
 Notation "A ↑" := (A⟦⇑⟧) (at level 8, format "A ↑").
-Notation "v // ↓ k" := (fdbsubs k v) (at level 18, format "v // ↓ k").
+Notation "v // ↓ k" := (fesubs k v) (at level 18, format "v // ↓ k").
 
 Lemma freevars_fup : forall A, freevars A↑ = freevars A.
 Proof. rcauto. Qed.
 Hint Rewrite freevars_fup : term_db.
 
-Lemma dbsubs_z_fup v A : A↑⟦v//↓0⟧ = A.
-Proof. now rewrite dbsubs_comp, (dbsubs_ext (fdbsubs_z_fup v)), dbsubs_dvar. Qed.
-Hint Rewrite dbsubs_z_fup : term_db.
+Lemma esubs_z_fup v A : A↑⟦v//↓0⟧ = A.
+Proof. now rewrite esubs_comp, (esubs_ext (fesubs_z_fup v)), esubs_dvar. Qed.
+Hint Rewrite esubs_z_fup : term_db.
 
-Lemma lift_dbsubs r : forall A, A⟦r⟧↑ = A↑⟦↑r⟧.
-Proof. intros; rewrite 2 dbsubs_comp; apply dbsubs_ext, fdblift_comp. Qed.
-Hint Rewrite lift_dbsubs : term_db.
+Lemma lift_esubs u r : forall A, A⟦r⟧↑ = A↑⟦↑[u]r⟧.
+Proof. intros; rewrite 2 esubs_comp; apply esubs_ext, felift_comp. Qed.
+Hint Rewrite lift_esubs : term_db.
 
 End Eigen_nat.
 
@@ -528,4 +638,8 @@ End Formulas.
 Inductive Nocon := .
 Inductive Icon := imp_con.
 Inductive Qcon := frl_con | exs_con.
+
+Notation imp := (fbin imp_con).
+Notation frl := (fqtf frl_con).
+Notation exs := (fqtf exs_con).
 

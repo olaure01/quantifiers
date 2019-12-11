@@ -411,3 +411,7 @@ intros s l; revert s; induction l; simpl; intros s; constructor; intuition.
 apply in_seq in H; lia.
 Qed.
 
+Lemma flat_map_map : forall (A B C:Type)(f:A->B)(g:B-> list C) l,
+  flat_map g (map f l) = flat_map (fun x => g (f x)) l.
+Proof. intros; rewrite flat_map_concat_map, map_map, <- flat_map_concat_map; reflexivity. Qed.
+
