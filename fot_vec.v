@@ -173,7 +173,7 @@ revert Hin; clear - Ha; induction Ha; intros Hin; simpl.
 - apply List.in_or_app; right; intuition.
 Qed.
 Hint Rewrite nfree_tsubs using try (intuition ; fail) ;
-                               (try apply closed_nofreevars) ; intuition ; fail : term_db.
+                              (try apply closed_nofreevars) ; intuition ; fail : term_db.
 
 Lemma ntsubs_tsubs_com : forall x v n u, ~ List.In x (freevars u) -> forall w,
   ntsubs n u (tsubs x v w) = tsubs x (ntsubs n u v) (ntsubs n u w).
@@ -186,6 +186,6 @@ Lemma tsubs_tsubs_com : forall x v y u, x <> y -> ~ List.In x (freevars u) ->
 Proof. term_induction w. Qed.
 (*
 Hint Rewrite tsubs_tsubs_com using try (intuition ; fail) ;
-                                   (try apply closed_nofreevars) ; intuition ; fail : term_db.
+                                  (try apply closed_nofreevars) ; intuition ; fail : term_db.
 *)
 

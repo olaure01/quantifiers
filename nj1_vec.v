@@ -419,7 +419,8 @@ Lemma subs_subs_com : forall x v y u, x <> y -> closed u -> closed v ->
   forall A, subs y u (subs x v A) = subs x (tsubs y u v) (subs y u A).
 Proof. induction A.
 - simpl ; f_equal ; rnow rewrite 2 Vector_map_map ; apply Vector_map_ext.
-  rewrite tsubs_tsubs_com; (try now apply closed_nofreevars); intuition.
+  rewrite tsubs_tsubs_com, (nfree_tsubs _ _ v);
+    (try now apply closed_nofreevars); intuition.
 - rnow idtac then f_equal.
 - rnow (simpl; repeat case_analysis; f_equal).
 Qed.
