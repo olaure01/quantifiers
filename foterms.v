@@ -490,3 +490,28 @@ End Eigen_nat.
 
 End Terms.
 
+Ltac term_induction t :=
+  (try intros until t);
+  let nn := fresh "n" in
+  let xx := fresh "x" in
+  let cc := fresh "c" in
+  let ll := fresh "l" in
+  let IHll := fresh "IHl" in
+  let i := fresh "i" in
+  let Hi := fresh "Hi" in
+  apply (term_ind_list_Forall t);
+  [ intros nn; try (now intuition); simpl
+  | intros xx; try (now intuition); simpl
+  | intros cc ll IHll; simpl; intros;
+    try (apply (f_equal (tconstr _)));
+    rewrite ? flat_map_concat_map, ? map_map;
+    try (apply (f_equal (@concat _)));
+    match goal with
+    | |- map _ ?l = ?l => rewrite <- (map_id l) at 2
+    | _ => idtac
+    end;
+    try (apply map_ext_in; intros i Hi; specialize_Forall_all i);
+    try (apply Forall_forall; intros i Hi; specialize_Forall_all i);
+    try (now intuition) ];
+  try (now (rnow idtac)); try (now rcauto).
+

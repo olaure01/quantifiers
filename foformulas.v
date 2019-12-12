@@ -643,3 +643,29 @@ Notation imp := (fbin imp_con).
 Notation frl := (fqtf frl_con).
 Notation exs := (fqtf exs_con).
 
+
+Ltac formula_induction A :=
+  (try intros until A) ;
+  let XX := fresh "X" in
+  let xx := fresh "x" in
+  let ncon := fresh "ncon" in
+  let bcon := fresh "bcon" in
+  let qcon := fresh "qcon" in
+  let A1 := fresh A in
+  let A2 := fresh A in
+  let ll := fresh "l" in
+  let lll := fresh "l" in
+  let tt := fresh "t" in
+  let IHll := fresh "IHl" in
+  induction A as [ XX ll | ncon | bcon A1 ? A2 ? | qcon xx A ]; simpl; intros;
+  [ rewrite ? flat_map_concat_map;
+    try (apply (f_equal (fvar _)));
+    try (induction ll as [ | tt lll IHll ]; simpl; intuition;
+         rewrite IHll; f_equal; intuition)
+  | try ((try f_equal); intuition; fail)
+  | try (apply (f_equal2 (fbin _)));
+    intuition
+  | (try apply (f_equal (fqtf _ _))); repeat case_analysis; try (intuition; fail);
+     try (intuition; (rnow idtac); fail) ];
+  try (now (rnow idtac)); try (now rcauto).
+

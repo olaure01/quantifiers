@@ -190,8 +190,8 @@ Lemma imp_reduction : forall A B l, rprove l (imp A B) ->
   rprove l A -> rprove l B.
 Proof.
 intros A B l pi.
-remember (imp A B) as C ; revert A B HeqC ; induction pi ;
-  intros A1 B1 HeqC ; inversion HeqC ; subst ; intros Hsub pi2.
+remember (imp A B) as C; revert A B HeqC; induction pi;
+  intros A1 B1 HeqC; inversion HeqC; subst; intros Hsub pi2.
 - apply rninj; eapply nimpe; eassumption.
 - now eapply Hsub.
 - eapply rexse; [ eassumption | ].
@@ -259,8 +259,8 @@ apply (lt_wf_double_rect (fun n m =>
   remember (l1 ++ A :: l2) as ll ; destruct pi2 ; subst ;
   simpl in IHm ; simpl in IHn ; simpl in Hpi ; try simpl in HF.
 (* first statement *)
-- clear - Heqll HF ; revert l1 l2 Heqll HF ; induction l0 ; intros l1 l2 Heqll HF ;
-    destruct l1 ; inversion Heqll ; subst.
+- clear - Heqll HF; revert l1 l2 Heqll HF; induction l0; intros l1 l2 Heqll HF;
+    destruct l1; inversion Heqll; subst.
   + exfalso...
   + apply nax_hd.
   + apply nax.
@@ -276,7 +276,7 @@ apply (lt_wf_double_rect (fun n m =>
 - enough (forall l l1 l2, l0 ++ A0 :: l3 = l1 ++ A :: l2 ->
       rprove (l ++ l1 ++ l2) A -> rprove (l ++ l1 ++ l2) A0)
     as HI by (eapply (HI nil) ; eassumption) ; clear.
-  induction l0 ; intros l l1 l2 Heq pi ; destruct l1 ; inversion Heq ; subst...
+  induction l0; intros l l1 l2 Heq pi; destruct l1; inversion Heq; subst...
   + rewrite <- app_comm_cons ; apply rninj ; apply nax.
   + rewrite 2 app_assoc ; apply rninj ; apply nax.
   + rewrite <- app_comm_cons ; rewrite <- (app_nil_l l1) ;

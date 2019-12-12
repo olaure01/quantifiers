@@ -78,9 +78,9 @@ end.
 Theorem pesubs r (Hc : fclosed r) C A (pi : prove C A) :
   { pi' : prove C⟦r⟧ A⟦r⟧ & psize pi' = psize pi }.
 Proof.
-revert r Hc ; induction pi ; intros r Hc ;
-  try (destruct (IHpi r) as [pi' Hs]) ;
-  try (destruct (IHpi1 r) as [pi1' Hs1]) ;
+revert r Hc; induction pi; intros r Hc;
+  try (destruct (IHpi r) as [pi' Hs]);
+  try (destruct (IHpi1 r) as [pi1' Hs1]);
   try (destruct (IHpi2 r) as [pi2' Hs2]); intuition.
 - now exists (ax _).
 - now exists (topr _).
@@ -106,7 +106,7 @@ Proof with try assumption.
 enough (IH : forall n, forall A B C (pi1 : prove A B) (pi2 : prove B C),
           n = psize pi1 + psize pi2 -> prove A C)
   by (intros A B C pi1 pi2 ; apply (IH _ _ _ _ pi1 pi2 eq_refl)).
-induction n as [n IH0] using lt_wf_rect ; intros ; subst.
+induction n as [n IH0] using lt_wf_rect; intros; subst.
 assert (IH : forall A B C (pi1' : prove A B) (pi2' : prove B C),
                psize pi1' + psize pi2' < psize pi1 + psize pi2 -> prove A C)
   by (intros; eapply IH0; [ eassumption | reflexivity ]); clear IH0.

@@ -4,57 +4,6 @@ Require Import stdlib_more.
 Require Export nj1 hilbert.
 
 
-Ltac term_induction t :=
-  (try intros until t);
-  let nn := fresh "n" in
-  let xx := fresh "x" in
-  let cc := fresh "c" in
-  let ll := fresh "l" in
-  let IHll := fresh "IHl" in
-  let i := fresh "i" in
-  let Hi := fresh "Hi" in
-  apply (term_ind_list_Forall t);
-  [ intros nn; try (now intuition); simpl
-  | intros xx; try (now intuition); simpl
-  | intros cc ll IHll; simpl; intros;
-    try (apply (f_equal (tconstr _)));
-    rewrite ? flat_map_concat_map, ? map_map;
-    try (apply (f_equal (@concat _)));
-    match goal with
-    | |- map _ ?l = ?l => rewrite <- (map_id l) at 2
-    | _ => idtac
-    end;
-    try (apply map_ext_in; intros i Hi; specialize_Forall_all i);
-    try (apply Forall_forall; intros i Hi; specialize_Forall_all i);
-    try (now intuition) ];
-  try (now (rnow idtac)); try (now rcauto).
-
-Ltac formula_induction A :=
-  (try intros until A) ;
-  let XX := fresh "X" in
-  let xx := fresh "x" in
-  let ncon := fresh "ncon" in
-  let bcon := fresh "bcon" in
-  let qcon := fresh "qcon" in
-  let A1 := fresh A in
-  let A2 := fresh A in
-  let ll := fresh "l" in
-  let lll := fresh "l" in
-  let tt := fresh "t" in
-  let IHll := fresh "IHl" in
-  induction A as [ XX ll | ncon | bcon A1 ? A2 ? | qcon xx A ]; simpl; intros;
-  [ rewrite ? flat_map_concat_map;
-    try (apply (f_equal (fvar _)));
-    try (induction ll as [ | tt lll IHll ]; simpl; intuition;
-         rewrite IHll; f_equal; intuition)
-  | try ((try f_equal); intuition; fail)
-  | try (apply (f_equal2 (fbin _)));
-    intuition
-  | (try apply (f_equal (fqtf _ _))); repeat case_analysis; try (intuition; fail); 
-     try (intuition; (rnow idtac); fail) ];
-  try (now (rnow idtac)); try (now rcauto).
-
-
 Section N2H.
 
 Context { vatom : InfDecType } { tatom fatom : Type }.
@@ -81,23 +30,6 @@ Notation "y #[ x ] A" := (no_capture_at x y A) (at level 30, format "y  #[ x ]  
 Notation "r #[[ l ]] A" := (no_ecapture_at r l A) (at level 30, format "r  #[[ l ]]  A").
 
 Infix "→" := (fbin imp_con) (at level 55, right associativity).
-
-(*
-Hint Rewrite
-  (@tup_tup_com vatom tatom) (@tup_tsubs_com vatom tatom)
-  (@ntsubs_tup_com vatom tatom) (@ntsubs_z_tup vatom tatom)
-  (@freevars_tup vatom tatom) (@tsubs_tsubs_eq vatom tatom) : term_e.
-Hint Resolve (@closed_nofreevars vatom tatom) : term_e.
-Hint Rewrite (@freevars_ntsubs vatom tatom) using intuition; fail : term_e.
-Hint Rewrite (@nfree_tsubs vatom tatom)
-  using try (intuition; fail); (try apply closed_nofreevars); intuition; fail : term_e.
-Hint Rewrite (@ntsubs_tsubs_com vatom tatom)
-  using try (intuition; fail); (try apply closed_nofreevars); intuition; fail : term_e.
-Hint Rewrite (@tsubs_tsubs_com vatom tatom)
-  using try (intuition; fail); (try apply closed_nofreevars); intuition; fail : term_e.
-Hint Rewrite (@freevars_tsubs_closed vatom tatom)
-  using intuition; fail : term_e.
-*)
 
 
 Section Fixed_r.
@@ -131,7 +63,7 @@ Lemma hprove_Bsequent : forall l A B,
 Proof.
 induction l; simpl; intros A B.
 - apply hprove_I.
-- specialize IHl with (imp a A) (imp a B); simpl in IHl.
+- specialize IHl with (a → A) (a → B); simpl in IHl.
   eapply hprove_CUT; [ apply hprove_B | apply IHl ].
 Qed.
 
@@ -147,22 +79,22 @@ Lemma hprove_Ksequent : forall l1 l2 A,
   hprove (n2h_sequent l1 A) -> hprove (n2h_sequent (l2 ++ l1) A).
 Proof.
 intros l1 l2; revert l1; induction l2; simpl; intros l1 A pi; [ assumption | ].
-specialize IHl2 with l1 (imp a A); apply IHl2.
+specialize IHl2 with l1 (a → A); apply IHl2.
 eapply hprove_MP; [ eapply hprove_MP; [ apply hprove_Bsequent | apply hprove_K ] | apply pi ].
 Qed.
 
 Lemma hprove_Ssequent : forall l A B,
-  hprove (n2h_sequent l (imp A B) → n2h_sequent l A → n2h_sequent l B).
+  hprove (n2h_sequent l (A → B) → n2h_sequent l A → n2h_sequent l B).
 Proof.
 induction l; simpl; intros A B.
 - apply hprove_I.
-- specialize IHl with (imp a A) (imp a B); simpl in IHl.
+- specialize IHl with (a → A) (a → B); simpl in IHl.
   eapply hprove_CUT; [ | apply IHl ].
   eapply hprove_MP; [ apply hprove_Bsequent | apply hprove_S ].
 Qed.
 
 Lemma hprove_sequent_imp : forall l A B,
-  hprove (n2h_sequent l (imp A B)) -> hprove (n2h_formula A → n2h_sequent l B).
+  hprove (n2h_sequent l (A → B)) -> hprove (n2h_formula A → n2h_sequent l B).
 Proof.
 induction l; simpl; intros A B pi; auto.
 apply IHl.
@@ -171,7 +103,7 @@ apply hprove_C.
 Qed.
 
 Lemma hprove_imp_sequent : forall l A B,
-  hprove (n2h_formula A → n2h_sequent l B) -> hprove (n2h_sequent l (imp A B)).
+  hprove (n2h_formula A → n2h_sequent l B) -> hprove (n2h_sequent l (A → B)).
 Proof.
 induction l; simpl; intros A B pi; auto.
 apply IHl in pi.
@@ -524,7 +456,7 @@ intros l A pi; induction pi; intros r Hg.
 - apply hprove_Ksequent, hprove_K2sequent.
 - apply IHpi.
   inversion_clear Hg as [ | ? ? Hg1 Hgl]; destruct Hg1; intuition.
-- assert ({rf : _ & Forall (no_ecapture rf) (imp A B :: l)
+- assert ({rf : _ & Forall (no_ecapture rf) (A → B :: l)
                   & hprove (n2h_sequent rf l B) -> hprove (n2h_sequent r l B)})
     as [rf Hg' Hp].
   { exists (rrefresh (fvars (n2h_formula r A))
@@ -617,14 +549,14 @@ intros l A pi; induction pi; intros r Hg.
   clear - Heqr1 pi'' pi'''.
   revert B C pi''' pi''; induction l; simpl; intros B C pBC pi.
   + eapply hprove_MP; eassumption.
-  + apply IHl with (imp a↑ B); intuition; simpl.
+  + apply IHl with (a↑ → B); intuition; simpl.
     subst r1; rewrite n2h_hfelift_fup.
     eapply hprove_MP; [ apply hprove_B | apply pBC ].
 - assert ({rf : _ & Forall (no_ecapture rf) (frl x A :: l) /\ no_ecapture rf (subs x u A)
                   & hprove (n2h_sequent rf l A[u//x]) -> hprove (n2h_sequent r l A[u//x])})
     as [rf [Hg1 Hg2] Hp].
   { exists (rrefresh (fvars (n2h_formula r (frl x A)))
-                     (flat_map (fun C => fvars (n2h_formula r C)) (subs x u A :: l)) r).
+                     (flat_map (fun C => fvars (n2h_formula r C)) (A[u//x] :: l)) r).
     - split; [ constructor; simpl | ].
       + apply (no_ecapture_rrefresh _ (frl x A) _ (fvars (n2h_formula r (frl x A)))).
         rewrite app_nil_r; now intros z Hz.
@@ -649,10 +581,10 @@ intros l A pi; induction pi; intros r Hg.
   + apply no_ecapture_esubs_subs_closed; intuition.
     now inversion Hg1.
   + now inversion Hg1.
-- assert ({rf : _ & Forall (no_ecapture rf) (exs x A :: l) /\ no_ecapture rf (subs x u A)
+- assert ({rf : _ & Forall (no_ecapture rf) (exs x A :: l) /\ no_ecapture rf A[u//x]
                   & hprove (n2h_sequent rf l (exs x A)) -> hprove (n2h_sequent r l (exs x A))})
     as [rf [Hg1 Hg2] Hp].
-  { exists (rrefresh (fvars (n2h_formula r (subs x u A)))
+  { exists (rrefresh (fvars (n2h_formula r A[u//x]))
                      (flat_map (fun C => fvars (n2h_formula r C)) (exs x A :: l)) r).
     - split; [ constructor; simpl | ].
       + apply no_ecapture_rrefresh_preserv.
@@ -660,13 +592,13 @@ intros l A pi; induction pi; intros r Hg.
           eapply or_introl in Hz; apply in_or_app, fvars_esubs with (r0:=r) in Hz; in_solve.
         * now inversion Hg.
       + apply Forall_forall; intros C HC.
-        apply (no_ecapture_rrefresh_preserv (fvars (n2h_formula r (subs x u A)))).
+        apply (no_ecapture_rrefresh_preserv (fvars (n2h_formula r A[u//x]))).
         * rewrite app_nil_r; intros z Hz; right; apply in_or_app; right.
           apply in_flat_map; exists C; intuition.
           apply fvars_esubs; in_solve.
         * inversion_clear Hg as [ | ? ? _ Hgl ].
           now specialize_Forall Hgl with C.
-      + apply (no_ecapture_rrefresh _ (subs x u A) _ (fvars (n2h_formula r (subs x u A)))).
+      + apply (no_ecapture_rrefresh _ A[u//x] _ (fvars (n2h_formula r A[u//x]))).
         rewrite app_nil_r; now intros z Hz.
     - remember (exs x A) as B.
       apply hrrefresh.
