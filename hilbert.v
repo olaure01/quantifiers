@@ -17,12 +17,13 @@ Arguments tvar {_} {_} {T} _.
 
 Notation term := (@term vatom tatom Empty_set).
 Notation closed t := (tvars t = nil).
-Notation "A [ u // x ]" := (subs x u A) (at level 8, format "A [ u // x ]").
-Notation "x ∈ A" := (In x (freevars A)) (at level 30).
-Notation "y #[ x ] A" := (no_capture_at x y A) (at level 30, format "y  #[ x ]  A").
 
 Notation formula := (@formula vatom tatom fatom Nocon Icon Qcon Empty_set).
 Notation fvar := (@fvar vatom tatom fatom Nocon Icon Qcon Empty_set).
+Notation "A [ u // x ]" := (subs x u A) (at level 8, format "A [ u // x ]").
+Notation "x ∈ A" := (In x (freevars A)) (at level 30).
+Notation "x ∉ A" := (~ In x (freevars A)) (at level 30).
+Notation "y #[ x ] A" := (no_capture_at x y A) (at level 30, format "y  #[ x ]  A").
 Infix "→" := (fbin imp_con) (at level 55, right associativity).
 
 (** Proofs *)
@@ -32,11 +33,11 @@ Inductive hprove : formula -> Type :=
 | hprove_MP : forall A B, hprove (A → B) -> hprove A -> hprove B
 | hprove_INST : forall x A t, Forall (fun y => y #[x] A) (tvars t) ->
                    hprove (frl x A → A[t//x])
-| hprove_FRL : forall x A B, ~ x ∈ A -> hprove ((frl x (A → B)) → A → frl x B)
+| hprove_FRL : forall x A B, x ∉ A -> hprove ((frl x (A → B)) → A → frl x B)
 | hprove_GEN : forall x A, hprove A -> hprove (frl x A)
 | hprove_EINST : forall x A t, Forall (fun y => y #[x] A) (tvars t) ->
                    hprove (A[t//x] → exs x A)
-| hprove_EXS : forall x A B, ~ x ∈ B -> hprove (frl x (A → B) → exs x A → B).
+| hprove_EXS : forall x A B, x ∉ B -> hprove (frl x (A → B) → exs x A → B).
 
 Lemma hprove_I A : hprove (A → A).
 Proof. (* I = (S K) K *)

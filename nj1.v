@@ -25,6 +25,7 @@ Notation "A [ u // x ]" := (subs x u A) (at level 8, format "A [ u // x ]").
 Notation "⇑" := fup.
 Notation "A ↑" := (A⟦⇑⟧) (at level 8, format "A ↑").
 Notation "x ∈ A" := (In x (freevars A)) (at level 30).
+Notation "x ∉ A" := (~ In x (freevars A)) (at level 30).
 
 Notation formula := (@formula vatom tatom fatom Nocon Icon Qcon nat).
 Notation fvar := (@fvar vatom tatom fatom Nocon Icon Qcon nat).
@@ -36,7 +37,8 @@ Hint Rewrite (@freevars_esubs_fclosed vatom tatom fatom Nocon Icon Qcon nat)
                  using intuition; fail : term_db.
 Hint Rewrite (@subs_esubs vatom tatom fatom Nocon Icon Qcon nat)
                          using try (intuition; fail);
-                              (try apply fclosed_notvars); intuition; fail : term_db.
+                             (try apply no_ecapture_not_egenerated); try (intuition; fail);
+                             (try apply fclosed_no_ecapture); intuition; fail : term_db.
 Hint Rewrite <- (@lift_esubs vatom tatom fatom Nocon Icon Qcon) : term_db.
 Hint Rewrite (@esubs_z_fup vatom tatom fatom Nocon Icon Qcon) : term_db.
 
@@ -622,7 +624,7 @@ intros; rev_intros; case_analysis.
      with (subs y (dvar 0) (frl y A↑↑))
     by rcauto.
   rnow apply nfrle then subst; rcauto.
-- rewrite subs_esubs, subs_subs_closed; intuition.
+- rcauto; rewrite subs_subs_closed; intuition.
   apply nfrle; intuition.
   replace (frl y A↑↑[dvar 0//x]) with ((frl y A↑↑)[dvar 0//x])
     by (simpl; case_analysis; intuition).
@@ -660,7 +662,7 @@ apply (nimpe A↑[dvar 0//x]).
 - now apply rninj, nfrle, nax_hd.
 Qed.
 
-Lemma frl_nfree : forall A x, ~ x ∈ A -> rprove (A :: nil) (frl x A).
+Lemma frl_nfree : forall A x, x ∉ A -> rprove (A :: nil) (frl x A).
 Proof. intros A x Hnf; rev_intros; rnow rewrite nfree_subs. Qed.
 
 Lemma Kcombi : forall A B, rprove nil (imp A (imp B A)).

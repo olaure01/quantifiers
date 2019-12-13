@@ -3,6 +3,8 @@
 Require Import stdlib_more.
 Require Export nj1 hilbert.
 
+Set Implicit Arguments.
+
 
 Section N2H.
 
@@ -26,10 +28,13 @@ Notation "L ∖ x" := (remove_snd x L) (at level 18).
 Notation "⇑" := fup.
 Notation "A ↑" := (A⟦⇑⟧) (at level 8, format "A ↑").
 Notation "x ∈ A" := (In x (freevars A)) (at level 30).
+Notation "x ∉ A" := (~ In x (freevars A)) (at level 30).
 Notation "y #[ x ] A" := (no_capture_at x y A) (at level 30, format "y  #[ x ]  A").
 Notation "r #[[ l ]] A" := (no_ecapture_at r l A) (at level 30, format "r  #[[ l ]]  A").
 
 Infix "→" := (fbin imp_con) (at level 55, right associativity).
+
+Hint Resolve (@no_ecapture_not_egenerated vatom tatom fatom Nocon Icon Qcon nat Empty_set) : term_db.
 
 
 Section Fixed_r.
@@ -126,8 +131,8 @@ Qed.
 End Fixed_r.
 
 
-Notation n2h_term := tesubs.
-Notation n2h_formula := esubs.
+Notation n2h_term := (@tesubs vatom tatom nat Empty_set).
+Notation n2h_formula := (@esubs vatom tatom fatom Nocon Icon Qcon nat Empty_set).
 Notation n2h_sequent r l A := (n2h_formula r (s2f l A)).
 Notation no_ecapture r := (no_ecapture_at r nil).
 
@@ -164,8 +169,8 @@ Proof. term_induction t.
   + apply H0, in_flat_map; exists u; intuition.
 Qed.
 
-Lemma freevars_n2h_rrename_self : forall x y r (A : formula),
-  r #[[x::nil]] A -> ~ y ∈ A ->
+Lemma freevars_n2h_rrename_self : forall x y r A,
+  r #[[x::nil]] A -> y ∉ A ->
   y ∈ (n2h_formula (rrename x y r) A) -> y ∈ (n2h_formula r A).
 Proof. formula_induction A.
 - apply Forall_fold_right in H.
@@ -181,7 +186,7 @@ Proof. formula_induction A.
   + apply H0, notin_remove; intuition.
 Qed.
 
-Lemma fvars_n2h_rrename : forall x y r (A : formula) z,
+Lemma fvars_n2h_rrename : forall x y r A z,
   In z (fvars (n2h_formula (rrename x y r) A)) -> z = y \/ In z (fvars (n2h_formula r A)).
 Proof. formula_induction A.
 - rewrite flat_map_map in H.
@@ -289,7 +294,7 @@ Proof. term_induction t.
   now rewrite flat_map_concat_map, map_map; apply in_flat_map; exists (tvars (n2h_term r u)).
 Qed.
 
-Lemma no_ecapture_rrefresh : forall ld (A : formula) r lvA lv,
+Lemma no_ecapture_rrefresh : forall ld A r lvA lv,
   incl (fvars (n2h_formula r A) ++ lv) lvA -> (rrefresh lvA ld r) #[[lv]] A.
 Proof. formula_induction A; 
   (try apply IHA1); (try apply IHA2); (try apply IHA); try (intros z Hz; apply H; in_solve).
@@ -301,6 +306,7 @@ apply in_or_app; apply in_app_or in Hz; destruct Hz as [Hz|Hz]; [left|right]; in
 apply in_map with (f:= fun x => tvars (n2h_term r x)) in Hu.
 rewrite flat_map_concat_map, map_map; apply in_flat_map; exists (tvars (n2h_term r u)); intuition.
 Qed.
+Arguments no_ecapture_rrefresh : clear implicits.
 
 Lemma bitrename : forall r y x t,
   ~ In y (tvars t ++ tvars (n2h_term r t)) ->
@@ -315,7 +321,7 @@ Proof. term_induction t.
     now apply in_flat_map; exists (n2h_term r i).
 Qed.
 
-Lemma birename : forall r y x (A : formula),
+Lemma birename : forall r y x A,
   ~ In y (fvars A ++ freevars (n2h_formula r A)) ->
   (n2h_formula (rrename x y r) A)[tvar x//y] = n2h_formula r A.
 Proof. formula_induction A.
@@ -328,7 +334,7 @@ Proof. formula_induction A.
   apply notin_remove; intuition.
 Qed.
 
-Lemma hrrename : forall r y x (A : formula),
+Lemma hrrename : forall r y x A,
   ~ In y (fvars A ++ freevars (n2h_formula r A)) -> no_ecapture r A ->
   hprove (n2h_formula (rrename x y r) A) -> hprove (n2h_formula r A).
 Proof.
@@ -354,7 +360,7 @@ revert Hnin Hg; clear; formula_induction A.
     now apply freevars_fvars.
 Qed.
 
-Lemma hrrefresh : forall l r ld (A : formula),
+Lemma hrrefresh : forall l r ld A,
   incl (fvars (n2h_formula r A)) ld -> no_ecapture r A ->
   hprove (n2h_formula (rrefresh l ld r) A) -> hprove (n2h_formula r A).
 Proof.
@@ -416,7 +422,7 @@ Proof. term_induction t.
   rewrite flat_map_map; apply in_flat_map; exists z'; intuition.
 Qed.
 
-Lemma no_ecapture_hfeliftz : forall r x y (A : formula) lv,
+Lemma no_ecapture_hfeliftz : forall r x y A lv,
   In x lv -> ~ In y lv -> ~ In y (fvars (n2h_formula r A)) ->
   r #[[lv]] A -> (hfelift (tvar y) r) #[[lv]] A↑[dvar 0//x].
 Proof. formula_induction A;
@@ -438,15 +444,15 @@ Lemma n2h_hfelift_tfup : forall t u r, n2h_term (hfelift t r) (tesubs ⇑ u) = n
 Proof. term_induction u. Qed.
 Hint Resolve n2h_hfelift_tfup : term_db.
 
-Lemma n2h_hfelift_fup : forall t (A : formula) r, n2h_formula (hfelift t r) A↑ = n2h_formula r A.
+Lemma n2h_hfelift_fup : forall t A r, n2h_formula (hfelift t r) A↑ = n2h_formula r A.
 Proof. formula_induction A. Qed.
 
-Lemma n2h_hfelift_fupz : forall x t (A : formula) r, r #[[x::nil]] A ->
+Lemma n2h_hfelift_fupz : forall x t A r, r #[[x::nil]] A ->
   n2h_formula (hfelift t r) A↑[dvar 0//x] = (n2h_formula r A)[t//x].
 Proof.
-intros; rewrite subs_esubs_no_ecapture.
+intros; rewrite subs_esubs.
 - f_equal; apply n2h_hfelift_fup.
-- now apply no_ecapture_hfelift.
+- now apply no_ecapture_not_egenerated, no_ecapture_hfelift.
 Qed.
 
 Proposition n2h : forall l A,
@@ -526,7 +532,7 @@ intros l A pi; induction pi; intros r Hg.
       apply in_remove in Hin; destruct Hin as [Hin Hneq]; apply Hneq.
       inversion_clear Hg as [ | ? ? Hgx _ ]; simpl in Hgx.
       apply no_ecapture_hfelift with (u:= tvar y) in Hgx; rewrite <- Heqr1 in Hgx.
-      rewrite subs_esubs_no_ecapture in Hin; intuition.
+      rewrite subs_esubs in Hin; intuition.
       apply freevars_subs in Hin; simpl in Hin; intuition.
     - assert (~ In y (fvars (n2h_formula r1 A↑))) as HA.
       { intros Hin; rewrite Heqr1, n2h_hfelift_fup in Hin.
@@ -539,13 +545,13 @@ intros l A pi; induction pi; intros r Hg.
         exfalso; apply HA.
         apply in_remove in Hin; destruct Hin as [Hin _];
           apply freevars_fvars in Hin; intuition.
-      + enough ((n2h_formula r1 (n2h_formula ⇑ A)[tvar y//x])[tvar x//y] = n2h_formula r A)
+      + enough ((n2h_formula r1 (esubs ⇑ A)[tvar y//x])[tvar x//y] = n2h_formula r A)
           as Heq by (rewrite Heq; apply hprove_I).
-        rewrite subs_esubs_no_ecapture; simpl; intuition; subst r1.
+        rewrite subs_esubs; simpl; intuition; subst r1.
         * rewrite notin_subs_bivar; intuition.
           apply n2h_hfelift_fup.
-        * apply no_ecapture_hfelift.
-          now inversion Hg. }
+        * inversion_clear Hg.
+          apply no_ecapture_hfelift with (u:=tvar y) in H; intuition. }
   clear - Heqr1 pi'' pi'''.
   revert B C pi''' pi''; induction l; simpl; intros B C pBC pi.
   + eapply hprove_MP; eassumption.
@@ -558,7 +564,7 @@ intros l A pi; induction pi; intros r Hg.
   { exists (rrefresh (fvars (n2h_formula r (frl x A)))
                      (flat_map (fun C => fvars (n2h_formula r C)) (A[u//x] :: l)) r).
     - split; [ constructor; simpl | ].
-      + apply (no_ecapture_rrefresh _ (frl x A) _ (fvars (n2h_formula r (frl x A)))).
+      + apply (@no_ecapture_rrefresh _ (frl x A) _ (fvars (n2h_formula r (frl x A)))).
         rewrite app_nil_r; now intros z Hz.
       + apply Forall_forall; intros C HC.
         apply (no_ecapture_rrefresh_preserv (fvars (n2h_formula r (frl x A)))).
@@ -577,10 +583,10 @@ intros l A pi; induction pi; intros r Hg.
       + now apply no_ecapture_s2f. }
   apply Hp.
   eapply hprove_MP; [ eapply hprove_MP; [ apply hprove_Bsequent | ] | apply IHpi ]; auto.
-  rewrite subs_esubs_no_ecapture; [ apply hprove_INST | ]; intuition.
-  + apply no_ecapture_esubs_subs_closed; intuition.
-    now inversion Hg1.
-  + now inversion Hg1.
+  rewrite subs_esubs; [ apply hprove_INST | ]; intuition.
+  + inversion_clear Hg1.
+    apply no_ecapture_esubs_subs_closed; intuition.
+  + inversion Hg1; intuition.
 - assert ({rf : _ & Forall (no_ecapture rf) (exs x A :: l) /\ no_ecapture rf A[u//x]
                   & hprove (n2h_sequent rf l (exs x A)) -> hprove (n2h_sequent r l (exs x A))})
     as [rf [Hg1 Hg2] Hp].
@@ -606,10 +612,10 @@ intros l A pi; induction pi; intros r Hg.
       + now apply no_ecapture_s2f. }
   apply Hp.
   eapply hprove_MP; [ eapply hprove_MP; [ apply hprove_Bsequent | ] | apply IHpi ]; auto.
-  + rewrite subs_esubs_no_ecapture; simpl; [ apply hprove_EINST | ]; intuition.
-    * apply no_ecapture_esubs_subs_closed; intuition.
-      now inversion Hg1.
-    * now inversion Hg1.
+  + rewrite subs_esubs; simpl; [ apply hprove_EINST | ]; intuition.
+    * inversion_clear Hg1.
+      apply no_ecapture_esubs_subs_closed; intuition.
+    * inversion Hg1; intuition.
   + inversion Hg1; now constructor.
 - remember (rrefresh (fvars (n2h_formula r (exs x A)))
                      (flat_map (fun C => fvars (n2h_formula r C)) (C :: l)) r) as r1.
@@ -666,7 +672,7 @@ intros l A pi; induction pi; intros r Hg.
       apply n2h_sequent_fvars, fvars_esubs; in_solve.
     * apply hprove_GEN.
       replace (tvar y) with (n2h_term r1 (tvar y)) by reflexivity.
-      rewrite <- subs_esubs_no_ecapture; auto.
+      rewrite <- subs_esubs; intuition.
       apply hprove_sequent_imp.
       remember (hfelift (tvar y) r1) as r2.
       assert (Forall (no_ecapture r2) (C↑ :: A↑[dvar 0//x] :: map (esubs ⇑) l)) as pi.
@@ -690,7 +696,7 @@ intros l A pi; induction pi; intros r Hg.
         rewrite n2h_hfelift_fup; intuition.
         enough (n2h_formula r1 A[tvar y//x] = (n2h_formula r1 A)[tvar y//x])
           as Heq by (rewrite Heq; apply hprove_I).
-        rewrite subs_esubs_no_ecapture; intuition. }
+        rewrite subs_esubs; intuition. }
       clear - Heqr2 pi HBD; revert B D pi HBD; induction l; simpl; intros B D pi HBD.
       -- eapply hprove_MP; eassumption.
       -- apply IHl with (a↑ → B); auto.
@@ -700,7 +706,7 @@ intros l A pi; induction pi; intros r Hg.
 Qed.
 
 Proposition n2h_closed : forall r, fclosed r ->
-  forall A : formula, prove nil A -> hprove (n2h_formula r A).
+  forall A, prove nil A -> hprove (n2h_formula r A).
 Proof.
 intros r Hc A pi; change (n2h_formula r A) with (n2h_sequent r nil A).
 now apply n2h; [ | apply Forall_forall; intros; apply fclosed_no_ecapture ].

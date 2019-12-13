@@ -24,6 +24,7 @@ Notation "A [ u // x ]" := (subs x u A) (at level 8, format "A [ u // x ]").
 Notation "⇑" := fup.
 Notation "A ↑" := (A⟦⇑⟧) (at level 8, format "A ↑").
 Notation "x ∈ A" := (In x (freevars A)) (at level 30).
+Notation "x ∉ A" := (~ In x (freevars A)) (at level 30).
 
 Notation formula := (@formula vatom tatom fatom Ncon Bcon Qcon nat).
 (*
@@ -39,12 +40,12 @@ Hint Rewrite (@freevars_fup vatom tatom fatom Ncon Bcon Qcon) : term_db.
 Hint Rewrite (@esubs_z_fup vatom tatom fatom Ncon Bcon Qcon) : term_db.
 Hint Rewrite (@nfree_subs vatom tatom fatom Ncon Bcon Qcon nat) using intuition; fail : term_db.
 
-Hint Resolve (@fclosed_notvars vatom tatom nat nat) : term_db.
 Hint Resolve (@fclosed_fesubs vatom tatom) : term_db.
 Hint Resolve (@fclosed_felift vatom tatom) : term_db.
 Hint Rewrite (@subs_esubs vatom tatom fatom Ncon Bcon Qcon nat)
-                         using try (intuition; fail);
-                              (try apply fclosed_notvars); intuition; fail : term_db.
+                        using try (intuition; fail);
+                             (try apply no_ecapture_not_egenerated); try (intuition; fail);
+                             (try apply fclosed_no_ecapture); intuition; fail : term_db.
 
 
 (** * Proofs *)
@@ -168,7 +169,7 @@ repeat constructor; simpl;
   apply (frll (dvar 0)); simpl; do 2 constructor.
 Qed.
 
-Lemma frl_nfree : forall A x, ~ x ∈ A -> prove A (∀ x A).
+Lemma frl_nfree : forall A x, x ∉ A -> prove A (∀ x A).
 Proof.
 intros A x Hnf.
 apply frlr.

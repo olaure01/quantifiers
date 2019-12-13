@@ -1,6 +1,10 @@
+(* Tight links between Natural Deduction and Hilbert System *)
+
 Require Import Lia.
 Require Import stdlib_more.
 Require Import hilbert2nj nj2hilbert.
+
+Set Implicit Arguments.
 
 
 Section NJvsH.
@@ -11,12 +15,13 @@ Arguments tvar {_} {_} {T} _.
 
 Notation hterm := (@term vatom tatom Empty_set).
 Notation hformula := (@formula vatom tatom fatom Nocon Icon Qcon Empty_set).
+Notation r_h2n := (r_empty nat).
 Notation term := (@term vatom tatom nat).
 Notation formula := (@formula vatom tatom fatom Nocon Icon Qcon nat).
 Notation n2h_term r := (@tesubs vatom tatom nat Empty_set r).
 Notation n2h_formula r := (@esubs vatom tatom fatom Nocon Icon Qcon nat Empty_set r).
-Notation h2n_term := (@h2n_term vatom tatom).
-Notation h2n_formula := (@h2n_formula vatom tatom fatom).
+Notation h2n_term := (@tesubs vatom tatom Empty_set nat r_h2n).
+Notation h2n_formula := (@esubs vatom tatom fatom Nocon Icon Qcon Empty_set nat r_h2n).
 
 Hint Rewrite (@multi_tsubs_dvar vatom tatom) : term_db.
 
@@ -214,73 +219,7 @@ Qed.
 
 (* * From Natural Deduction to Hilbert System *)
 
-Fixpoint freshvars_list (l : list vatom) n :=
-  match n with
-  | 0 => fresh l :: nil
-  | S k => let lv := freshvars_list l k in fresh (lv ++ l) :: lv
-  end.
-Definition freshvars l n := hd (fresh l) (freshvars_list l n).
-Definition freshterms l n := tvar (freshvars l n) : hterm.
-
-Lemma freshvars_list_fresh : forall l n x,
- In x (freshvars_list l n) -> ~ In x l.
-Proof.
-induction n; simpl; intros x Hin Hinl.
-- destruct Hin; intuition.
-  revert Hinl; subst; apply fresh_prop.
-- destruct Hin; subst.
-  + apply fresh_prop with (l0 := freshvars_list l n ++ l); in_solve.
-  + now apply IHn in Hinl.
-Qed.
-
-Lemma freshvars_list_prefix : forall l n m, n < m -> exists l',
-  l' <> nil /\ freshvars_list l m = l' ++ freshvars_list l n.
-Proof. induction m; intros Hlt; [ lia | ].
-destruct (Nat.eq_dec n m); subst.
-- now exists (fresh (freshvars_list l m ++ l) :: nil).
-- assert (n < m) as Hlt2 by lia.
-  apply IHm in Hlt2.
-  destruct Hlt2 as [ l' [_ Heq] ].
-  exists (fresh (freshvars_list l m ++ l) :: l'); split ;
-    [ | now rewrite <- app_comm_cons, <- Heq ].
-  intros Hnil; inversion Hnil.
-Qed.
-
-Lemma freshvars_list_NoDup : forall l n, NoDup (freshvars_list l n).
-Proof. induction n; simpl; constructor; intuition.
-- constructor.
-- apply fresh_prop with (l0 := freshvars_list l n ++ l); in_solve.
-Qed.
-
-Lemma freshvars_fresh : forall l n, ~ In (freshvars l n) l.
-Proof.
-intros l n Hin.
-assert (In (freshvars l n) (freshvars_list l n)) as Hin2
-  by (unfold freshvars; destruct n; in_solve).
-now apply freshvars_list_fresh in Hin2.
-Qed.
-
-Lemma freshvars_inj : forall l n m, freshvars l n = freshvars l m -> n = m.
-Proof.
-intros l.
-enough (forall n m, n < m -> freshvars l n = freshvars l m -> n = m) as Hlt.
-{ intros n m Heq.
-  destruct (Compare_dec.lt_eq_lt_dec n m) as [C | C]; [ destruct C as [C | C] | ].
-  - now apply Hlt; [ lia | ].
-  - assumption.
-  - symmetry; now apply Hlt; [ lia | ]. }
-intros n m Hlt Heq; exfalso.
-apply freshvars_list_prefix with (l:= l) in Hlt; destruct Hlt as [ l' [Hnil Hprf] ].
-unfold freshvars in Heq; rewrite Hprf in Heq.
-destruct l'; [ now apply Hnil | ]; simpl in Heq.
-destruct n; simpl in Heq, Hprf; rewrite Heq in Hprf.
-- assert (In c ((c :: l') ++ nil)) as Hin by intuition.
-  revert Hin; apply NoDup_remove_2; rewrite <- app_comm_cons, <- Hprf.
-  apply (freshvars_list_NoDup l m).
-- assert (In c ((c :: l') ++ freshvars_list l n)) as Hin by intuition.
-  revert Hin; apply NoDup_remove_2; rewrite <- app_comm_cons, <- Hprf.
-  apply (freshvars_list_NoDup l m).
-Qed.
+Definition freshterms l n := tvar (freshlist l n) : hterm.
 
 Lemma no_tecapture_freshterms : forall t lv l, incl (l ++ tvars t) lv ->
   no_tecapture_at (freshterms lv) l t.
@@ -288,7 +227,7 @@ Proof. term_induction t.
 - intros lv l' Hincl.
   apply Forall_forall; intros x Hx; intuition; subst.
   rewrite app_nil_r in Hincl; apply Hincl in Hx.
-  revert Hx; apply freshvars_fresh.
+  revert Hx; apply freshlist_fresh.
 - apply Forall_fold_right, Forall_forall; intros u Hu.
   specialize_Forall IHl with u; apply IHl.
   intros z Hz.
@@ -310,15 +249,15 @@ Proof. formula_induction A.
 - apply IHA; intros z Hz; apply H; in_solve.
 Qed.
 
-Definition freshvars_to_nat l n :=
-  map (fun k => (freshvars l k, dvar k : term)) (rev (seq 0 n)).
+Definition freshvars_to_nat (l : list vatom) n :=
+  map (fun k => (freshlist l k, dvar k : term)) (rev (seq 0 n)).
 
 Lemma freshvars_to_nat_S : forall l n,
-  freshvars_to_nat l (S n) = (freshvars l n, dvar n) :: freshvars_to_nat l n.
+  freshvars_to_nat l (S n) = (freshlist l n, dvar n) :: freshvars_to_nat l n.
 Proof. now intros l n; unfold freshvars_to_nat; rewrite seq_S, rev_unit. Qed.
 
 Lemma freshvars_to_nat_fst : forall l n,
-  map fst (freshvars_to_nat l n) = rev (map (fun k => freshvars l k) (seq 0 n)).
+  map fst (freshvars_to_nat l n) = rev (map (fun k => freshlist l k) (seq 0 n)).
 Proof.
 intros l n; rewrite <- map_rev; induction n; intuition.
 unfold freshvars_to_nat.
@@ -333,7 +272,7 @@ Proof. term_induction t.
 - intros lv k Hincl He z Hz.
   inversion Hz; [ | inversion H]; subst.
   assert (In n (seq 0 k)) by (apply in_seq; lia).
-  apply in_map with (f:= freshvars lv) in H.
+  apply in_map with (f:= freshlist lv) in H.
   now rewrite freshvars_to_nat_fst, in_rev, rev_involutive.
 - intros z Hz.
   rewrite <- flat_map_concat_map in Hz.
@@ -393,13 +332,13 @@ Proof. term_induction t.
     rewrite freshvars_to_nat_S; simpl; apply IHn; lia.
   + case_analysis.
     * exfalso.
-      apply n1; now apply freshvars_inj with (l:= lv).
+      apply n1; now apply freshlist_inj with (l:= lv).
     * apply IHn; lia.
 - intros Hmax Hlv.
   assert (In x lv) as Hlv2 by (now apply Hlv; left).
   revert Hlv2; clear; induction n; simpl; intros Hlv; intuition.
   rewrite freshvars_to_nat_S; simpl; case_analysis; [ exfalso | intuition ].
-  revert Hlv; apply freshvars_fresh.
+  revert Hlv; apply freshlist_fresh.
 - rewrite multi_tsubs_tconstr; f_equal.
   rewrite map_map; rewrite <- (map_id l) at 2; apply map_ext_in; intros u Hu.
   specialize_Forall IHl with u; apply IHl.
@@ -433,7 +372,7 @@ Proof. formula_induction A;
   unfold freshvars_to_nat.
   rewrite seq_S, rev_unit; simpl.
   case_analysis; intuition.
-  + exfalso; revert Hin; apply freshvars_fresh.
+  + exfalso; revert Hin; apply freshlist_fresh.
   + f_equal; destruct n; intuition.
 Qed.
 

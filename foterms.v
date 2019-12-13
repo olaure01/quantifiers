@@ -170,10 +170,11 @@ match t with
 | tconstr _ l => flat_map tvars l
 end.
 Notation "x ∈ t" := (In x (tvars t)) (at level 30).
+Notation "x ∉ t" := (~ In x (tvars t)) (at level 30).
 Notation closed t := (tvars t = nil).
 Notation fclosed r := (forall n, closed (r n)).
 
-Lemma closed_notvars : forall t x, closed t -> ~ x ∈ t.
+Lemma closed_notvars : forall t x, closed t -> x ∉ t.
 Proof. intros t x Hc Hin ; now rewrite Hc in Hin. Qed.
 Hint Resolve closed_notvars : term_db.
 
@@ -201,7 +202,7 @@ Proof. split; term_induction t.
     inversion_clear Hl; in_solve.
 Qed.
 
-Lemma notin_tsubs : forall x u t, ~ x ∈ t -> t[u//x] = t.
+Lemma notin_tsubs : forall x u t, x ∉ t -> t[u//x] = t.
 Proof. term_induction t; try rcauto; f_equal.
 apply IHl; intros Hx; apply H, in_flat_map; exists i; intuition.
 Qed.
@@ -209,13 +210,13 @@ Hint Rewrite notin_tsubs using try easy;
                               (try (intuition; fail));
                               (try apply closed_notvars); intuition; fail : term_db.
 
-Lemma tsubs_tsubs: forall x v y u, x <> y -> ~ x ∈ u -> forall t,
+Lemma tsubs_tsubs: forall x v y u, x <> y -> x ∉ u -> forall t,
   t[v//x][u//y] = t[u//y][v[u//y]//x].
 Proof. term_induction t. Qed.
 Hint Rewrite tsubs_tsubs using try (intuition; fail);
                               (try apply closed_notvars); intuition; fail : term_db.
 
-Lemma notin_tsubs_bivar : forall x y t, ~ x ∈ t -> t[tvar x//y][tvar y//x] = t.
+Lemma notin_tsubs_bivar : forall x y t, x ∉ t -> t[tvar x//y][tvar y//x] = t.
 Proof. term_induction t.
 apply IHl; intros Hx; apply H, in_flat_map; exists i; intuition.
 Qed.
@@ -274,7 +275,7 @@ induction L; simpl; intros t Hc Hf.
 Qed.
 
 Lemma multi_tsubs_tsubs : forall L x u,
-  ~ In x (map fst L) -> Forall (fun z => ~ x ∈ snd z) L ->
+  ~ In x (map fst L) -> Forall (fun z => x ∉ snd z) L ->
   forall t, t[u//x][[L]] = t[[L]][u[[L]]//x].
 Proof.
 induction L; simpl; intros x v Hnin HF t; [ reflexivity | destruct a ].
@@ -291,7 +292,7 @@ Variable T1 T2 : Type.
 Variable r : T1 -> term T2.
 
 Notation "x ∈ t" := (In x (tvars t)) (at level 30).
-Notation "x ∉ r" := (forall n, ~ In x (tvars (r n))) (at level 30).
+Notation "x ∉ t" := (~ In x (tvars t)) (at level 30).
 Notation closed t := (tvars t = nil).
 Notation fclosed := (forall n, closed (r n)).
 Notation "t [ u // x ]" := (tsubs x u t) (at level 8, format "t [ u // x ]").
@@ -305,10 +306,6 @@ Hint Resolve (@closed_notvars T1) : term_db.
 
 
 (** * Additional results with variable eigen type *)
-
-Lemma fclosed_notvars : fclosed -> forall x, x ∉ r.
--Proof. intros Hc x n Hin ; now rewrite Hc in Hin. Qed.
--Hint Resolve fclosed_notvars : term_db.
 
 Lemma tvars_tesubs_fclosed : fclosed -> forall t, tvars t⟦r⟧ = tvars t.
 Proof. term_induction t. Qed.
@@ -328,7 +325,7 @@ Qed.
 
 Fixpoint no_tecapture_at lv t :=
 match t with
-| dvar n => Forall (fun x => ~ x ∈ (r n)) lv
+| dvar n => Forall (fun x => x ∉ (r n)) lv
 | tvar _ x => True
 | tconstr f l => fold_right (fun u P => and (no_tecapture_at lv u) P) True l
 end.
@@ -342,14 +339,6 @@ Proof. term_induction t.
   apply Forall_fold_right, Forall_forall; intros u Hu.
   specialize_Forall_all u; intuition.
 Qed.
-
-Lemma notin_no_tecapture : forall x, x ∉ r -> forall t, #[[x::nil]] t.
-Proof. term_induction t.
-- repeat constructor; now intros Hin; apply H in Hin.
-- apply Forall_fold_right, Forall_forall; intros z Hz.
-  now specialize_Forall IHl with z.
-Qed.
-Hint Resolve notin_no_tecapture : term_db.
 
 Lemma fclosed_no_tecapture : fclosed -> forall lv t, #[[lv]] t.
 Proof. intros Hc; term_induction t.
@@ -368,12 +357,10 @@ Qed.
 Hint Rewrite tsubs_tesubs using try (intuition; fail);
                                (try apply fclosed_no_tecapture); intuition; fail : term_db.
 
-Lemma multi_tsubs_tesubs : forall L t,
-  Forall (fun x => x ∉ r) (map fst L) ->
+Lemma multi_tsubs_tesubs : forall L t, fclosed ->
   t[[L]]⟦r⟧ = t⟦r⟧[[map (fun '(x,u) => (x, tesubs r u)) L]].
 Proof. induction L; simpl; intros t HF; [ reflexivity | ].
-destruct a; simpl in HF; inversion_clear HF.
-rewrite IHL, tsubs_tesubs; intuition.
+destruct a; rewrite IHL, tsubs_tesubs; intuition.
 Qed.
 Hint Rewrite multi_tsubs_tesubs : term_db.
 
@@ -388,7 +375,7 @@ Proof. term_induction u.
 Qed.
 
 Lemma no_tecapture_subs_notin : forall x u y t,
-  closed u -> #[[y::nil]] t[u//x] -> y ∈ u⟦r⟧ -> ~ x ∈ t.
+  closed u -> #[[y::nil]] t[u//x] -> y ∈ u⟦r⟧ -> x ∉ t.
 Proof. term_induction t.
 - intros Hc Hnc Hinu Hint.
   destruct Hint; subst; intuition.
@@ -427,6 +414,7 @@ Notation term := (term nat).
 Notation tvar := (tvar nat).
 Notation "t [ u // x ]" := (tsubs x u t) (at level 8, format "t [ u // x ]").
 Notation "x ∈ t" := (In x (tvars t)) (at level 30).
+Notation "x ∉ t" := (~ In x (tvars t)) (at level 30).
 Notation closed t := (tvars t = nil).
 Notation fclosed r := (forall n, closed (r n)).
 

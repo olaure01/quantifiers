@@ -425,5 +425,76 @@ exists fresh.
 apply fresh_prop.
 Qed.
 
+(* A list (of length [n]+1) of distinct fresh elements (not in [l]) *)
+Fixpoint freshlist_of_list (l : list X)  n :=
+  match n with
+  | 0 => fresh l :: nil
+  | S k => let lv := freshlist_of_list l k in fresh (lv ++ l) :: lv
+  end.
+
+Definition freshlist l n := hd (fresh l) (freshlist_of_list l n).
+
+Lemma freshlist_of_list_fresh : forall l n x,
+  In x (freshlist_of_list l n) -> ~ In x l.
+Proof.
+induction n; simpl; intros x Hin Hinl.
+- destruct Hin; intuition.
+  revert Hinl; subst; apply fresh_prop.
+- destruct Hin; subst.
+  + apply fresh_prop with (l0 := freshlist_of_list l n ++ l).
+    apply in_or_app; intuition.
+  + now apply IHn in Hinl.
+Qed.
+
+Lemma freshlist_of_list_prefix : forall l n m, n < m -> exists l',
+  l' <> nil /\ freshlist_of_list l m = l' ++ freshlist_of_list l n.
+Proof. induction m; intros Hlt; [ lia | ].
+destruct (Nat.eq_dec n m); subst.
+- now exists (fresh (freshlist_of_list l m ++ l) :: nil).
+- assert (n < m) as Hlt2 by lia.
+  apply IHm in Hlt2.
+  destruct Hlt2 as [ l' [_ Heq] ].
+  exists (fresh (freshlist_of_list l m ++ l) :: l'); split ;
+    [ | now rewrite <- app_comm_cons, <- Heq ].
+  intros Hnil; inversion Hnil.
+Qed.
+
+Lemma freshlist_of_list_NoDup : forall l n, NoDup (freshlist_of_list l n).
+Proof. induction n; simpl; constructor; intuition.
+- constructor.
+- apply fresh_prop with (l0 := freshlist_of_list l n ++ l).
+  apply in_or_app; intuition.
+Qed.
+
+Lemma freshlist_fresh : forall l n, ~ In (freshlist l n) l.
+Proof.
+intros l n Hin.
+assert (In (freshlist l n) (freshlist_of_list l n)) as Hin2
+  by (destruct n; left; reflexivity).
+now apply freshlist_of_list_fresh in Hin2.
+Qed.
+
+Lemma freshlist_inj : forall l n m, freshlist l n = freshlist l m -> n = m.
+Proof.
+intros l.
+enough (forall n m, n < m -> freshlist l n = freshlist l m -> n = m) as Hlt.
+{ intros n m Heq.
+  destruct (Compare_dec.lt_eq_lt_dec n m) as [C | C]; [ destruct C as [C | C] | ].
+  - now apply Hlt; [ lia | ].
+  - assumption.
+  - symmetry; now apply Hlt; [ lia | ]. }
+intros n m Hlt Heq; exfalso.
+apply freshlist_of_list_prefix with (l:= l) in Hlt; destruct Hlt as [ l' [Hnil Hprf] ].
+unfold freshlist in Heq; rewrite Hprf in Heq.
+destruct l'; [ now apply Hnil | ]; simpl in Heq.
+destruct n; simpl in Heq, Hprf; rewrite Heq in Hprf.
+- assert (In c ((c :: l') ++ nil)) as Hin by intuition.
+  revert Hin; apply NoDup_remove_2; rewrite <- app_comm_cons, <- Hprf.
+  apply (freshlist_of_list_NoDup l m).
+- assert (In c ((c :: l') ++ freshlist_of_list l n)) as Hin by intuition.
+  revert Hin; apply NoDup_remove_2; rewrite <- app_comm_cons, <- Hprf.
+  apply (freshlist_of_list_NoDup l m).
+Qed.
+
 End InfDecTypes.
 
