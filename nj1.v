@@ -62,6 +62,27 @@ Global Arguments exse { l C } _ _ _.
 Lemma ax_hd {l A} : prove (A :: l) A.
 Proof. rewrite <- (app_nil_l (A :: l)); apply ax. Qed.
 
+(* This [weakening] lemma is not required in the development, see rather [nweakening] below *)
+(* It is given here for comparison with alternative formalizations of Natural Deduction *)
+Lemma weakening : forall l A, prove l A -> forall l0, prove (l ++ l0) A.
+Proof.
+intros l A pi; induction pi; intros; subst;
+  try (econstructor; rewrite_all map_app; rewrite ? app_comm_cons; intuition; intuition; fail).
+rewrite <- app_assoc, <- app_comm_cons; intuition.
+Qed.
+(*
+Lemma weakening : forall l A,
+  prove l A -> forall l0 l1 l2, l = l1 ++ l2 -> prove (l1 ++ l0 ++ l2) A.
+Proof.
+intros l A pi; induction pi; intros; subst;
+  try (econstructor; rewrite_all map_app; rewrite ? app_comm_cons; intuition; intuition; fail).
+destruct (elt_eq_app _ _ _ _ _ H) as [ [? [? ?]] | [? [? ?]] ]; subst;
+  rewrite ? (app_assoc _ _ (A::_)), <- ? (app_assoc _ (A::_)), <- ? app_comm_cons;
+  intuition.
+Qed.
+*)
+
+
 (** Normal Forms *)
 Inductive nprove : list formula -> formula -> Type := (* neutral terms *)
 | nax : forall l1 l2 A, nprove (l1 ++ A :: l2) A
@@ -166,25 +187,15 @@ Theorem denormalization :
   (forall l A, nprove l A -> prove l A) * (forall l A, rprove l A -> prove l A).
 Proof. now apply rnprove_mutrect; intros; try (econstructor; eassumption). Qed.
 
-Lemma weakening :
+Lemma nweakening :
    (forall l A, nprove l A -> forall l0 l1 l2, l = l1 ++ l2 -> nprove (l1 ++ l0 ++ l2) A)
  * (forall l A, rprove l A -> forall l0 l1 l2, l = l1 ++ l2 -> rprove (l1 ++ l0 ++ l2) A).
 Proof.
-apply rnprove_mutrect ; intros ; try (econstructor; intuition; intuition ; fail) ; subst.
-- enough (forall l l3, l1 ++ A :: l2 = l3 ++ l4 -> nprove (l ++ l3 ++ l0 ++ l4) A)
-    as HI by (rewrite <- (app_nil_l (l3 ++ l0 ++ l4)) ; apply HI ; assumption) ; clear.
-  induction l1; intros l l3 Heq; destruct l3; inversion Heq; subst; simpl.
-  + simpl in Heq; subst; rewrite app_assoc; apply nax.
-  + apply nax.
-  + simpl in Heq; subst; rewrite app_comm_cons, 2 app_assoc; apply nax.
-  + replace (l ++ f :: l3 ++ l0 ++ l4) with ((l ++ f :: nil) ++ l3 ++ l0 ++ l4)
-      by (rewrite <- app_assoc ; reflexivity).
-    now apply IHl1.
-- apply rimpi; rewrite app_comm_cons; intuition.
-- apply rfrli; rewrite ? map_app; apply X; rewrite map_app; reflexivity.
-- apply (rexse x A).
-  + now apply X.
-  + rewrite ? map_app, app_comm_cons; apply X0 ; now rewrite map_app.
+apply rnprove_mutrect; intros; subst;
+  try (econstructor; rewrite_all map_app; rewrite ? app_comm_cons; intuition; intuition; fail).
+destruct (elt_eq_app _ _ _ _ _ H) as [ [? [? ?]] | [? [? ?]] ]; subst;
+  rewrite ? (app_assoc _ _ (A::_)), <- ? (app_assoc _ (A::_)), <- ? app_comm_cons;
+  intuition.
 Qed.
 
 Lemma imp_reduction : forall A B l, rprove l (imp A B) ->
@@ -201,7 +212,7 @@ remember (imp A B) as C; revert A B HeqC; induction pi;
   + clear - Hsub ; intros D l B Hs pi1 pi2.
     rnow eapply (Hsub D).
   + rewrite <- (app_nil_l (map (esubs ⇑) l)) ; rewrite app_comm_cons ; rewrite <- (app_nil_l _).
-    eapply weakening; [ | reflexivity ].
+    eapply nweakening; [ | reflexivity ].
     now apply rnpesubs.
 Qed.
 
@@ -234,7 +245,7 @@ remember (exs x A) as A'; revert A x HeqA'; induction pi;
     rnow eapply (Hsub D).
   + simpl ; rewrite <- (app_nil_l (subs x _ _ :: _)) ; rewrite app_comm_cons;
       rewrite <- (app_nil_l (map (esubs ⇑) _)) ; rewrite app_comm_cons.
-    eapply weakening; [ | reflexivity ].
+    eapply nweakening; [ | reflexivity ].
     apply (rnpesubs (↑⇑)) in pi2; intuition.
     rnow simpl in pi2 then simpl in pi2.
     now rewrite map_map, <- (map_ext _ _ (lift_esubs (dvar 0) _)), <- map_map in pi2.
@@ -268,7 +279,7 @@ apply (lt_wf_double_rect (fun n m =>
   + apply nax.
   + apply IHl0 in H1...
     change (f :: l1) with (nil ++ (f :: nil) ++ l1) ; rewrite <- ? app_assoc.
-    eapply weakening...
+    eapply nweakening...
 - assert (nsize pi2 < S (nsize pi2 + rsize r)) as IH1 by lia.
   assert (rsize r < S (nsize pi2 + rsize r)) as IH2 by lia.
   eapply nimpe ; eapply (IHm (S (nsize pi2 + rsize r))) ; simpl...
@@ -304,7 +315,7 @@ apply (lt_wf_double_rect (fun n m =>
   refine (snd (IHm _ _ _ _) _ _ _ pi2 _ _)...
   rewrite <- app_comm_cons ; rewrite <- (app_nil_l (l1 ++ l2)) ; rewrite app_comm_cons ;
     rewrite <- (app_nil_l _).
-  eapply weakening...
+  eapply nweakening...
 - apply rfrli ; rewrite map_app.
   apply (rnpesubs ⇑) in pi1; intuition.
   revert pi1 pi2 Hpi ; rewrite ? map_app ; simpl ; intros pi1 pi2 Hpi.
@@ -312,7 +323,7 @@ apply (lt_wf_double_rect (fun n m =>
 - eapply rexsi...
   refine (snd (IHm _ _ _ _) _ _ _ pi2 _ _)...
 - rewrite <- (app_nil_l _) in pi1.
-  assert (pi1' := snd weakening _ _ (snd (rnpesubs ⇑ fclosed_fup) pi1)
+  assert (pi1' := snd nweakening _ _ (snd (rnpesubs ⇑ fclosed_fup) pi1)
                   (A0↑[dvar 0//x] :: nil) nil _ eq_refl) ; simpl in pi1'.
   rewrite map_app in pi1' ; rewrite app_comm_cons in pi1'.
   revert pi2 pi1' Hpi ; rewrite ? map_app ; simpl ; rewrite app_comm_cons ;

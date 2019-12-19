@@ -147,7 +147,8 @@ destruct (Hdec x a); subst; intuition.
 f_equal; intuition.
 Qed.
 
-Lemma remove_remove_eq {T} : forall Hdec l (x : T), remove Hdec x (remove Hdec x l) = remove Hdec x l.
+Lemma remove_remove_eq {T} : forall Hdec l (x : T),
+  remove Hdec x (remove Hdec x l) = remove Hdec x l.
 Proof.
 induction l; simpl; intros x; [ reflexivity | ].
 destruct (Hdec x a).
@@ -414,4 +415,15 @@ Qed.
 Lemma flat_map_map : forall (A B C:Type)(f:A->B)(g:B-> list C) l,
   flat_map g (map f l) = flat_map (fun x => g (f x)) l.
 Proof. intros; rewrite flat_map_concat_map, map_map, <- flat_map_concat_map; reflexivity. Qed.
+
+Lemma elt_eq_app {A} : forall l1 (a : A) l2 l3 l4,
+  l1 ++ a :: l2 = l3 ++ l4 ->
+    { l2' & l1 ++ a :: l2' = l3 /\ l2 = l2' ++ l4 }
+  + { l4' & l1 = l3 ++ l4' /\ l4' ++ a :: l2 = l4 }.
+Proof.
+induction l1; destruct l3; simpl; intros l4 Heq; inversion Heq; subst;
+  try (now (left + right); eexists).
+apply IHl1 in H1.
+now destruct H1 as [ [? [? ?]] | [? [? ?]]]; subst; [left | right] ; eexists.
+Qed.
 
