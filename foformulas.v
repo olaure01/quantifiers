@@ -59,15 +59,15 @@ Section Formulas.
 
 Context { vatom : DecType } { tatom : Type }.
 Notation term := (@term vatom tatom).
-Arguments dvar _ _ {T}.
-Notation dvar := (dvar vatom tatom).
+Arguments evar _ _ {T}.
+Notation evar := (evar vatom tatom).
 
 Notation "r ;; s" := (fecomp r s) (at level 20, format "r  ;;  s").
 Notation closed t := (tvars t = nil).
 Notation "⇑" := fup.
 Notation "⇑[ u ] r" := (felift u r) (at level 25, format "⇑[ u ] r").
 
-Hint Rewrite (@tesubs_dvar vatom tatom) : term_db.
+Hint Rewrite (@tesubs_evar vatom tatom) : term_db.
 Hint Rewrite (@tesubs_comp vatom tatom) : term_db.
 Hint Rewrite (@tsubs_tsubs_eq vatom tatom) : term_db.
 Hint Rewrite (@tsubs_tsubs vatom tatom)
@@ -159,10 +159,10 @@ Lemma fsize_esubs T1 T2 : forall (r : T1 -> term T2) A, fsize A⟦r⟧ = fsize A
 Proof. formula_induction A. Qed.
 Hint Rewrite fsize_esubs : term_db.
 
-Lemma esubs_dvar T : forall (A : formula T),
-  A⟦dvar⟧ = A.
+Lemma esubs_evar T : forall (A : formula T),
+  A⟦evar⟧ = A.
 Proof. formula_induction A. Qed.
-Hint Rewrite esubs_dvar : term_db.
+Hint Rewrite esubs_evar : term_db.
 
 Lemma esubs_comp T1 T2 T3 (r : T1 -> term T2) (s : T2 -> term T3) :
   forall A, A⟦r⟧⟦s⟧ = A⟦r ;; s⟧.
@@ -620,7 +620,7 @@ Proof. rcauto. Qed.
 Hint Rewrite freevars_fup : term_db.
 
 Lemma esubs_fup v A : A↑⟦v⇓⟧ = A.
-Proof. now rewrite esubs_comp, (esubs_ext (fesubs_fup v)), esubs_dvar. Qed.
+Proof. now rewrite esubs_comp, (esubs_ext (fesubs_fup v)), esubs_evar. Qed.
 Hint Rewrite esubs_fup : term_db.
 
 Lemma lift_esubs u r : forall A, A⟦r⟧↑ = A↑⟦⇑[u]r⟧.

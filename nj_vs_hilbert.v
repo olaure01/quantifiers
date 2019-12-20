@@ -23,7 +23,7 @@ Notation n2h_formula r := (@esubs vatom tatom fatom Nocon Icon Qcon nat Empty_se
 Notation h2n_term := (@tesubs vatom tatom Empty_set nat r_h2n).
 Notation h2n_formula := (@esubs vatom tatom fatom Nocon Icon Qcon Empty_set nat r_h2n).
 
-Hint Rewrite (@multi_tsubs_dvar vatom tatom) : term_db.
+Hint Rewrite (@multi_tsubs_evar vatom tatom) : term_db.
 
 
 (* * From Hilbert System to Natural Deduction *)
@@ -94,7 +94,7 @@ Lemma no_tecapture_nthvar : forall t lv r lvn,
   NoDup (map snd lvn) ->
   (forall i, In i (map snd lvn) -> In (r i, i) lvn) ->
   no_tecapture_at (fun x => tvar (r x) : term) lv
-                  (multi_tsubs (map (fun '(x, i) => (x, dvar i)) lvn) (h2n_term t)).
+                  (multi_tsubs (map (fun '(x, i) => (x, evar i)) lvn) (h2n_term t)).
 Proof. term_induction t.
 - intros lv r lvn Hlv Hnd Hincl.
   revert Hnd Hincl Hlv; induction lvn;
@@ -124,15 +124,15 @@ Lemma no_ecapture_nthvar : forall A lv r lvn,
   NoDup (map snd lvn) ->
   (forall i, In i (map snd lvn) -> In (r i, i) lvn) ->
   no_ecapture_at (fun x => tvar (r x) : term) lv
-                 (multi_subs (map (fun '(x, i) => (x, dvar i)) lvn) (h2n_formula A)).
+                 (multi_subs (map (fun '(x, i) => (x, evar i)) lvn) (h2n_formula A)).
 Proof. formula_induction A;
   [ rewrite multi_subs_fvar | rewrite multi_subs_fbin | rewrite multi_subs_fqtf ];
   simpl; f_equal; intuition.
 - apply Forall_fold_right, Forall_forall; intros t Ht.
   rewrite map_map in Ht; apply in_map_iff in Ht; destruct Ht as [ u [Heq Hu] ]; subst.
   apply no_tecapture_nthvar; intuition.
-- replace (remove_snd x (map (fun '(x0, i) => (x0, dvar i)) lvn))
-     with (map (fun '(x0,i) => (x0, dvar i : term)) (remove_snd x lvn))
+- replace (remove_snd x (map (fun '(x0, i) => (x0, evar i)) lvn))
+     with (map (fun '(x0,i) => (x0, evar i : term)) (remove_snd x lvn))
     by (clear; induction lvn; intuition; unfold remove_snd;
         repeat case_analysis; f_equal; intuition).
   apply IHA.
@@ -148,7 +148,7 @@ Lemma hilbert_vs_nj_term : forall t r lvn,
   NoDup (map snd lvn) ->
   (forall i, In i (map snd lvn) -> In (r i, i) lvn) ->
   n2h_term (fun x => tvar (r x))
-           (multi_tsubs (map (fun '(x,i) => (x, dvar i)) lvn) (h2n_term t)) = t.
+           (multi_tsubs (map (fun '(x,i) => (x, evar i)) lvn) (h2n_term t)) = t.
 Proof. term_induction t.
 - intros r lvn Hnd Hincl.
   revert Hnd Hincl; induction lvn; [ intros; reflexivity | destruct a; simpl; intros Hnd Hincl ].
@@ -174,14 +174,14 @@ Lemma hilbert_vs_nj_formula : forall A r lvn,
   NoDup (map snd lvn) ->
   (forall i, In i (map snd lvn) -> In (r i, i) lvn) ->
   n2h_formula (fun x => tvar (r x))
-              (multi_subs (map (fun '(x,i) => (x, dvar i)) lvn) (h2n_formula A)) = A.
+              (multi_subs (map (fun '(x,i) => (x, evar i)) lvn) (h2n_formula A)) = A.
 Proof. formula_induction A;
   [ rewrite multi_subs_fvar | rewrite multi_subs_fbin | rewrite multi_subs_fqtf ];
   simpl; f_equal; intuition.
 - rewrite 2 map_map; rewrite <- (map_id l) at 2; apply map_ext_in; intros t Ht.
   now apply hilbert_vs_nj_term.
-- replace (remove_snd x (map (fun '(x0, i) => (x0, dvar i)) lvn))
-     with (map (fun '(x0,i) => (x0, dvar i : term)) (remove_snd x lvn))
+- replace (remove_snd x (map (fun '(x0, i) => (x0, evar i)) lvn))
+     with (map (fun '(x0,i) => (x0, evar i : term)) (remove_snd x lvn))
     by (clear; induction lvn; intuition; unfold remove_snd;
         repeat case_analysis; f_equal; intuition).
   apply IHA.
@@ -193,7 +193,7 @@ Lemma hilbert_vs_nj : forall A,
   { L : _ & hprove A -> prove nil (multi_subs L (h2n_formula A))
           & prove nil (multi_subs L (h2n_formula A)) -> hprove A }.
 Proof.
-intros A; exists (map (fun '(x,i) => (x, dvar i)) (vars_to_nat (freevars A))); intros pi.
+intros A; exists (map (fun '(x,i) => (x, evar i)) (vars_to_nat (freevars A))); intros pi.
 - apply h2n; intuition.
   + apply Forall_forall; intros t Ht.
     rewrite map_map in Ht.
@@ -250,10 +250,10 @@ Proof. formula_induction A.
 Qed.
 
 Definition freshvars_to_nat (l : list vatom) n :=
-  map (fun k => (freshlist l k, dvar k : term)) (rev (seq 0 n)).
+  map (fun k => (freshlist l k, evar k : term)) (rev (seq 0 n)).
 
 Lemma freshvars_to_nat_S : forall l n,
-  freshvars_to_nat l (S n) = (freshlist l n, dvar n) :: freshvars_to_nat l n.
+  freshvars_to_nat l (S n) = (freshlist l n, evar n) :: freshvars_to_nat l n.
 Proof. now intros l n; unfold freshvars_to_nat; rewrite seq_S, rev_unit. Qed.
 
 Lemma freshvars_to_nat_fst : forall l n,
@@ -326,7 +326,7 @@ Proof. term_induction t.
   rewrite freshvars_to_nat_S; simpl.
   destruct (Nat.eq_dec n0 n); subst.
   + rewrite eqb_refl; clear.
-    enough (forall k, n <= k -> multi_tsubs (freshvars_to_nat lv n) (dvar k) = dvar k)
+    enough (forall k, n <= k -> multi_tsubs (freshvars_to_nat lv n) (evar k) = evar k)
       as HI by (apply HI; lia).
     induction n; simpl; intros k Hlt; intuition.
     rewrite freshvars_to_nat_S; simpl; apply IHn; lia.

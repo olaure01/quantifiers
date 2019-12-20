@@ -18,7 +18,7 @@ Arguments tvar {_} {_} {T} _.
 Notation term := (@term vatom tatom nat).
 Notation closed t := (tvars t = nil).
 Notation fclosed r := (forall n, closed (r n)).
-Notation "↑ r" := (felift (dvar 0) r) (at level 25, format "↑ r").
+Notation "↑ r" := (felift (evar 0) r) (at level 25, format "↑ r").
 Notation "v ⇓" := (fesubs v) (at level 18, format "v ⇓").
 Notation "A ⟦ r ⟧" := (esubs r A) (at level 8, left associativity, format "A ⟦ r ⟧").
 Notation "A [ u // x ]" := (subs x u A) (at level 8, format "A [ u // x ]").
@@ -52,11 +52,10 @@ Inductive prove : list formula -> formula -> Type :=
 | ax : forall l1 l2 A, prove (l1 ++ A :: l2) A
 | impi { l A B } : prove (A :: l) B -> prove l (imp A B)
 | impe { l B } : forall A, prove l (imp A B) -> prove l A -> prove l B
-| frli { x l A } : prove l⇈ A↑[dvar 0//x] -> prove l (frl x A)
+| frli { x l A } : prove l⇈ A↑[evar 0//x] -> prove l (frl x A)
 | frle { x l A } : forall u, closed u -> prove l (frl x A) -> prove l (subs x u A)
 | exsi { x l A } : forall u, closed u -> prove l (subs x u A) -> prove l (exs x A)
-| exse { l C } : forall x A, prove l (exs x A) ->
-                             prove (A↑[dvar 0//x] :: l⇈) C↑ -> prove l C.
+| exse { l C } : forall x A, prove l (exs x A) -> prove (A↑[evar 0//x] :: l⇈) C↑ -> prove l C.
 Hint Constructors prove : term_db.
 Global Arguments impe { l B } _ _ _.
 Global Arguments exse { l C } _ _ _.
@@ -93,11 +92,9 @@ Inductive nprove : list formula -> formula -> Type := (* neutral terms *)
 with rprove : list formula -> formula -> Type := (* normal forms *)
 | rninj { l A } : nprove l A -> rprove l A
 | rimpi { l A B } : rprove (A :: l) B -> rprove l (imp A B)
-| rfrli { x l A } : rprove l⇈ A↑[dvar 0//x] -> rprove l (frl x A)
+| rfrli { x l A } : rprove l⇈ A↑[evar 0//x] -> rprove l (frl x A)
 | rexsi { x l A } : forall u, closed u -> rprove l (subs x u A) -> rprove l (exs x A)
-| rexse { l C } : forall x A,
-                     nprove l (exs x A) ->
-                     rprove (A↑[dvar 0//x] :: l⇈) C↑ -> rprove l C.
+| rexse { l C } : forall x A, nprove l (exs x A) -> rprove (A↑[evar 0//x] :: l⇈) C↑ -> rprove l C.
 Hint Constructors nprove rprove : term_db.
 Global Arguments nimpe { l B } _ _ _.
 Global Arguments rexse { l C } _ _ _ _.
@@ -155,16 +152,16 @@ clear r Hc; apply rnprove_mutrect; intros; (try simpl in X);
 - rcauto; rnow apply nfrle.
 - specialize X with (↑r0).
   revert X; rcauto.
-  rewrite map_map, <- (map_ext _ _ (lift_esubs (dvar 0) _)), <- map_map in X; intuition.
+  rewrite map_map, <- (map_ext _ _ (lift_esubs (evar 0) _)), <- map_map in X; intuition.
 - specialize X with r0.
   rnow apply (rexsi (tesubs r0 u)).
 - specialize X0 with (↑r0); simpl in X0.
-  rewrite map_map, <- (map_ext _ _ (lift_esubs (dvar 0) _)), <- map_map in X0.
+  rewrite map_map, <- (map_ext _ _ (lift_esubs (evar 0) _)), <- map_map in X0.
   rnow eapply rexse.
 Qed.
 
 Lemma rpsubsz_r {l A x u} : closed u ->
-  rprove l⇈ A↑[dvar 0//x] -> rprove l (subs x u A).
+  rprove l⇈ A↑[evar 0//x] -> rprove l (subs x u A).
 Proof.
 intros Hc pi.
 apply (rnpesubs (u⇓)) in pi; [ | intuition ].
@@ -173,7 +170,7 @@ now rewrite map_map, (map_ext _ _ (esubs_fup _)), map_id in pi.
 Qed.
 
 Lemma rpsubsz_l {l A x u C} : closed u ->
-  rprove (A↑[dvar 0//x] :: l⇈) C↑ -> rprove (subs x u A :: l) C.
+  rprove (A↑[evar 0//x] :: l⇈) C↑ -> rprove (subs x u A :: l) C.
 Proof.
 intros Hc pi.
 apply (rnpesubs (u⇓)) in pi; [ | intuition ].
@@ -231,7 +228,7 @@ Qed.
 
 Lemma exs_reduction : forall A x l, rprove l (exs x A) ->
 (forall D l B, fsize D = fsize A -> rprove (D :: l) B -> rprove l D -> rprove l B) -> 
-  forall C, rprove (A↑[dvar 0//x] :: l⇈) C↑ -> rprove l C.
+  forall C, rprove (A↑[evar 0//x] :: l⇈) C↑ -> rprove l C.
 Proof.
 intros A x l pi.
 remember (exs x A) as A'; revert A x HeqA'; induction pi;
@@ -249,7 +246,7 @@ remember (exs x A) as A'; revert A x HeqA'; induction pi;
     eapply nweakening; [ | reflexivity ].
     apply (rnpesubs (↑⇑)) in pi2; intuition.
     rnow simpl in pi2 then simpl in pi2.
-    now rewrite map_map, <- (map_ext _ _ (lift_esubs (dvar 0) _)), <- map_map in pi2.
+    now rewrite map_map, <- (map_ext _ _ (lift_esubs (evar 0) _)), <- map_map in pi2.
 Qed.
 
 Lemma substitution : forall n m A, fsize A = n ->
@@ -325,7 +322,7 @@ apply (lt_wf_double_rect (fun n m =>
   refine (snd (IHm _ _ _ _) _ _ _ pi2 _ _)...
 - rewrite <- (app_nil_l _) in pi1.
   assert (pi1' := snd nweakening _ _ (snd (rnpesubs ⇑ fclosed_fup) pi1)
-                  (A0↑[dvar 0//x] :: nil) nil _ eq_refl) ; simpl in pi1'.
+                  (A0↑[evar 0//x] :: nil) nil _ eq_refl) ; simpl in pi1'.
   rewrite map_app in pi1' ; rewrite app_comm_cons in pi1'.
   revert pi2 pi1' Hpi ; rewrite ? map_app ; simpl ; rewrite app_comm_cons ;
     intros pi2 pi1' Hpi.
@@ -344,21 +341,21 @@ apply (lt_wf_double_rect (fun n m =>
 Qed.
 
 Lemma smp_substitution : forall l A B, rprove l A -> rprove (A :: l) B -> rprove l B.
-Proof with try eassumption ; try reflexivity ; try lia.
+Proof.
 intros l A B pi1 pi2.
 rewrite <- (app_nil_l (A :: l)) in pi2 ; rewrite <- (app_nil_l l).
-refine (snd (substitution (S (rsize pi2)) _ _ ) _ _ _ pi2 _ _)...
+refine (snd (substitution (S (rsize pi2)) _ _ ) _ _ _ pi2 _ _); intuition.
 Qed.
 
 Theorem normalization : forall l A, prove l A -> rprove l A.
-Proof with try eassumption ; try reflexivity ; try lia.
+Proof.
 intros l A pi ; induction pi ;
    try (econstructor ; (idtac + econstructor) ; eassumption).
-- eapply imp_reduction...
-  clear ; intros ; eapply smp_substitution...
-- eapply frl_reduction...
-- eapply exs_reduction...
-  clear ; intros ; eapply smp_substitution...
+- apply (imp_reduction IHpi1); [ | assumption ].
+  intros; eapply smp_substitution; eassumption.
+- now apply frl_reduction.
+- apply (exs_reduction IHpi1); [ | assumption ].
+  intros; eapply smp_substitution; eassumption.
 Qed.
 
 
@@ -371,8 +368,8 @@ Inductive subform : formula -> formula -> Prop :=
 | sub_imp_r : forall A B C, subform A B -> subform A (imp C B)
 | sub_frl : forall A x u B, subform A (subs x u B) -> subform A (frl x B)
 | sub_exs : forall A x u B, subform A (subs x u B) -> subform A (exs x B)
-| sub_frl_n : forall A x B, subform A B↑[dvar 0//x] -> subform A (frl x B)
-| sub_ex_n : forall A x B, subform A B↑[dvar 0//x] -> subform A (exs x B)
+| sub_frl_n : forall A x B, subform A B↑[evar 0//x] -> subform A (frl x B)
+| sub_ex_n : forall A x B, subform A B↑[evar 0//x] -> subform A (exs x B)
 | sub_fup : forall A B, subform A B↑ -> subform A B.
 
 Lemma subform_trans : forall A B C, subform A B -> subform B C -> subform A C.
@@ -387,11 +384,11 @@ intros A B Hs; induction Hs; try (now econstructor; eauto).
 - rcauto; econstructor; eauto.
 - eapply subform_trans; [ apply IHHs | ].
   apply sub_fup; simpl.
-  apply (sub_frl _ (dvar 1)).
+  apply (sub_frl _ (evar 1)).
   rcauto; apply sub_id.
 - eapply subform_trans; [ apply IHHs | ].
   apply sub_fup; simpl.
-  apply (sub_exs _ (dvar 1)).
+  apply (sub_exs _ (evar 1)).
   rcauto; apply sub_id.
 Qed.
 
@@ -633,12 +630,12 @@ Proof.
 intros; rev_intros; case_analysis.
 - rnow apply nfrle.
   replace (frl y A↑↑)
-     with (subs y (dvar 0) (frl y A↑↑))
+     with (subs y (evar 0) (frl y A↑↑))
     by rcauto.
   rnow apply nfrle then subst; rcauto.
 - rcauto; rewrite subs_subs_closed; intuition.
   apply nfrle; intuition.
-  replace (frl y A↑↑[dvar 0//x]) with ((frl y A↑↑)[dvar 0//x])
+  replace (frl y A↑↑[evar 0//x]) with ((frl y A↑↑)[evar 0//x])
     by (simpl; case_analysis; intuition).
   apply nfrle; intuition.
 Qed.
@@ -650,8 +647,8 @@ Goal rprove nil (imp (frl x (fvar P (tconstr f (tvar x :: nil) :: nil)))
                      (frl x (fvar P (tconstr f (tconstr f (tvar x :: nil) :: nil) :: nil)))).
 Proof.
 intros; rev_intros; case_analysis.
-replace (fvar P (tconstr f (tconstr f (dvar 0 :: nil) :: nil) :: nil))
-   with (subs x (tconstr f (dvar 0 :: nil)) (fvar P (tconstr f (tvar x :: nil) :: nil)))
+replace (fvar P (tconstr f (tconstr f (evar 0 :: nil) :: nil) :: nil))
+   with (subs x (tconstr f (evar 0 :: nil)) (fvar P (tconstr f (tvar x :: nil) :: nil)))
   by (simpl; case_analysis; intuition).
 rnow apply nfrle.
 Qed.
@@ -666,9 +663,9 @@ Proof. intros A u x Hf; rev_intros; rnow apply (nfrle u). Qed.
 
 Lemma frl_imp : forall A B x, rprove (frl x (imp A B) :: nil) (imp (frl x A) (frl x B)).
 Proof. intros A B x; rev_intros.
-apply (nimpe A↑[dvar 0//x]).
-- change (imp A↑[dvar 0//x] B↑[dvar 0//x])
-    with ((imp A↑ B↑)[dvar 0//x]).
+apply (nimpe A↑[evar 0//x]).
+- change (imp A↑[evar 0//x] B↑[evar 0//x])
+    with ((imp A↑ B↑)[evar 0//x]).
   apply nfrle ; [ reflexivity | ] ; simpl.
   auto_nax.
 - now apply rninj, nfrle, nax_hd.

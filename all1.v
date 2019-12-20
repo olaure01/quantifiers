@@ -17,7 +17,7 @@ Inductive Qcon := frl_con.
 Notation term := (@term vatom tatom nat).
 Notation closed t := (tvars t = nil).
 Notation fclosed r := (forall n, closed (r n)).
-Notation "↑ r" := (felift (dvar 0) r) (at level 25, format "↑ r").
+Notation "↑ r" := (felift (evar 0) r) (at level 25, format "↑ r").
 Notation "v ⇓" := (fesubs v) (at level 18, format "v ⇓").
 Notation "A ⟦ r ⟧" := (esubs r A) (at level 8, left associativity, format "A ⟦ r ⟧").
 Notation "A [ u // x ]" := (subs x u A) (at level 8, format "A [ u // x ]").
@@ -59,7 +59,7 @@ Inductive prove : formula -> formula -> Type :=
 | wdgr { C A B } : prove C A -> prove C B -> prove C (A﹠B)
 | wdgll { A C } : forall B, prove A C -> prove (A﹠B) C
 | wdglr { A C } : forall B, prove A C -> prove (B﹠A) C
-| frlr { x C A } : prove C↑ A↑[dvar 0//x] -> prove C (∀x A)
+| frlr { x C A } : prove C↑ A↑[evar 0//x] -> prove C (∀x A)
 | frll { x A C } : forall u, closed u -> prove A[u//x] C -> prove (∀x A) C.
 Hint Constructors prove : term_db.
 
@@ -166,7 +166,7 @@ Lemma frl_wth : forall A B x, prove (∀ x (A﹠B)) (∀ x A ﹠ ∀ x B).
 Proof.
 intros A B x.
 repeat constructor; simpl;
-  apply (frll (dvar 0)); simpl; do 2 constructor.
+  apply (frll (evar 0)); simpl; do 2 constructor.
 Qed.
 
 Lemma frl_nfree : forall A x, x ∉ A -> prove A (∀ x A).
@@ -190,6 +190,6 @@ destruct A; [ | destruct n | destruct b | destruct q ].
 - apply topr.
 - apply wdgr; [ apply wdgll | apply wdglr ]; (eapply IH; [ | reflexivity ]); simpl; lia.
 - apply frlr.
-  rnow apply (frll (dvar 0)).
+  rnow apply (frll (evar 0)).
 Qed.
 

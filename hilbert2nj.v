@@ -76,7 +76,7 @@ intros A pi; induction pi; intros L Hcl Hsub;
     * change (AA :: AA → BB :: AA → BB → CC :: nil)
         with ((AA :: nil) ++ AA → BB :: AA → BB → CC :: nil); apply ax.
     * apply ax_hd.
-- remember (map (fun x => (x, dvar 0 : term)) (freevars A)) as LA.
+- remember (map (fun x => (x, evar 0 : term)) (freevars A)) as LA.
   assert (Forall (fun z => closed z) (map snd LA)) as HcLA
     by (subst LA; remember (freevars A) as l; clear; induction l; simpl; intuition).
   assert (map fst LA = freevars A) as HfstLA
@@ -110,7 +110,7 @@ intros A pi; induction pi; intros L Hcl Hsub;
         apply Forall_incl with (map snd L); intuition.
         clear; induction L; intuition; simpl; case_analysis; intuition. }
       rewrite nfree_subs by assumption.
-      rewrite <- (nfree_subs _ (dvar 0) _ Hnin).
+      rewrite <- (nfree_subs _ (evar 0) _ Hnin).
       apply frle; [ reflexivity | ].
       rewrite nfree_subs by assumption.
       apply ax_hd.
@@ -123,8 +123,8 @@ intros A pi; induction pi; intros L Hcl Hsub;
   + apply frli; simpl.
     apply impe with (AA↑); [ | apply ax_hd ].
     rewrite multi_subs_fbin; simpl; rewrite <- HeqAA.
-    replace (AA↑ → (h2n_formula B)[[L ∖ x]]↑[dvar 0//x])
-       with ((AA↑ → (h2n_formula B)[[L ∖ x]]↑)[dvar 0//x]).
+    replace (AA↑ → (h2n_formula B)[[L ∖ x]]↑[evar 0//x])
+       with ((AA↑ → (h2n_formula B)[[L ∖ x]]↑)[evar 0//x]).
     { apply frle; intuition; auto_ax. }
     simpl; f_equal; apply nfree_subs.
     intros Hin; apply n.
@@ -137,9 +137,9 @@ intros A pi; induction pi; intros L Hcl Hsub;
 - rewrite multi_subs_fqtf.
   apply frli; simpl.
   rewrite multi_subs_esubs, esubs_comp, esubs_ext with (r2:=r_h2n); intuition.
-  replace (((h2n_formula A)[[map (fun '(x0, u) => (x0, tesubs ⇑ u)) (L ∖ x)]])[dvar 0//x])
+  replace (((h2n_formula A)[[map (fun '(x0, u) => (x0, tesubs ⇑ u)) (L ∖ x)]])[evar 0//x])
      with (((h2n_formula A)[[map (fun '(x0, u) => (x0, tesubs ⇑ u)) (L ∖ x)
-                             ++ (x, dvar 0) :: nil]]))
+                             ++ (x, evar 0) :: nil]]))
     by now unfold multi_subs; rewrite fold_left_app; simpl.
   apply IHpi.
   + rewrite map_app; apply Forall_app.
@@ -174,7 +174,7 @@ intros A pi; induction pi; intros L Hcl Hsub;
         apply Forall_incl with (map snd L); intuition.
         clear; induction L; intuition; simpl; case_analysis; intuition. }
       rewrite nfree_subs by assumption.
-      apply exsi with (dvar 0); [ reflexivity | ].
+      apply exsi with (evar 0); [ reflexivity | ].
       rewrite nfree_subs by assumption.
       apply ax_hd.
   + apply Forall_forall; intros z Hinz.
@@ -184,9 +184,9 @@ intros A pi; induction pi; intros L Hcl Hsub;
 - rewrite 2 multi_subs_fqtf.
   rewrite <- @multi_subs_remove with (x:=x) in HeqBB; try assumption.
   + apply @exse with (x:=x) (A:= (h2n_formula A)[[L ∖ x]]); [ apply ax_hd | ].
-    apply impe with ((h2n_formula A)[[L ∖ x]]↑[dvar 0//x]); [ | apply ax_hd ].
-    replace ((h2n_formula A)[[L ∖ x]]↑[dvar 0//x] → BB↑)
-       with (((h2n_formula A)[[L ∖ x]]↑ → BB↑)[dvar 0//x]).
+    apply impe with ((h2n_formula A)[[L ∖ x]]↑[evar 0//x]); [ | apply ax_hd ].
+    replace ((h2n_formula A)[[L ∖ x]]↑[evar 0//x] → BB↑)
+       with (((h2n_formula A)[[L ∖ x]]↑ → BB↑)[evar 0//x]).
     { apply frle; [ reflexivity | simpl; rewrite multi_subs_fbin; subst; auto_ax ]. }
     simpl; f_equal; apply nfree_subs.
     intros Hin; apply n.

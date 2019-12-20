@@ -408,7 +408,7 @@ Qed.
 
 Lemma no_tecapture_hfeliftz : forall r x y lv t,
   ~ In y lv -> ~ In y (tvars (n2h_term r t)) ->
-  no_tecapture_at r lv t -> no_tecapture_at (⇑[tvar y]r) lv (tsubs x (dvar 0) (tesubs ⇑ t)).
+  no_tecapture_at r lv t -> no_tecapture_at (⇑[tvar y]r) lv (tsubs x (evar 0) (tesubs ⇑ t)).
 Proof. term_induction t.
 - intros Hlv Hy Hg.
   case_analysis; intuition.
@@ -424,7 +424,7 @@ Qed.
 
 Lemma no_ecapture_hfeliftz : forall r x y A lv,
   In x lv -> ~ In y lv -> ~ In y (fvars (n2h_formula r A)) ->
-  r #[[lv]] A -> (⇑[tvar y]r) #[[lv]] A↑[dvar 0//x].
+  r #[[lv]] A -> (⇑[tvar y]r) #[[lv]] A↑[evar 0//x].
 Proof. formula_induction A;
 try rename H into Hxlv; try rename H0 into Hylv; try rename H1 into Hyl; try rename H2 into Hg.
 - apply Forall_fold_right in Hg; apply Forall_fold_right.
@@ -448,7 +448,7 @@ Lemma n2h_hfelift_fup : forall t A r, n2h_formula (⇑[t]r) A↑ = n2h_formula r
 Proof. formula_induction A. Qed.
 
 Lemma n2h_hfelift_fupz : forall x t A r, r #[[x::nil]] A ->
-  n2h_formula (⇑[t]r) A↑[dvar 0//x] = (n2h_formula r A)[t//x].
+  n2h_formula (⇑[t]r) A↑[evar 0//x] = (n2h_formula r A)[t//x].
 Proof.
 intros; rewrite subs_esubs.
 - f_equal; apply n2h_hfelift_fup.
@@ -493,7 +493,7 @@ intros l A pi; induction pi; intros r Hg.
   remember (fresh lv) as y.
   remember (⇑[tvar y]r) as r1.
   specialize IHpi with r1.
-  assert (Forall (no_ecapture r1) (A↑[dvar 0//x] :: map (esubs ⇑) l)) as pi'.
+  assert (Forall (no_ecapture r1) (A↑[evar 0//x] :: map (esubs ⇑) l)) as pi'.
   { inversion_clear Hg as [ | ? ? Hgf Hgl ]; constructor.
     - simpl in Hgf; apply no_ecapture_hfeliftz with (x:= x) (y:= y) in Hgf; intuition.
       + apply no_ecapture_less with (lv1:=nil) in Hgf; now subst.
@@ -514,11 +514,11 @@ intros l A pi; induction pi; intros r Hg.
       apply freevars_fvars in HinC.
       rewrite Heqr1, n2h_hfelift_fup in HinC.
       apply in_flat_map; exists C; in_solve.
-    - enough (n2h_sequent r1 (map (esubs ⇑) l) A↑[dvar 0//x]
+    - enough (n2h_sequent r1 (map (esubs ⇑) l) A↑[evar 0//x]
             = n2h_sequent r1 (map (esubs ⇑) l) A↑[tvar y//x]) as Heq
         by now rewrite <- Heq.
-      enough (n2h_formula r1 A↑[dvar 0//x] = n2h_formula r1 A↑[tvar y//x]) as HeqBC.
-      { remember (A↑[dvar 0//x]) as B.
+      enough (n2h_formula r1 A↑[evar 0//x] = n2h_formula r1 A↑[tvar y//x]) as HeqBC.
+      { remember (A↑[evar 0//x]) as B.
         remember (A↑[tvar y//x]) as C.
         clear - HeqBC; revert B C HeqBC; induction l; simpl; intros B C HeqBC; intuition.
         apply IHl; simpl; f_equal; intuition. }
@@ -675,7 +675,7 @@ intros l A pi; induction pi; intros r Hg.
       rewrite <- subs_esubs; intuition.
       apply hprove_sequent_imp.
       remember (⇑[tvar y]r1) as r2.
-      assert (Forall (no_ecapture r2) (C↑ :: A↑[dvar 0//x] :: map (esubs ⇑) l)) as pi.
+      assert (Forall (no_ecapture r2) (C↑ :: A↑[evar 0//x] :: map (esubs ⇑) l)) as pi.
       { constructor; [ | constructor ]; subst r2.
         - now apply no_ecapture_hfelift.
         - simpl in HgA1; apply no_ecapture_hfeliftz with (x:=x) (y:=y) in HgA1; intuition.
@@ -688,7 +688,7 @@ intros l A pi; induction pi; intros r Hg.
           specialize_Forall Hgl1 with E'.
           now apply no_ecapture_hfelift. }
       apply IHpi2 in pi; simpl in pi.
-      remember (A↑[dvar 0//x] → C↑) as B.
+      remember (A↑[evar 0//x] → C↑) as B.
       remember (A[tvar y//x] → C) as D.
       assert (hprove (n2h_formula r2 B → n2h_formula r1 D)) as HBD.
       { subst B D r2; simpl; rewrite ? n2h_rup.

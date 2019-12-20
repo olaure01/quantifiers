@@ -44,34 +44,34 @@ Context { vatom : DecType } { tatom : Type }.
 
 (** terms with quantifiable variables *)
 (** arity not given meaning that we have a copy of each function name for each arity *)
-(** [dvar] for De Bruijn style eigen variables in proofs *)
+(** [evar] for De Bruijn style eigen variables in proofs *)
 (**          type for these indices as parameter called the eigen type *)
 (**          but mostly used with [nat] *)
 (**          other values can be used for terms without indices (use [Empty_set]) *)
 (**          or for mapping into other syntaxes *)
 (** [tvar] for quantified variables in formulas *)
 Inductive term T :=
-| dvar : T -> term T
+| evar : T -> term T
 | tvar : vatom -> term T
 | tconstr : tatom -> list (term T) -> term T.
-Arguments dvar {T}.
+Arguments evar {T}.
 
 (** appropriate induction for [term] (with list inside): so called "nested fix" *)
 Fixpoint term_ind_list_Forall T t :
   forall P : term T -> Prop,
-  (forall n, P (dvar n)) ->
+  (forall n, P (evar n)) ->
   (forall x, P (tvar T x)) ->
   (forall f l, Forall P l -> P (tconstr f l)) -> P t :=
-fun P Pdvar Ptvar Pconstr =>
+fun P Pevar Ptvar Pconstr =>
 match t with
-| dvar n => Pdvar n
+| evar n => Pevar n
 | tvar _ x => Ptvar x
 | tconstr c l => Pconstr c l
     ((fix l_ind l' : Forall P l' :=
       match l' with
       | nil => Forall_nil P
       | cons t1 l1 => Forall_cons _
-                        (term_ind_list_Forall t1 Pdvar Ptvar Pconstr)
+                        (term_ind_list_Forall t1 Pevar Ptvar Pconstr)
                         (l_ind l1)
       end) l)
 end.
@@ -107,21 +107,21 @@ Ltac term_induction t :=
 Fixpoint tesubs T1 T2 (r : T1 -> term T2) (t : term T1) :=
 match t with
 | tvar _ x => tvar T2 x
-| dvar k => r k
+| evar k => r k
 | tconstr f l => tconstr f (map (tesubs r) l)
 end.
 Notation "t ⟦ r ⟧" := (tesubs r t) (at level 8, left associativity, format "t ⟦ r ⟧").
 
 (** monad structure induced on [term] *)
-Lemma dvar_tesubs T1 T2 (r : T1 -> term T2) :
-  forall x, (dvar x)⟦r⟧ = r x.
+Lemma evar_tesubs T1 T2 (r : T1 -> term T2) :
+  forall x, (evar x)⟦r⟧ = r x.
 Proof. reflexivity. Qed.
-Hint Rewrite dvar_tesubs : term_db.
+Hint Rewrite evar_tesubs : term_db.
 
-Lemma tesubs_dvar T : forall (t : term T),
-  t⟦dvar⟧ = t.
+Lemma tesubs_evar T : forall (t : term T),
+  t⟦evar⟧ = t.
 Proof. term_induction t. Qed.
-Hint Rewrite tesubs_dvar : term_db.
+Hint Rewrite tesubs_evar : term_db.
 
 Definition fecomp T1 T2 T3 (r : T1 -> term T2) (s : T2 -> term T3) := fun x => (r x)⟦s⟧.
 Notation "r ;; s" := (fecomp r s) (at level 20, format "r  ;;  s").
@@ -151,7 +151,7 @@ Arguments tvar {T} _.
 Fixpoint tsubs x u t :=
 match t with
 | tvar y => if (eqb y x) then u else tvar y
-| dvar k => dvar k
+| evar k => evar k
 | tconstr c l => tconstr c (map (tsubs x u) l)
 end.
 Notation "t [ u // x ]" := (tsubs x u t) (at level 8, format "t [ u // x ]").
@@ -166,7 +166,7 @@ Hint Rewrite tsubs_tsubs_eq : term_db.
 Fixpoint tvars t :=
 match t with
 | tvar x => x :: nil
-| dvar _ => nil
+| evar _ => nil
 | tconstr _ l => flat_map tvars l
 end.
 Notation "x ∈ t" := (In x (tvars t)) (at level 30).
@@ -234,9 +234,9 @@ Lemma multi_tsubs_nil : multi_tsubs nil = id.
 Proof. reflexivity. Qed.
 Hint Rewrite multi_tsubs_nil : term_db.
 
-Lemma multi_tsubs_dvar : forall L n, (dvar n)[[L]] = dvar n.
+Lemma multi_tsubs_evar : forall L n, (evar n)[[L]] = evar n.
 Proof. now induction L; simpl; intros n; [ | destruct a; rewrite IHL ]. Qed.
-Hint Rewrite multi_tsubs_dvar : term_db.
+Hint Rewrite multi_tsubs_evar : term_db.
 
 Lemma multi_tsubs_tvar : forall L x, ~ In x (map fst L) -> (tvar x)[[L]] = tvar x.
 Proof.
@@ -325,7 +325,7 @@ Qed.
 
 Fixpoint no_tecapture_at lv t :=
 match t with
-| dvar n => Forall (fun x => x ∉ (r n)) lv
+| evar n => Forall (fun x => x ∉ (r n)) lv
 | tvar _ x => True
 | tconstr f l => fold_right (fun u P => and (no_tecapture_at lv u) P) True l
 end.
@@ -406,7 +406,7 @@ Hint Rewrite tvars_tesubs_fclosed using intuition; fail : term_db.
 Fixpoint teigen_max t :=
 match t with
 | tvar _ _ => 0
-| dvar n => n
+| evar n => n
 | tconstr _ l => list_max (map teigen_max l)
 end.
 
@@ -418,7 +418,7 @@ Notation "x ∉ t" := (~ In x (tvars t)) (at level 30).
 Notation closed t := (tvars t = nil).
 Notation fclosed r := (forall n, closed (r n)).
 
-Definition fup := fun n => dvar (S n).
+Definition fup := fun n => evar (S n).
 Notation "⇑" := fup.
 Notation "t ↑" := (t⟦⇑⟧) (at level 8, format "t ↑").
 
@@ -433,9 +433,9 @@ Hint Rewrite tvars_fup : term_db.
 (* general shape, unused, generated through ↑
 Definition fesubs k v := fun n =>
   match n ?= k with
-  | Lt => dvar n
+  | Lt => evar n
   | Eq => v
-  | Gt => dvar (pred n)
+  | Gt => evar (pred n)
   end.
 Notation "v // ↓ k" := (fesubs k v) (at level 18, format "v // ↓ k").
 
@@ -449,7 +449,7 @@ Proof. intros ?; unfold fesubs, fup, fecomp; e_case_intuition. Qed.
 Definition fesubs v := fun n =>
   match n with
   | 0 => v
-  | S n => dvar n
+  | S n => evar n
   end.
 Notation "v ⇓" := (fesubs v) (at level 18, format "v ⇓").
 
@@ -457,14 +457,14 @@ Lemma fclosed_fesubs : forall v, closed v -> fclosed (v⇓).
 Proof. intros v Hc n; now destruct n. Qed.
 Hint Resolve fclosed_fesubs : term_db.
 
-Lemma fesubs_fup v : ⇑ ;; v⇓ == dvar.
+Lemma fesubs_fup v : ⇑ ;; v⇓ == evar.
 Proof. intros ?; reflexivity. Qed.
 
 Lemma tesubs_fup v t : t↑⟦v⇓⟧ = t.
 Proof. rcauto. Qed.
 Hint Rewrite tesubs_fup : term_db.
 
-(* In practive only the case [u = dvar 0] will be used *)
+(* In practive only the case [u = evar 0] will be used *)
 Definition felift u r := fun n =>
   match n with
   | 0 => u
