@@ -65,7 +65,7 @@ Notation dvar := (dvar vatom tatom).
 Notation "r ;; s" := (fecomp r s) (at level 20, format "r  ;;  s").
 Notation closed t := (tvars t = nil).
 Notation "⇑" := fup.
-Notation "↑[ u ] r" := (felift u r) (at level 25, format "↑[ u ] r").
+Notation "⇑[ u ] r" := (felift u r) (at level 25, format "⇑[ u ] r").
 
 Hint Rewrite (@tesubs_dvar vatom tatom) : term_db.
 Hint Rewrite (@tesubs_comp vatom tatom) : term_db.
@@ -125,11 +125,10 @@ Ltac formula_induction A :=
     try (induction ll as [ | tt lll IHll ]; simpl; intuition;
          rewrite IHll; f_equal; intuition)
   | try ((try f_equal); intuition; fail)
-  | try (apply (f_equal2 (fbin _)));
-    intuition
+  | try (apply (f_equal2 (fbin _))); intuition
   | (try apply (f_equal (fqtf _ _))); repeat case_analysis; try (intuition; fail); 
-     try (intuition; (rnow idtac); fail) ];
-  try (now (rnow idtac)); try (now rcauto).
+     try (now rcauto) ];
+  try (now rcauto).
 
 
 (** * Size of [formula] *)
@@ -349,8 +348,7 @@ Proof. formula_induction A.
 - apply notin_tsubs_bivar.
   intros Hin; apply H; simpl; intuition.
 - apply H; simpl; intuition.
-- now apply nfree_subs; intros Hin; apply H; right; apply freevars_fvars.
-  (* TODO automatize? *)
+- now apply nfree_subs; intros Hin; apply H; right; apply freevars_fvars. (* TODO automatize? *)
 Qed.
 
 
@@ -365,7 +363,7 @@ Hint Rewrite multi_subs_nil : term_db.
 
 Lemma multi_subs_fvar : forall L X l, (fvar X l)[[L]] = fvar X (map (multi_tsubs L) l).
 Proof. induction L; intros X l; simpl.
-- rnow idtac then rewrite map_id.
+- rcauto; now rewrite map_id.
 - now destruct a; rewrite IHL, map_map.
 Qed.
 Hint Rewrite multi_subs_fvar : term_db.
@@ -615,17 +613,17 @@ match A with
 end.
 
 Notation "A ↑" := (A⟦⇑⟧) (at level 8, format "A ↑").
-Notation "v // ↓ k" := (fesubs k v) (at level 18, format "v // ↓ k").
+Notation "v ⇓" := (fesubs v) (at level 18, format "v ⇓").
 
 Lemma freevars_fup : forall A, freevars A↑ = freevars A.
 Proof. rcauto. Qed.
 Hint Rewrite freevars_fup : term_db.
 
-Lemma esubs_z_fup v A : A↑⟦v//↓0⟧ = A.
-Proof. now rewrite esubs_comp, (esubs_ext (fesubs_z_fup v)), esubs_dvar. Qed.
-Hint Rewrite esubs_z_fup : term_db.
+Lemma esubs_fup v A : A↑⟦v⇓⟧ = A.
+Proof. now rewrite esubs_comp, (esubs_ext (fesubs_fup v)), esubs_dvar. Qed.
+Hint Rewrite esubs_fup : term_db.
 
-Lemma lift_esubs u r : forall A, A⟦r⟧↑ = A↑⟦↑[u]r⟧.
+Lemma lift_esubs u r : forall A, A⟦r⟧↑ = A↑⟦⇑[u]r⟧.
 Proof. intros; rewrite 2 esubs_comp; apply esubs_ext, felift_comp. Qed.
 Hint Rewrite lift_esubs : term_db.
 
@@ -662,9 +660,8 @@ Ltac formula_induction A :=
     try (induction ll as [ | tt lll IHll ]; simpl; intuition;
          rewrite IHll; f_equal; intuition)
   | try ((try f_equal); intuition; fail)
-  | try (apply (f_equal2 (fbin _)));
-    intuition
-  | (try apply (f_equal (fqtf _ _))); repeat case_analysis; try (intuition; fail);
-     try (intuition; (rnow idtac); fail) ];
-  try (now (rnow idtac)); try (now rcauto).
+  | try (apply (f_equal2 (fbin _))); intuition
+  | (try apply (f_equal (fqtf _ _))); repeat case_analysis; try (intuition; fail); 
+     try (now rcauto) ];
+  try (now rcauto).
 

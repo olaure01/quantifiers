@@ -97,8 +97,8 @@ Ltac term_induction t :=
     end;
     try (apply map_ext_in; intros i Hi; specialize_Forall_all i);
     try (apply Forall_forall; intros i Hi; specialize_Forall_all i);
-    try (now intuition) ];
-  try (now (rnow idtac)); try (now rcauto).
+    try (intuition; fail) ];
+  try (now rcauto).
 
 
 (** * Monad structure on [term] via substitution *)
@@ -430,6 +430,7 @@ Lemma tvars_fup : forall t, tvars t↑ = tvars t.
 Proof. rcauto. Qed.
 Hint Rewrite tvars_fup : term_db.
 
+(* general shape, unused, generated through ↑
 Definition fesubs k v := fun n =>
   match n ?= k with
   | Lt => dvar n
@@ -442,17 +443,26 @@ Lemma fclosed_fesubs : forall k v, closed v -> fclosed (v//↓k).
 Proof. e_case_intuition unfolding fesubs. Qed.
 Hint Resolve fclosed_fesubs : term_db.
 
-(*
 Lemma fesubs_fup k v : ⇑ ;; v↑//↓(S k) == v//↓k ;; ⇑.
 Proof. intros ?; unfold fesubs, fup, fecomp; e_case_intuition. Qed.
 *)
+Definition fesubs v := fun n =>
+  match n with
+  | 0 => v
+  | S n => dvar n
+  end.
+Notation "v ⇓" := (fesubs v) (at level 18, format "v ⇓").
 
-Lemma fesubs_z_fup v : ⇑ ;; v//↓0 == dvar.
+Lemma fclosed_fesubs : forall v, closed v -> fclosed (v⇓).
+Proof. intros v Hc n; now destruct n. Qed.
+Hint Resolve fclosed_fesubs : term_db.
+
+Lemma fesubs_fup v : ⇑ ;; v⇓ == dvar.
 Proof. intros ?; reflexivity. Qed.
 
-Lemma tesubs_z_fup v t : t↑⟦v//↓0⟧ = t.
+Lemma tesubs_fup v t : t↑⟦v⇓⟧ = t.
 Proof. rcauto. Qed.
-Hint Rewrite tesubs_z_fup : term_db.
+Hint Rewrite tesubs_fup : term_db.
 
 (* In practive only the case [u = dvar 0] will be used *)
 Definition felift u r := fun n =>
@@ -460,17 +470,17 @@ Definition felift u r := fun n =>
   | 0 => u
   | S k => (r k)↑
   end.
-Notation "↑[ u ] r" := (felift u r) (at level 25, format "↑[ u ] r").
+Notation "⇑[ u ] r" := (felift u r) (at level 25, format "⇑[ u ] r").
 
-Lemma fclosed_felift u r : closed u -> fclosed r -> fclosed (↑[u]r).
+Lemma fclosed_felift u r : closed u -> fclosed r -> fclosed (⇑[u]r).
 Proof. intros ? ? n; rnow destruct n. Qed.
 Hint Resolve fclosed_felift : term_db.
 
-Lemma felift_comp u r : r ;; ⇑ == ⇑ ;; ↑[u]r.
+Lemma felift_comp u r : r ;; ⇑ == ⇑ ;; ⇑[u]r.
 Proof. intros ?; reflexivity. Qed.
 Hint Rewrite felift_comp : term_db.
 
-Lemma felift_tesubs u r : forall t, t⟦r⟧↑ = t↑⟦↑[u]r⟧.
+Lemma felift_tesubs u r : forall t, t⟦r⟧↑ = t↑⟦⇑[u]r⟧.
 Proof. rcauto. Qed.
 Hint Rewrite felift_tesubs : term_db.
 

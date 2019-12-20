@@ -18,7 +18,7 @@ Notation term := (@term vatom tatom nat).
 Notation closed t := (tvars t = nil).
 Notation fclosed r := (forall n, closed (r n)).
 Notation "↑ r" := (felift (dvar 0) r) (at level 25, format "↑ r").
-Notation "v // ↓ k" := (fesubs k v) (at level 18, format "v // ↓ k").
+Notation "v ⇓" := (fesubs v) (at level 18, format "v ⇓").
 Notation "A ⟦ r ⟧" := (esubs r A) (at level 8, left associativity, format "A ⟦ r ⟧").
 Notation "A [ u // x ]" := (subs x u A) (at level 8, format "A [ u // x ]").
 Notation "⇑" := fup.
@@ -37,7 +37,7 @@ Infix "﹠" := (fbin wth_con) (at level 50).
 Notation "∀" := (fqtf frl_con).
 
 Hint Rewrite (@freevars_fup vatom tatom fatom Ncon Bcon Qcon) : term_db.
-Hint Rewrite (@esubs_z_fup vatom tatom fatom Ncon Bcon Qcon) : term_db.
+Hint Rewrite (@esubs_fup vatom tatom fatom Ncon Bcon Qcon) : term_db.
 Hint Rewrite (@nfree_subs vatom tatom fatom Ncon Bcon Qcon nat) using intuition; fail : term_db.
 
 Hint Resolve (@fclosed_fesubs vatom tatom) : term_db.
@@ -148,7 +148,7 @@ destruct pi2; intuition.
   intros A D pi1; destruct pi1; intros; inversion H; subst;
     try (constructor; apply (IH _ _ _ pi1 (frll _ e pi2)); simpl; lia).
   + now apply (frll u).
-  + destruct (pesubs (u//↓0) (fclosed_fesubs _ _ e) pi1) as [pi1' Hs].
+  + destruct (pesubs (u⇓) (fclosed_fesubs _ e) pi1) as [pi1' Hs].
     simpl in IH; rewrite <- Hs in IH; clear Hs.
     revert pi1' IH; rnow idtac.
     apply (IH _ _ _ pi1' pi2); lia.

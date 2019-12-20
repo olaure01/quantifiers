@@ -19,7 +19,7 @@ Notation term := (@term vatom tatom nat).
 Notation closed t := (tvars t = nil).
 Notation fclosed r := (forall n, closed (r n)).
 Notation "↑ r" := (felift (dvar 0) r) (at level 25, format "↑ r").
-Notation "v // ↓ k" := (fesubs k v) (at level 18, format "v // ↓ k").
+Notation "v ⇓" := (fesubs v) (at level 18, format "v ⇓").
 Notation "A ⟦ r ⟧" := (esubs r A) (at level 8, left associativity, format "A ⟦ r ⟧").
 Notation "A [ u // x ]" := (subs x u A) (at level 8, format "A [ u // x ]").
 Notation "⇑" := fup.
@@ -40,7 +40,7 @@ Hint Rewrite (@subs_esubs vatom tatom fatom Nocon Icon Qcon nat)
                              (try apply no_ecapture_not_egenerated); try (intuition; fail);
                              (try apply fclosed_no_ecapture); intuition; fail : term_db.
 Hint Rewrite <- (@lift_esubs vatom tatom fatom Nocon Icon Qcon) : term_db.
-Hint Rewrite (@esubs_z_fup vatom tatom fatom Nocon Icon Qcon) : term_db.
+Hint Rewrite (@esubs_fup vatom tatom fatom Nocon Icon Qcon) : term_db.
 
 Hint Resolve (@fclosed_felift vatom tatom) : term_db.
 Hint Resolve (@fclosed_fesubs vatom tatom) : term_db.
@@ -150,15 +150,14 @@ clear r Hc; apply rnprove_mutrect; intros; (try simpl in X);
   (try assert (IH1 := X r H)); (try assert (IH2 := X0 r H));
   (try (econstructor; (eassumption + intuition); fail)).
 - rewrite map_app; apply nax.
-- rnow idtac then rnow eapply nfrle.
-- assert (fclosed (↑r0)) by rnow idtac.
-  specialize X with (↑r0).
-  revert X; rnow idtac.
-  rewrite map_map, <- (map_ext _ _ (lift_esubs (dvar 0) _)), <- map_map in X0; intuition.
-- rnow specialize X with r0 then rnow eapply (rexsi (tesubs r0 u)).
-- assert (fclosed (↑r0)) as Hup by rnow idtac.
-  assert (IH := X0 (↑r0) Hup); simpl in IH.
-  rewrite map_map, <- (map_ext _ _ (lift_esubs (dvar 0) _)), <- map_map in IH.
+- rcauto; rnow apply nfrle.
+- specialize X with (↑r0).
+  revert X; rcauto.
+  rewrite map_map, <- (map_ext _ _ (lift_esubs (dvar 0) _)), <- map_map in X; intuition.
+- specialize X with r0.
+  rnow apply (rexsi (tesubs r0 u)).
+- specialize X0 with (↑r0); simpl in X0.
+  rewrite map_map, <- (map_ext _ _ (lift_esubs (dvar 0) _)), <- map_map in X0.
   rnow eapply rexse.
 Qed.
 
@@ -166,18 +165,18 @@ Lemma rpsubsz_r {l A x u} : closed u ->
   rprove (map (esubs ⇑) l) A↑[dvar 0//x] -> rprove l (subs x u A).
 Proof.
 intros Hc pi.
-apply (rnpesubs (u//↓0)) in pi; [ | intuition ].
+apply (rnpesubs (u⇓)) in pi; [ | intuition ].
 rnow simpl in pi then cbn in pi.
-now rewrite map_map, (map_ext _ _ (esubs_z_fup _)), map_id in pi.
+now rewrite map_map, (map_ext _ _ (esubs_fup _)), map_id in pi.
 Qed.
 
 Lemma rpsubsz_l {l A x u C} : closed u ->
   rprove (A↑[dvar 0//x] :: map (esubs ⇑) l) C↑ -> rprove (subs x u A :: l) C.
 Proof.
 intros Hc pi.
-apply (rnpesubs (u//↓0)) in pi; [ | intuition ].
+apply (rnpesubs (u⇓)) in pi; [ | intuition ].
 rnow simpl in pi then simpl in pi.
-now rewrite map_map, (map_ext _ _ (esubs_z_fup _)), map_id in pi.
+now rewrite map_map, (map_ext _ _ (esubs_fup _)), map_id in pi.
 Qed.
 
 
@@ -328,7 +327,7 @@ apply (lt_wf_double_rect (fun n m =>
   rewrite map_app in pi1' ; rewrite app_comm_cons in pi1'.
   revert pi2 pi1' Hpi ; rewrite ? map_app ; simpl ; rewrite app_comm_cons ;
     intros pi2 pi1' Hpi.
-  assert (fsize (A↑) = fsize A) as Hup by (rnow idtac).
+  assert (fsize (A↑) = fsize A) as Hup by rcauto.
   eapply (snd (IHm _ Hpi _ Hup) _ _ _ pi2) in pi1'...
   destruct (Compare_dec.le_lt_dec (fsize (exs x A0)) (fsize A)).
   + eapply (snd (fst (IHm _ Hpi _ eq_refl)) _ _ _ n) in pi1...
