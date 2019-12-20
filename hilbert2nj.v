@@ -20,14 +20,13 @@ Notation formula := (@formula vatom tatom fatom Nocon Icon Qcon nat).
 Notation r_h2n := (@r_empty vatom tatom nat).
 Notation closed t := (tvars t = nil).
 Notation fclosed r := (forall n, closed (r n)).
-Notation "↑ r" := (felift r) (at level 25, format "↑ r").
-Notation "v // ↓ k" := (fesubs k v) (at level 18, format "v // ↓ k").
 Notation "A ⟦ r ⟧" := (esubs r A) (at level 8, left associativity, format "A ⟦ r ⟧").
 Notation "A [ u // x ]" := (subs x u A) (at level 8, format "A [ u // x ]").
 Notation "A [[ L ]]" := (multi_subs L A) (at level 8, format "A [[ L ]]").
 Notation "L ∖ x" := (remove_snd x L) (at level 18).
 Notation "⇑" := fup.
 Notation "A ↑" := (A⟦⇑⟧) (at level 8, format "A ↑").
+Notation "l ⇈" := (map (fun F => F↑) l) (at level 8, format "l ⇈").
 Notation "x ∈ A" := (In x (freevars A)) (at level 30).
 Notation "x ∉ A" := (~ In x (freevars A)) (at level 30).
 Notation "y #[ x ] A" := (no_capture_at x y A) (at level 30, format "y  #[ x ]  A").

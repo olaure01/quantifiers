@@ -24,6 +24,7 @@ Notation "A ⟦ r ⟧" := (esubs r A) (at level 8, left associativity, format "A
 Notation "A [ u // x ]" := (subs x u A) (at level 8, format "A [ u // x ]").
 Notation "⇑" := fup.
 Notation "A ↑" := (A⟦⇑⟧) (at level 8, format "A ↑").
+Notation "l ⇈" := (map (fun F => F↑) l) (at level 8, format "l ⇈").
 Notation "x ∈ A" := (In x (freevars A)) (at level 30).
 Notation "x ∉ A" := (~ In x (freevars A)) (at level 30).
 
@@ -45,16 +46,17 @@ Hint Rewrite (@esubs_fup vatom tatom fatom Nocon Icon Qcon) : term_db.
 Hint Resolve (@fclosed_felift vatom tatom) : term_db.
 Hint Resolve (@fclosed_fesubs vatom tatom) : term_db.
 
+
 (** Proofs *)
 Inductive prove : list formula -> formula -> Type :=
 | ax : forall l1 l2 A, prove (l1 ++ A :: l2) A
 | impi { l A B } : prove (A :: l) B -> prove l (imp A B)
 | impe { l B } : forall A, prove l (imp A B) -> prove l A -> prove l B
-| frli { x l A } : prove (map (fun F => F↑) l) A↑[dvar 0//x] -> prove l (frl x A)
+| frli { x l A } : prove l⇈ A↑[dvar 0//x] -> prove l (frl x A)
 | frle { x l A } : forall u, closed u -> prove l (frl x A) -> prove l (subs x u A)
 | exsi { x l A } : forall u, closed u -> prove l (subs x u A) -> prove l (exs x A)
 | exse { l C } : forall x A, prove l (exs x A) ->
-                             prove (A↑[dvar 0//x] :: map (fun F => F↑) l) C↑ -> prove l C.
+                             prove (A↑[dvar 0//x] :: l⇈) C↑ -> prove l C.
 Hint Constructors prove : term_db.
 Global Arguments impe { l B } _ _ _.
 Global Arguments exse { l C } _ _ _.
@@ -91,11 +93,11 @@ Inductive nprove : list formula -> formula -> Type := (* neutral terms *)
 with rprove : list formula -> formula -> Type := (* normal forms *)
 | rninj { l A } : nprove l A -> rprove l A
 | rimpi { l A B } : rprove (A :: l) B -> rprove l (imp A B)
-| rfrli { x l A } : rprove (map (esubs ⇑) l) A↑[dvar 0//x] -> rprove l (frl x A)
+| rfrli { x l A } : rprove l⇈ A↑[dvar 0//x] -> rprove l (frl x A)
 | rexsi { x l A } : forall u, closed u -> rprove l (subs x u A) -> rprove l (exs x A)
 | rexse { l C } : forall x A,
                      nprove l (exs x A) ->
-                     rprove (A↑[dvar 0//x] :: map (esubs ⇑) l) C↑ -> rprove l C.
+                     rprove (A↑[dvar 0//x] :: l⇈) C↑ -> rprove l C.
 Hint Constructors nprove rprove : term_db.
 Global Arguments nimpe { l B } _ _ _.
 Global Arguments rexse { l C } _ _ _ _.
@@ -162,7 +164,7 @@ clear r Hc; apply rnprove_mutrect; intros; (try simpl in X);
 Qed.
 
 Lemma rpsubsz_r {l A x u} : closed u ->
-  rprove (map (esubs ⇑) l) A↑[dvar 0//x] -> rprove l (subs x u A).
+  rprove l⇈ A↑[dvar 0//x] -> rprove l (subs x u A).
 Proof.
 intros Hc pi.
 apply (rnpesubs (u⇓)) in pi; [ | intuition ].
@@ -171,7 +173,7 @@ now rewrite map_map, (map_ext _ _ (esubs_fup _)), map_id in pi.
 Qed.
 
 Lemma rpsubsz_l {l A x u C} : closed u ->
-  rprove (A↑[dvar 0//x] :: map (esubs ⇑) l) C↑ -> rprove (subs x u A :: l) C.
+  rprove (A↑[dvar 0//x] :: l⇈) C↑ -> rprove (subs x u A :: l) C.
 Proof.
 intros Hc pi.
 apply (rnpesubs (u⇓)) in pi; [ | intuition ].
@@ -210,26 +212,26 @@ remember (imp A B) as C; revert A B HeqC; induction pi;
   eapply (IHpi (A1↑) (B1↑)); [ reflexivity | | ].
   + clear - Hsub ; intros D l B Hs pi1 pi2.
     rnow eapply (Hsub D).
-  + rewrite <- (app_nil_l (map (esubs ⇑) l)) ; rewrite app_comm_cons ; rewrite <- (app_nil_l _).
+  + rewrite <- (app_nil_l l⇈) ; rewrite app_comm_cons ; rewrite <- (app_nil_l _).
     eapply nweakening; [ | reflexivity ].
     now apply rnpesubs.
 Qed.
 
 Lemma frl_reduction : forall A x l, rprove l (frl x A) ->
   forall u, closed u -> rprove l (subs x u A).
-Proof with try eassumption ; try reflexivity.
+Proof.
 intros A x l pi.
 remember (frl x A) as C; revert A x HeqC; induction pi;
   intros A1 x1 HeqC; inversion HeqC; subst; intros u Hc.
-- apply rninj; eapply nfrle...
-- eapply rpsubsz_r in pi...
-- eapply rexse...
-  rnow simpl in IHpi then rnow (eapply IHpi).
+- apply rninj; now eapply nfrle.
+- eapply rpsubsz_r in pi; eassumption.
+- apply (rexse x A); trivial.
+  rnow simpl in IHpi then rnow (apply IHpi).
 Qed.
 
 Lemma exs_reduction : forall A x l, rprove l (exs x A) ->
 (forall D l B, fsize D = fsize A -> rprove (D :: l) B -> rprove l D -> rprove l B) -> 
-  forall C, rprove (A↑[dvar 0//x] :: map (esubs ⇑) l) C↑ -> rprove l C.
+  forall C, rprove (A↑[dvar 0//x] :: l⇈) C↑ -> rprove l C.
 Proof.
 intros A x l pi.
 remember (exs x A) as A'; revert A x HeqA'; induction pi;

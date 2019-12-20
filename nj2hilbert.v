@@ -19,14 +19,13 @@ Notation term := (@term vatom tatom nat).
 Notation formula := (@formula vatom tatom fatom Nocon Icon Qcon nat).
 Notation closed t := (tvars t = nil).
 Notation fclosed r := (forall n, closed (r n)).
-Notation "↑ r" := (felift r) (at level 25, format "↑ r").
-Notation "v // ↓ k" := (fesubs k v) (at level 18, format "v // ↓ k").
 Notation "A ⟦ r ⟧" := (esubs r A) (at level 8, left associativity, format "A ⟦ r ⟧").
 Notation "A [ u // x ]" := (subs x u A) (at level 8, format "A [ u // x ]").
 Notation "A [[ L ]]" := (multi_subs L A) (at level 8, format "A [[ L ]]").
 Notation "L ∖ x" := (remove_snd x L) (at level 18).
 Notation "⇑" := fup.
 Notation "A ↑" := (A⟦⇑⟧) (at level 8, format "A ↑").
+Notation "l ⇈" := (map (fun F => F↑) l) (at level 8, format "l ⇈").
 Notation "x ∈ A" := (In x (freevars A)) (at level 30).
 Notation "x ∉ A" := (~ In x (freevars A)) (at level 30).
 Notation "y #[ x ] A" := (no_capture_at x y A) (at level 30, format "y  #[ x ]  A").
@@ -386,9 +385,10 @@ Definition hfelift (u : hterm) r := fun n =>
   | 0 => u
   | S k => r k
   end.
+Notation "⇑ [ u ] r" := (hfelift u r) (at level 25, format "⇑ [ u ] r").
 
 Lemma no_tecapture_hfelift : forall u r t lv,
-  no_tecapture_at r lv t -> no_tecapture_at (hfelift u r) lv (tesubs ⇑ t).
+  no_tecapture_at r lv t -> no_tecapture_at (⇑[u]r) lv (tesubs ⇑ t).
 Proof. term_induction t.
 apply Forall_fold_right in H; apply Forall_fold_right.
 apply Forall_forall; intros z Hz.
@@ -397,7 +397,7 @@ specialize_Forall_all y; auto.
 Qed.
 
 Lemma no_ecapture_hfelift : forall u r (A : formula) lv,
-  r #[[lv]] A -> (hfelift u r) #[[lv]] A↑.
+  r #[[lv]] A -> (⇑[u]r) #[[lv]] A↑.
 Proof. formula_induction A.
 apply Forall_fold_right in H; apply Forall_fold_right.
 apply Forall_forall; intros v Hv.
@@ -408,7 +408,7 @@ Qed.
 
 Lemma no_tecapture_hfeliftz : forall r x y lv t,
   ~ In y lv -> ~ In y (tvars (n2h_term r t)) ->
-  no_tecapture_at r lv t -> no_tecapture_at (hfelift (tvar y) r) lv (tsubs x (dvar 0) (tesubs ⇑ t)).
+  no_tecapture_at r lv t -> no_tecapture_at (⇑[tvar y]r) lv (tsubs x (dvar 0) (tesubs ⇑ t)).
 Proof. term_induction t.
 - intros Hlv Hy Hg.
   case_analysis; intuition.
@@ -424,7 +424,7 @@ Qed.
 
 Lemma no_ecapture_hfeliftz : forall r x y A lv,
   In x lv -> ~ In y lv -> ~ In y (fvars (n2h_formula r A)) ->
-  r #[[lv]] A -> (hfelift (tvar y) r) #[[lv]] A↑[dvar 0//x].
+  r #[[lv]] A -> (⇑[tvar y]r) #[[lv]] A↑[dvar 0//x].
 Proof. formula_induction A;
 try rename H into Hxlv; try rename H0 into Hylv; try rename H1 into Hyl; try rename H2 into Hg.
 - apply Forall_fold_right in Hg; apply Forall_fold_right.
@@ -440,15 +440,15 @@ try rename H into Hxlv; try rename H0 into Hylv; try rename H1 into Hyl; try ren
   destruct H as [Hin|Hin]; subst; intuition.
 Qed.
 
-Lemma n2h_hfelift_tfup : forall t u r, n2h_term (hfelift t r) (tesubs ⇑ u) = n2h_term r u.
+Lemma n2h_hfelift_tfup : forall t u r, n2h_term (⇑[t]r) (tesubs ⇑ u) = n2h_term r u.
 Proof. term_induction u. Qed.
 Hint Resolve n2h_hfelift_tfup : term_db.
 
-Lemma n2h_hfelift_fup : forall t A r, n2h_formula (hfelift t r) A↑ = n2h_formula r A.
+Lemma n2h_hfelift_fup : forall t A r, n2h_formula (⇑[t]r) A↑ = n2h_formula r A.
 Proof. formula_induction A. Qed.
 
 Lemma n2h_hfelift_fupz : forall x t A r, r #[[x::nil]] A ->
-  n2h_formula (hfelift t r) A↑[dvar 0//x] = (n2h_formula r A)[t//x].
+  n2h_formula (⇑[t]r) A↑[dvar 0//x] = (n2h_formula r A)[t//x].
 Proof.
 intros; rewrite subs_esubs.
 - f_equal; apply n2h_hfelift_fup.
@@ -491,7 +491,7 @@ intros l A pi; induction pi; intros r Hg.
   now inversion Hg' as [ | ? ? Hgi Hgl]; destruct Hgi; constructor.
 - remember (flat_map (fun C => fvars (n2h_formula r C)) (frl x A :: l)) as lv.
   remember (fresh lv) as y.
-  remember (hfelift (tvar y) r) as r1.
+  remember (⇑[tvar y]r) as r1.
   specialize IHpi with r1.
   assert (Forall (no_ecapture r1) (A↑[dvar 0//x] :: map (esubs ⇑) l)) as pi'.
   { inversion_clear Hg as [ | ? ? Hgf Hgl ]; constructor.
@@ -674,7 +674,7 @@ intros l A pi; induction pi; intros r Hg.
       replace (tvar y) with (n2h_term r1 (tvar y)) by reflexivity.
       rewrite <- subs_esubs; intuition.
       apply hprove_sequent_imp.
-      remember (hfelift (tvar y) r1) as r2.
+      remember (⇑[tvar y]r1) as r2.
       assert (Forall (no_ecapture r2) (C↑ :: A↑[dvar 0//x] :: map (esubs ⇑) l)) as pi.
       { constructor; [ | constructor ]; subst r2.
         - now apply no_ecapture_hfelift.
