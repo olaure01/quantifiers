@@ -1,7 +1,7 @@
 (* Definitions and properties of first-order terms *)
 (*   with holes in [nat] for de Bruijn indices *)
 
-Require Export PeanoNat Compare_dec Lia List.
+Require Export PeanoNat Lia List.
 Require Import stdlib_more.
 Require Export dectype term_tactics.
 

@@ -296,10 +296,12 @@ apply (lt_wf_double_rect (fun n m =>
     rewrite <- ? app_assoc ; rewrite <- app_comm_cons...
 - assert (nsize pi2 < S (nsize pi2 + rsize r)) as IH1 by lia.
   assert (rsize r < S (nsize pi2 + rsize r)) as IH2 by lia.
-  destruct (Compare_dec.le_lt_dec (fsize (imp A0 B)) (fsize A)).
+  assert ({fsize (imp A0 B) <= fsize A} + {fsize A < fsize (imp A0 B)}) as [ Ho | Ho ]
+    by (case (CompareSpec2Type (Nat.compare_spec (fsize (imp A0 B)) (fsize A))); intros Ho;
+          [ left | left | right ]; lia).
   + eapply IHm in IH1 ; eapply IHm in IH2...
     eapply imp_reduction...
-    simpl in l ; intros D l' B' Heq pi1' pi2'.
+    simpl in Ho; intros D l' B' Heq pi1' pi2'.
     rewrite <- (app_nil_l _) in pi1'.
     refine (snd (IHn (fsize D) (S (rsize pi1')) _ _ _) _ _ _ pi1' _ pi2')...
   + apply rninj ; eapply nimpe ; eapply IHm...
@@ -328,11 +330,13 @@ apply (lt_wf_double_rect (fun n m =>
     intros pi2 pi1' Hpi.
   assert (fsize (A↑) = fsize A) as Hup by rcauto.
   eapply (snd (IHm _ Hpi _ Hup) _ _ _ pi2) in pi1'...
-  destruct (Compare_dec.le_lt_dec (fsize (exs x A0)) (fsize A)).
+  assert ({fsize (exs x A0) <= fsize A} + {fsize A < fsize (exs x A0)}) as [ Ho | Ho ]
+    by (case (CompareSpec2Type (Nat.compare_spec (fsize (exs x A0)) (fsize A))); intros Ho;
+          [ left | left | right ]; lia).
   + eapply (snd (fst (IHm _ Hpi _ eq_refl)) _ _ _ n) in pi1...
     simpl in pi1' ; rewrite <- map_app in pi1'.
     eapply exs_reduction...
-    simpl in l ; intros D l' B' Heq pi1'' pi2''.
+    simpl in Ho; intros D l' B' Heq pi1'' pi2''.
     rewrite <- (app_nil_l _) in pi1''.
     refine (snd (IHn (fsize D) (S (rsize pi1'')) _ _ _) _ _ _ pi1'' _ pi2'')...
   + eapply rexse.

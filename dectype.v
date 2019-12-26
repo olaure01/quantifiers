@@ -209,9 +209,8 @@ assert(forall n x, In (hd (c nil) (ih x)) (ih (n + x))) as HC.
   - subst; apply in_cons; intuition. }
 enough (forall x y, x < y -> hd (c nil) (ih x) = hd (c nil) (ih y) -> x = y) as Hlt.
 { intros x y Heq.
-  destruct (Compare_dec.lt_eq_lt_dec x y) as [C | C]; [ destruct C as [C | C] | ].
+  case (Nat.compare_spec x y); intros Ho; try lia.
   - now apply Hlt; [ lia | ].
-  - assumption.
   - symmetry; now apply Hlt; [ lia | ]. }
 intros x y Hlt Heq; exfalso.
 specialize HC with (y - S x) x.
@@ -361,9 +360,8 @@ destruct HX as [f Hinj [i Hi]]; simpl in Heq.
 revert x y Heq.
 enough (forall x y, x < y -> Nat.iter x f i = Nat.iter y f i -> x = y) as Hlt.
 { intros x y Heq.
-  destruct (Compare_dec.lt_eq_lt_dec x y) as [C | C]; [ destruct C as [C | C] | ].
+  case (Nat.compare_spec x y); intros Ho; try lia.
   - now apply Hlt; [ lia | ].
-  - assumption.
   - symmetry; now apply Hlt; [ lia | ]. }
 intros x y Hlt Heq; exfalso.
 remember (pred (y - x)) as n.
@@ -478,10 +476,9 @@ Lemma freshlist_inj : forall l n m, freshlist l n = freshlist l m -> n = m.
 Proof.
 intros l.
 enough (forall n m, n < m -> freshlist l n = freshlist l m -> n = m) as Hlt.
-{ intros n m Heq.
-  destruct (Compare_dec.lt_eq_lt_dec n m) as [C | C]; [ destruct C as [C | C] | ].
+{ intros x y Heq.
+  case (Nat.compare_spec x y); intros Ho; try lia.
   - now apply Hlt; [ lia | ].
-  - assumption.
   - symmetry; now apply Hlt; [ lia | ]. }
 intros n m Hlt Heq; exfalso.
 apply freshlist_of_list_prefix with (l:= l) in Hlt; destruct Hlt as [ l' [Hnil Hprf] ].
