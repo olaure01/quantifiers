@@ -1,15 +1,14 @@
 (* Results missing in the standard library *)
 
-Require Import Wf_nat Lia Peano_dec Eqdep_dec.
+Require Import PeanoNat Wf_nat Lia Eqdep_dec.
 Require Vector.
 
 Lemma lt_wf_rect :
   forall n (P:nat -> Type), (forall n, (forall m, m < n -> P m) -> P n) -> P n.
 Proof.
-intros n P Hw.
-apply well_founded_induction_type with lt.
-- apply lt_wf.
-- assumption.
+intros n P Hw; revert Hw n.
+apply well_founded_induction_type with (P := P).
+apply lt_wf.
 Qed.
 
 Lemma lt_wf_double_rect :
@@ -355,7 +354,7 @@ Lemma inj_pairT2_nat : forall (P:nat -> Type) p x y,
   existT P p x = existT P p y -> x = y.
 Proof.
 apply inj_pair2_eq_dec.
-apply eq_nat_dec.
+apply Nat.eq_dec.
 Qed.
 
 Lemma Vector_Forall_forall {A} : forall P n (v : Vector.t A n),

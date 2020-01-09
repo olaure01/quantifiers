@@ -1,8 +1,9 @@
 -R . ""
 
 stdlib_more.v
-
 dectype.v
+stdlib_more_dec.v
+
 term_tactics.v
 foterms.v
 foterms_std.v

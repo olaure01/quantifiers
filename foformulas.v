@@ -1,55 +1,10 @@
 (* First-Order Formulas *)
 
 Require Import Lia.
-Require Import stdlib_more.
+Require Import stdlib_more_dec.
 Require Export foterms.
 
 Set Implicit Arguments.
-
-
-(* Preliminary results on lists of pairs *)
-
-Fixpoint remove_snd {T1 : DecType} {T2} x (L : list (T1 * T2)) :=
-match L with
-| nil => nil
-| (y, F) :: TL => if eqb x y then remove_snd x TL else (y, F) :: remove_snd x TL
-end.
-Notation "L ∖ x" := (remove_snd x L) (at level 18).
-
-Lemma remove_snd_remove {T1 : DecType} {T2} x (L : list (T1 * T2)) :
-  remove eq_dt_dec x (map fst L) = map fst (L ∖ x).
-Proof.
-induction L; simpl; [ reflexivity | rewrite IHL ]; destruct a; simpl.
-repeat case_analysis; intuition.
-Qed.
-
-Lemma remove_snd_notin {T1 : DecType} {T2} x (L : list (T1 * T2)) :
-  forall y a, x <> y -> In (y, a) L -> In (y, a) (L ∖ x).
-Proof.
-induction L; simpl; intros y b Hneq Hin; [ assumption | destruct a ].
-destruct Hin as [Hin|Hin]; case_analysis; intuition.
-exfalso; apply Hneq.
-now inversion Hin.
-Qed.
-
-Lemma snd_remove_snd  {T1 : DecType} {T2} x (L : list (T1 * T2)) :
-  incl (map snd (L ∖ x)) (map snd L).
-Proof.
-induction L; simpl; intros z Hz; intuition.
-destruct a; simpl.
-revert Hz; case_analysis; intros Hz; intuition.
-Qed.
-
-Lemma NoDup_remove_snd {T1 : DecType} {T2} x (L : list (T1 * T2)) :
-  NoDup (map snd L) -> NoDup (map snd (L ∖ x)).
-Proof.
-induction L; simpl; intros Hnd; [ constructor | destruct a ].
-inversion_clear Hnd.
-case_analysis; intuition.
-constructor; intuition.
-apply snd_remove_snd in H2.
-now apply H.
-Qed.
 
 
 (** * First-Order Formulas *)
@@ -92,7 +47,7 @@ Hint Resolve (@fclosed_no_tecapture vatom tatom) : term_db.
 
 
 Context { fatom : Type }.  (* relation symbols for [formula] *)
-(* Generic sets of connectives (thanks D.Pous for the suggestion) *)
+(* Generic sets of connectives (thanks to D.Pous for the suggestion) *)
 Context { NCon : Type }. (* nullary connectives *)
 Context { BCon : Type }. (* binary connectives *)
 Context { QCon : Type }. (* quantifiers *)
@@ -105,6 +60,7 @@ Inductive formula T :=
 | fbin : BCon -> formula T -> formula T -> formula T
 | fqtf : QCon -> vatom -> formula T -> formula T.
 Arguments fnul {T} _.
+(* Nullary connectives in [NCon] and [fnul] are mostly redundant with [fvar f nil] *)
 
 Ltac formula_induction A :=
   (try intros until A) ;

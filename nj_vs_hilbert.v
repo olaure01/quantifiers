@@ -1,7 +1,7 @@
 (* Tight links between Natural Deduction and Hilbert System *)
 
 Require Import Lia.
-Require Import stdlib_more.
+Require Import stdlib_more_dec.
 Require Import hilbert2nj nj2hilbert.
 
 Set Implicit Arguments.
@@ -27,29 +27,6 @@ Hint Rewrite (@multi_tsubs_evar vatom tatom) : term_db.
 
 
 (* * From Hilbert System to Natural Deduction *)
-
-Lemma NoDup_remove_snd2 {T} x (L : list (vatom * T)) : forall f i,
-  NoDup (map snd L) ->
-  (In i (map snd L) -> In (f i, i) L) ->
-  In i (map snd (remove_snd x L)) ->
-  In (f i, i) (remove_snd x L).
-Proof.
-intros f i Hnd Hincl Hin.
-apply remove_snd_notin; [ | apply snd_remove_snd in Hin; intuition ].
-intros Heq; subst.
-revert Hnd Hincl Hin; clear; induction L; [ intuition | ].
-destruct a; simpl.
-intros Hnd Hincl; inversion_clear Hnd; case_analysis; intros Hin; subst.
-- apply IHL; intuition.
-  exfalso; inversion H4; subst; intuition.
-- destruct Hin as [Hin|Hin]; subst.
-  + assert (Hin := eq_refl i); eapply or_introl in Hin; apply Hincl in Hin.
-    destruct Hin as [Hin|Hin].
-    * inversion Hin; subst; intuition.
-    * apply H; now apply in_map with (f:= snd) in Hin.
-  + apply IHL in Hin; intuition.
-    exfalso; apply Heq; now inversion H4.
-Qed.
 
 Notation xf := (@fresh vatom nil).
 Definition vars_to_nat l :=
@@ -142,6 +119,7 @@ Proof. formula_induction A;
     apply H with z; intuition.
   + now apply NoDup_remove_snd.
   + intros i Hin; apply NoDup_remove_snd2; intuition.
+    apply snd_remove_snd in Hin; intuition.
 Qed.
 
 Lemma hilbert_vs_nj_term : forall t r lvn,
@@ -187,6 +165,7 @@ Proof. formula_induction A;
   apply IHA.
   + now apply NoDup_remove_snd.
   + intros i Hin; apply NoDup_remove_snd2; intuition.
+    apply snd_remove_snd in Hin; intuition.
 Qed.
 
 Lemma hilbert_vs_nj : forall A,

@@ -1,6 +1,6 @@
 (* From Hilbert System to Natural Deduction *)
 
-Require Import stdlib_more.
+Require Import stdlib_more_dec.
 Require Export foterms_std nj1 hilbert.
 
 Set Implicit Arguments.
