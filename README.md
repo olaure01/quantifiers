@@ -14,13 +14,17 @@ Content:
 
 * `stdlib_more.v`: various lemmas missing in the standard library
 * `dectype.v`: types (including infinite ones) with Boolean equality
+* `stdlib_more_dec.v`: additional general purpose lemmas using a type with decidable equality
+
 * `term_tactics.v`: some tactics used in following files
+* `foterms.v`: definitions and properties of first-order terms (with two kinds of variables)
+* `foterms_std.v`: standard first-order terms (with one kind of variables)
+* `foformulas.v`: definitions and properties of first-order formulas
 
-
-* `fot.v`: definitions and properties of first-order terms
 * `all1.v`: sequent calculus for _first-order_ Additive Linear Logic (cut elimination proof)
 * `all2.v`: sequent calculus for propositional _second-order_ Additive Linear Logic (cut elimination proof)
-* `nj1.v`: formulas and natural deduction for _first-order_ Intuitionistic Logic (normalization proof)
+* `nj1.v`: natural deduction for _first-order_ Intuitionistic Logic (normalization proof)
+* `nj1_frl.v`: natural deduction for _first-order_ Intuitionistic Logic with universal quantification only (normalization proof)
 * `nj2.v`: formulas and natural deduction for propositional _second-order_ Intuitionistic Logic
 * `F.v`: formulas and natural deduction for propositional _second-order_ Intuitionistic Logic (universal quantification only, i.e. System F)
 

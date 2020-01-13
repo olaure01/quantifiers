@@ -26,7 +26,7 @@ Notation "⇑" := fup.
 Notation "A ↑" := (A⟦⇑⟧) (at level 8, format "A ↑").
 Notation "l ⇈" := (map (fun F => F↑) l) (at level 8, format "l ⇈").
 Notation "x ∈ A" := (In x (freevars A)) (at level 30).
-Notation "x ∉ A" := (~ In x (freevars A)) (at level 30).
+Notation "x ∉ A" := (~ x ∈ A) (at level 30).
 
 Notation formula := (@formula vatom tatom fatom Nocon Icon Qcon nat).
 Notation fvar := (@fvar vatom tatom fatom Nocon Icon Qcon nat).
@@ -50,18 +50,18 @@ Hint Resolve (@fclosed_fesubs vatom tatom) : term_db.
 (** Proofs *)
 Inductive prove : list formula -> formula -> Type :=
 | ax : forall l1 l2 A, prove (l1 ++ A :: l2) A
-| impi { l A B } : prove (A :: l) B -> prove l (imp A B)
-| impe { l B } : forall A, prove l (imp A B) -> prove l A -> prove l B
-| frli { x l A } : prove l⇈ A↑[evar 0//x] -> prove l (frl x A)
-| frle { x l A } : forall u, closed u -> prove l (frl x A) -> prove l (subs x u A)
-| exsi { x l A } : forall u, closed u -> prove l (subs x u A) -> prove l (exs x A)
-| exse { l C } : forall x A, prove l (exs x A) -> prove (A↑[evar 0//x] :: l⇈) C↑ -> prove l C.
+| impi l A B : prove (A :: l) B -> prove l (imp A B)
+| impe l B : forall A, prove l (imp A B) -> prove l A -> prove l B
+| frli x l A : prove l⇈ A↑[evar 0//x] -> prove l (frl x A)
+| frle x l A : forall u, closed u -> prove l (frl x A) -> prove l (subs x u A)
+| exsi x l A : forall u, closed u -> prove l (subs x u A) -> prove l (exs x A)
+| exse l C : forall x A, prove l (exs x A) -> prove (A↑[evar 0//x] :: l⇈) C↑ -> prove l C.
 Hint Constructors prove : term_db.
-Global Arguments impe { l B } _ _ _.
-Global Arguments exse { l C } _ _ _.
+Global Arguments impe { l B }.
+Global Arguments exse { l C }.
 
 Lemma ax_hd {l A} : prove (A :: l) A.
-Proof. rewrite <- (app_nil_l (A :: l)); apply ax. Qed.
+Proof (ax nil l A).
 
 (* This [weakening] lemma is not required in the development, see rather [nweakening] below *)
 (* It is given here for comparison with alternative formalizations of Natural Deduction *)
@@ -71,8 +71,8 @@ intros l A pi; induction pi; intros; subst;
   try (econstructor; rewrite_all map_app; rewrite ? app_comm_cons; intuition; intuition; fail).
 rewrite <- app_assoc, <- app_comm_cons; intuition.
 Qed.
-(*
-Lemma weakening : forall l A,
+(* an alternative slightly more general statement:
+Lemma weakening_middle : forall l A,
   prove l A -> forall l0 l1 l2, l = l1 ++ l2 -> prove (l1 ++ l0 ++ l2) A.
 Proof.
 intros l A pi; induction pi; intros; subst;
@@ -87,24 +87,26 @@ Qed.
 (** Normal Forms *)
 Inductive nprove : list formula -> formula -> Type := (* neutral terms *)
 | nax : forall l1 l2 A, nprove (l1 ++ A :: l2) A
-| nimpe { l B } : forall A, nprove l (imp A B) -> rprove l A -> nprove l B
-| nfrle { x l A } : forall u, closed u -> nprove l (frl x A) -> nprove l (subs x u A)
+| nimpe l B : forall A, nprove l (imp A B) -> rprove l A -> nprove l B
+| nfrle x l A : forall u, closed u -> nprove l (frl x A) -> nprove l (subs x u A)
 with rprove : list formula -> formula -> Type := (* normal forms *)
-| rninj { l A } : nprove l A -> rprove l A
-| rimpi { l A B } : rprove (A :: l) B -> rprove l (imp A B)
-| rfrli { x l A } : rprove l⇈ A↑[evar 0//x] -> rprove l (frl x A)
-| rexsi { x l A } : forall u, closed u -> rprove l (subs x u A) -> rprove l (exs x A)
-| rexse { l C } : forall x A, nprove l (exs x A) -> rprove (A↑[evar 0//x] :: l⇈) C↑ -> rprove l C.
+| rninj l A : nprove l A -> rprove l A
+| rimpi l A B : rprove (A :: l) B -> rprove l (imp A B)
+| rfrli x l A : rprove l⇈ A↑[evar 0//x] -> rprove l (frl x A)
+| rexsi x l A : forall u, closed u -> rprove l (subs x u A) -> rprove l (exs x A)
+| rexse l C : forall x A, nprove l (exs x A) -> rprove (A↑[evar 0//x] :: l⇈) C↑ -> rprove l C.
 Hint Constructors nprove rprove : term_db.
-Global Arguments nimpe { l B } _ _ _.
-Global Arguments rexse { l C } _ _ _ _.
+Global Arguments rfrli { x l A }.
+Global Arguments rexsi { x l A }.
+Global Arguments nimpe { l B }.
+Global Arguments rexse { l C }.
 
 Scheme nrprove_rect := Induction for nprove Sort Type
   with rnprove_rect := Induction for rprove Sort Type.
 Combined Scheme rnprove_mutrect from nrprove_rect, rnprove_rect.
 
 Lemma nax_hd {l A} : nprove (A :: l) A.
-Proof. rewrite <- (app_nil_l (A :: l)); apply nax. Qed.
+Proof (nax nil l A).
 Hint Resolve nax_hd : term_db.
 
 (* automatic tactic for application of the [nax] constructor *)
@@ -116,7 +118,7 @@ Ltac run_nax :=
 Ltac auto_nax := rewrite <- (app_nil_l _); run_nax.
 
 (* Apply all (reversible) introduction rules *)
-Ltac rev_intros := repeat (repeat apply rimpi; repeat (apply rfrli; simpl)); apply rninj.
+Ltac rev_intros := intros; repeat (repeat apply rimpi; repeat (apply rfrli; simpl)); apply rninj.
 
 Fixpoint nsize {l A} (pi : nprove l A) : nat :=
 match pi with
@@ -138,12 +140,10 @@ end.
 Theorem rnpesubs r (Hc : fclosed r) {l A} :
    (nprove l A -> nprove (map (esubs r) l) A⟦r⟧)
  * (rprove l A -> rprove (map (esubs r) l) A⟦r⟧).
-Proof with try eassumption.
+Proof.
 revert l A.
-enough ((forall l A, nprove l A ->
-                       forall r, fclosed r -> nprove (map (esubs r) l) A⟦r⟧)
-      * (forall l A, rprove l A ->
-                       forall r, fclosed r -> rprove (map (esubs r) l) A⟦r⟧))
+enough ((forall l A, nprove l A -> forall r, fclosed r -> nprove (map (esubs r) l) A⟦r⟧)
+      * (forall l A, rprove l A -> forall r, fclosed r -> rprove (map (esubs r) l) A⟦r⟧))
   as He by (split; intros; apply He; assumption).
 clear r Hc; apply rnprove_mutrect; intros; (try simpl in X);
   (try assert (IH1 := X r H)); (try assert (IH2 := X0 r H));
@@ -165,7 +165,7 @@ Lemma rpsubsz_r {l A x u} : closed u ->
 Proof.
 intros Hc pi.
 apply (rnpesubs (u⇓)) in pi; [ | intuition ].
-rnow simpl in pi then cbn in pi.
+rnow simpl in pi then simpl in pi.
 now rewrite map_map, (map_ext _ _ (esubs_fup _)), map_id in pi.
 Qed.
 
@@ -182,7 +182,8 @@ Qed.
 (** * Normalization *)
 
 Theorem denormalization :
-  (forall l A, nprove l A -> prove l A) * (forall l A, rprove l A -> prove l A).
+   (forall l A, nprove l A -> prove l A)
+ * (forall l A, rprove l A -> prove l A).
 Proof. now apply rnprove_mutrect; intros; try (econstructor; eassumption). Qed.
 
 Lemma nweakening :
@@ -197,7 +198,7 @@ destruct (elt_eq_app _ _ _ _ _ H) as [ [? [? ?]] | [? [? ?]] ]; subst;
 Qed.
 
 Lemma imp_reduction : forall A B l, rprove l (imp A B) ->
-(forall D l B, fsize D = fsize A -> rprove (D :: l) B -> rprove l D -> rprove l B) -> 
+(forall D l B, fsize D = fsize A -> rprove (D :: l) B -> rprove l D -> rprove l B) ->
   rprove l A -> rprove l B.
 Proof.
 intros A B l pi.
@@ -207,9 +208,9 @@ remember (imp A B) as C; revert A B HeqC; induction pi;
 - now eapply Hsub.
 - eapply rexse; [ eassumption | ].
   eapply (IHpi (A1↑) (B1↑)); [ reflexivity | | ].
-  + clear - Hsub ; intros D l B Hs pi1 pi2.
+  + clear - Hsub; intros D l B Hs pi1 pi2.
     rnow eapply (Hsub D).
-  + rewrite <- (app_nil_l l⇈) ; rewrite app_comm_cons ; rewrite <- (app_nil_l _).
+  + rewrite <- (app_nil_l l⇈), app_comm_cons, <- (app_nil_l _).
     eapply nweakening; [ | reflexivity ].
     now apply rnpesubs.
 Qed.
@@ -221,13 +222,13 @@ intros A x l pi.
 remember (frl x A) as C; revert A x HeqC; induction pi;
   intros A1 x1 HeqC; inversion HeqC; subst; intros u Hc.
 - apply rninj; now eapply nfrle.
-- eapply rpsubsz_r in pi; eassumption.
+- now apply rpsubsz_r.
 - apply (rexse x A); trivial.
   rnow simpl in IHpi then rnow (apply IHpi).
 Qed.
 
 Lemma exs_reduction : forall A x l, rprove l (exs x A) ->
-(forall D l B, fsize D = fsize A -> rprove (D :: l) B -> rprove l D -> rprove l B) -> 
+(forall D l B, fsize D = fsize A -> rprove (D :: l) B -> rprove l D -> rprove l B) ->
   forall C, rprove (A↑[evar 0//x] :: l⇈) C↑ -> rprove l C.
 Proof.
 intros A x l pi.
@@ -238,11 +239,11 @@ remember (exs x A) as A'; revert A x HeqA'; induction pi;
   rnow apply (Hsub (A'[u//x1])).
 - rnow simpl in IHpi.
   eapply rexse; [ eassumption | ].
-  eapply IHpi ; [ reflexivity | | ].
-  + clear - Hsub ; intros D l B Hs pi1 pi2.
+  eapply IHpi; [ reflexivity | | ].
+  + clear - Hsub; intros D l B Hs pi1 pi2.
     rnow eapply (Hsub D).
-  + simpl ; rewrite <- (app_nil_l (subs x _ _ :: _)) ; rewrite app_comm_cons;
-      rewrite <- (app_nil_l (map (esubs ⇑) _)) ; rewrite app_comm_cons.
+  + simpl; rewrite <- (app_nil_l (subs x _ _ :: _)),
+                   app_comm_cons, <- (app_nil_l (map (esubs ⇑) _)), app_comm_cons.
     eapply nweakening; [ | reflexivity ].
     apply (rnpesubs (↑⇑)) in pi2; intuition.
     rnow simpl in pi2 then simpl in pi2.
@@ -256,7 +257,7 @@ Lemma substitution : forall n m A, fsize A = n ->
       nsize pi < m -> rprove (l1 ++ l2) A -> rprove (l1 ++ l2) B)
  * (forall B l1 l2 (pi : rprove (l1 ++ A :: l2) B),
       rsize pi < m -> rprove (l1 ++ l2) A -> rprove (l1 ++ l2) B).
-Proof with try eassumption ; try reflexivity ; try lia.
+Proof with try eassumption; try reflexivity; try lia.
 apply (lt_wf_double_rect (fun n m =>
  forall A, fsize A = n ->
    (forall B l1 l2 (pi : nprove (l1 ++ A :: l2) B),
@@ -264,61 +265,56 @@ apply (lt_wf_double_rect (fun n m =>
  * (forall B l1 l2 (pi : nprove (l1 ++ A :: l2) B),
       nsize pi < m -> rprove (l1 ++ l2) A -> rprove (l1 ++ l2) B)
  * (forall B l1 l2 (pi : rprove (l1 ++ A :: l2) B),
-      rsize pi < m -> rprove (l1 ++ l2) A -> rprove (l1 ++ l2) B))) ;
-  intros n m IHn IHm A HA ; (split ; [ split | ] ) ; subst ;
-  intros B l1 l2 pi2 Hpi ; [ intros HF | | ] ; intros pi1 ;
-  remember (l1 ++ A :: l2) as ll ; destruct pi2 ; subst ;
-  simpl in IHm ; simpl in IHn ; simpl in Hpi ; try simpl in HF.
+      rsize pi < m -> rprove (l1 ++ l2) A -> rprove (l1 ++ l2) B))); simpl;
+  intros n m IHn IHm A HA; (split; [ split | ] ); subst;
+  intros B l1 l2 pi2 Hpi; [ intros HF | | ]; intros pi1;
+  remember (l1 ++ A :: l2) as ll; destruct pi2; subst; simpl in Hpi.
 (* first statement *)
-- clear - Heqll HF; revert l1 l2 Heqll HF; induction l0; intros l1 l2 Heqll HF;
-    destruct l1; inversion Heqll; subst.
-  + exfalso...
-  + apply nax_hd.
-  + apply nax.
-  + apply IHl0 in H1...
-    change (f :: l1) with (nil ++ (f :: nil) ++ l1) ; rewrite <- ? app_assoc.
-    eapply nweakening...
+- destruct (elt_eq_app _ _ _ _ _ Heqll)
+    as [ (l' & Heq0 & Heq) | (l' & Heq0 & Heq) ]; subst.
+  + rewrite <- app_assoc; apply nax.
+  + destruct l'; inversion Heq; subst.
+    * exfalso; lia.
+    * rewrite app_assoc; apply nax.
 - assert (nsize pi2 < S (nsize pi2 + rsize r)) as IH1 by lia.
   assert (rsize r < S (nsize pi2 + rsize r)) as IH2 by lia.
-  eapply nimpe ; eapply (IHm (S (nsize pi2 + rsize r))) ; simpl...
+  eapply nimpe; eapply (IHm (S (nsize pi2 + rsize r))); simpl...
 - apply nfrle...
   rnow eapply (IHm _ Hpi)...
 (* second statement *)
 - enough (forall l l1 l2, l0 ++ A0 :: l3 = l1 ++ A :: l2 ->
       rprove (l ++ l1 ++ l2) A -> rprove (l ++ l1 ++ l2) A0)
-    as HI by (eapply (HI nil) ; eassumption) ; clear.
+    as HI by (eapply (HI nil); eassumption); clear.
   induction l0; intros l l1 l2 Heq pi; destruct l1; inversion Heq; subst...
-  + rewrite <- app_comm_cons ; apply rninj ; apply nax.
-  + rewrite 2 app_assoc ; apply rninj ; apply nax.
-  + rewrite <- app_comm_cons ; rewrite <- (app_nil_l l1) ;
-      rewrite <- app_assoc ; rewrite app_comm_cons ; rewrite app_assoc.
+  + rewrite <- app_comm_cons; apply rninj, nax.
+  + rewrite 2 app_assoc; apply rninj, nax.
+  + rewrite <- app_comm_cons, <- (app_nil_l l1), <- app_assoc, app_comm_cons, app_assoc.
     apply IHl0...
-    rewrite <- ? app_assoc ; rewrite <- app_comm_cons...
+    rewrite <- ? app_assoc, <- app_comm_cons...
 - assert (nsize pi2 < S (nsize pi2 + rsize r)) as IH1 by lia.
   assert (rsize r < S (nsize pi2 + rsize r)) as IH2 by lia.
   assert ({fsize (imp A0 B) <= fsize A} + {fsize A < fsize (imp A0 B)}) as [ Ho | Ho ]
     by (case (CompareSpec2Type (Nat.compare_spec (fsize (imp A0 B)) (fsize A))); intros Ho;
-          [ left | left | right ]; lia).
-  + eapply IHm in IH1 ; eapply IHm in IH2...
+          [ left | left | right ]; lia); simpl in Ho.
+  + eapply IHm in IH1; eapply IHm in IH2...
     eapply imp_reduction...
-    simpl in Ho; intros D l' B' Heq pi1' pi2'.
+    intros D l' B' Heq pi1' pi2'.
     rewrite <- (app_nil_l _) in pi1'.
     refine (snd (IHn (fsize D) (S (rsize pi1')) _ _ _) _ _ _ pi1' _ pi2')...
-  + apply rninj ; eapply nimpe ; eapply IHm...
+  + apply rninj; eapply nimpe; eapply IHm...
 - assert (nsize pi2 < S (nsize pi2)) as IH1 by lia.
   eapply IHm in IH1...
   eapply frl_reduction...
 (* third statement *)
 - refine (snd (fst (IHm _ _ _ _)) _ _ _ n _ _)...
-- revert pi2 Hpi ; rewrite app_comm_cons ; intros pi2 Hpi.
+- revert pi2 Hpi; rewrite app_comm_cons; intros pi2 Hpi.
   apply rimpi.
   refine (snd (IHm _ _ _ _) _ _ _ pi2 _ _)...
-  rewrite <- app_comm_cons ; rewrite <- (app_nil_l (l1 ++ l2)) ; rewrite app_comm_cons ;
-    rewrite <- (app_nil_l _).
+  rewrite <- app_comm_cons, <- (app_nil_l (l1 ++ l2)), app_comm_cons, <- (app_nil_l _).
   eapply nweakening...
-- apply rfrli ; rewrite map_app.
+- apply rfrli; rewrite map_app.
   apply (rnpesubs ⇑) in pi1; intuition.
-  revert pi1 pi2 Hpi ; rewrite ? map_app ; simpl ; intros pi1 pi2 Hpi.
+  revert pi1 pi2 Hpi; rewrite ? map_app; simpl; intros pi1 pi2 Hpi.
   rnow refine (snd (IHm _ _ _ _) _ _ _ pi2 _ _)...
 - eapply rexsi...
   refine (snd (IHm _ _ _ _) _ _ _ pi2 _ _)...
@@ -326,17 +322,17 @@ apply (lt_wf_double_rect (fun n m =>
   assert (pi1' := snd nweakening _ _ (snd (rnpesubs ⇑ fclosed_fup) pi1)
                   (A0↑[evar 0//x] :: nil) nil _ eq_refl) ; simpl in pi1'.
   rewrite map_app in pi1' ; rewrite app_comm_cons in pi1'.
-  revert pi2 pi1' Hpi ; rewrite ? map_app ; simpl ; rewrite app_comm_cons ;
+  revert pi2 pi1' Hpi; rewrite ? map_app; simpl; rewrite app_comm_cons;
     intros pi2 pi1' Hpi.
   assert (fsize (A↑) = fsize A) as Hup by rcauto.
   eapply (snd (IHm _ Hpi _ Hup) _ _ _ pi2) in pi1'...
   assert ({fsize (exs x A0) <= fsize A} + {fsize A < fsize (exs x A0)}) as [ Ho | Ho ]
     by (case (CompareSpec2Type (Nat.compare_spec (fsize (exs x A0)) (fsize A))); intros Ho;
-          [ left | left | right ]; lia).
+          [ left | left | right ]; lia); simpl in Ho.
   + eapply (snd (fst (IHm _ Hpi _ eq_refl)) _ _ _ n) in pi1...
     simpl in pi1' ; rewrite <- map_app in pi1'.
     eapply exs_reduction...
-    simpl in Ho; intros D l' B' Heq pi1'' pi2''.
+    intros D l' B' Heq pi1'' pi2''.
     rewrite <- (app_nil_l _) in pi1''.
     refine (snd (IHn (fsize D) (S (rsize pi1'')) _ _ _) _ _ _ pi1'' _ pi2'')...
   + eapply rexse.
@@ -347,14 +343,14 @@ Qed.
 Lemma smp_substitution : forall l A B, rprove l A -> rprove (A :: l) B -> rprove l B.
 Proof.
 intros l A B pi1 pi2.
-rewrite <- (app_nil_l (A :: l)) in pi2 ; rewrite <- (app_nil_l l).
+rewrite <- (app_nil_l (A :: l)) in pi2; rewrite <- (app_nil_l l).
 refine (snd (substitution (S (rsize pi2)) _ _ ) _ _ _ pi2 _ _); intuition.
 Qed.
 
 Theorem normalization : forall l A, prove l A -> rprove l A.
 Proof.
-intros l A pi ; induction pi ;
-   try (econstructor ; (idtac + econstructor) ; eassumption).
+intros l A pi; induction pi;
+   try (econstructor; (idtac + econstructor); eassumption).
 - apply (imp_reduction IHpi1); [ | assumption ].
   intros; eapply smp_substitution; eassumption.
 - now apply frl_reduction.
@@ -631,7 +627,7 @@ Variable x y : vatom.
 
 Goal forall A, rprove nil (imp (frl x (frl y A)) (frl y (frl x A))).
 Proof.
-intros; rev_intros; case_analysis.
+rev_intros; case_analysis.
 - rnow apply nfrle.
   replace (frl y A↑↑)
      with (subs y (evar 0) (frl y A↑↑))
@@ -650,7 +646,7 @@ Variable P : fatom.
 Goal rprove nil (imp (frl x (fvar P (tconstr f (tvar x :: nil) :: nil)))
                      (frl x (fvar P (tconstr f (tconstr f (tvar x :: nil) :: nil) :: nil)))).
 Proof.
-intros; rev_intros; case_analysis.
+rev_intros; case_analysis.
 replace (fvar P (tconstr f (tconstr f (evar 0 :: nil) :: nil) :: nil))
    with (subs x (tconstr f (evar 0 :: nil)) (fvar P (tconstr f (tvar x :: nil) :: nil)))
   by (simpl; case_analysis; intuition).
@@ -679,16 +675,14 @@ Lemma frl_nfree : forall A x, x ∉ A -> rprove (A :: nil) (frl x A).
 Proof. intros A x Hnf; rev_intros; rnow rewrite nfree_subs. Qed.
 
 Lemma Kcombi : forall A B, rprove nil (imp A (imp B A)).
-Proof. intros ; rev_intros; auto_nax. Qed.
+Proof. rev_intros; auto_nax. Qed.
 
 Lemma Scombi : forall A B C, rprove nil (imp (imp A (imp B C)) (imp (imp A B) (imp A C))).
-Proof with auto with term_db.
-intros ; rev_intros.
+Proof with auto with term_db; try auto_nax.
+rev_intros.
 apply (nimpe B).
 - apply (nimpe A)...
-  auto_nax.
-- apply rninj ; apply (nimpe A)...
-  auto_nax.
+- apply rninj, (nimpe A)...
 Qed.
 
 End Proofs.

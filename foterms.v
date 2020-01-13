@@ -381,7 +381,10 @@ Proof. term_induction t.
   destruct Hint; subst; intuition.
   revert Hnc; case_analysis; intros Hnc.
   apply tesubs_tvars in Hnc; [ | assumption ].
-  now revert Hnc; apply closed_notvars. (* TODO automatize? *)
+  now revert Hnc; apply closed_notvars.
+  (* TODO automatize? difference between [~ A] and [A -> False]
+     revert Hnc; apply (proj1 (neg_false (y ∈ u))).
+     auto with term_db. *)
 - intros Hint.
   apply Forall_fold_right in H0.
   apply in_flat_map in Hint; destruct Hint as [ z [Hinzl Hinz] ].
