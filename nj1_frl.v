@@ -37,9 +37,7 @@ Hint Rewrite (@tvars_tesubs_fclosed vatom tatom) using intuition; fail : term_db
 Hint Rewrite (@freevars_esubs_fclosed vatom tatom fatom Nocon Icon FQcon nat)
                  using intuition; fail : term_db.
 Hint Rewrite (@subs_esubs vatom tatom fatom Nocon Icon FQcon nat)
-                         using try (intuition; fail);
-                             (try apply no_ecapture_not_egenerated); try (intuition; fail);
-                             (try apply fclosed_no_ecapture); intuition; fail : term_db.
+                         using intuition; fail : term_db.
 Hint Rewrite <- (@felift_esubs vatom tatom fatom Nocon Icon FQcon) : term_db.
 Hint Rewrite (@esubs_fup vatom tatom fatom Nocon Icon FQcon) : term_db.
 
