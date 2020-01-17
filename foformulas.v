@@ -579,9 +579,9 @@ Lemma esubs_fup v A : A↑⟦v⇓⟧ = A.
 Proof. now rewrite esubs_comp, (esubs_ext (fesubs_fup v)), esubs_evar. Qed.
 Hint Rewrite esubs_fup : term_db.
 
-Lemma lift_esubs u r : forall A, A⟦r⟧↑ = A↑⟦⇑[u]r⟧.
+Lemma felift_esubs u r : forall A, A⟦r⟧↑ = A↑⟦⇑[u]r⟧.
 Proof. intros; rewrite 2 esubs_comp; apply esubs_ext, felift_comp. Qed.
-Hint Rewrite lift_esubs : term_db.
+Hint Rewrite felift_esubs : term_db.
 
 End Eigen_nat.
 

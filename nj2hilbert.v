@@ -455,7 +455,7 @@ intros; rewrite subs_esubs.
 - now apply no_ecapture_not_egenerated, no_ecapture_hfelift.
 Qed.
 
-Proposition n2h : forall l A,
+Lemma n2h : forall l A,
   prove l A -> forall r, Forall (no_ecapture r) (A :: l) -> hprove (n2h_sequent r l A).
 Proof.
 intros l A pi; induction pi; intros r Hg.

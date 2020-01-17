@@ -1,4 +1,4 @@
-(* First-Order Terms with no eigen variables *)
+(* First-Order Terms with no Eigen Variable *)
 
 Require Import stdlib_more.
 Require Export foterms.
@@ -8,7 +8,7 @@ Set Implicit Arguments.
 
 Section Terms.
 
-Context { vatom : DecType } { tatom fatom : Type }.
+Context { vatom : DecType } { tatom : Type }.
 
 Notation "r ;; s" := (fecomp r s) (at level 20, format "r  ;;  s").
 Notation closed t := (tvars t = nil).
@@ -18,8 +18,8 @@ Arguments tvar {_} {_} {T} _.
 
 (* Function allowing to embed [term Empty_set] into any [term T]
      through identity embedding by using [tesubs (r_empty T)] *)
-Definition r_empty T : Empty_set -> @term vatom tatom T := fun z =>
-  match z with end.
+Definition r_empty T : Empty_set -> @term vatom tatom T :=
+  fun z => match z with end.
 
 Lemma fclosed_r_empty T : fclosed (r_empty T).
 Proof. intros n; destruct n. Qed.

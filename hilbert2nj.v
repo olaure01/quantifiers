@@ -56,7 +56,7 @@ Ltac auto_ax := rewrite <- (app_nil_l _); run_ax.
 Notation h2n_term := (@tesubs vatom tatom Empty_set nat r_h2n).
 Notation h2n_formula := (@esubs vatom tatom fatom Nocon Icon Qcon Empty_set nat r_h2n).
 
-Proposition h2n : forall A, hprove A ->
+Lemma h2n : forall A, hprove A ->
   forall L, Forall (fun z => closed z) (map snd L) -> incl (freevars A) (map fst L) ->
   prove nil (h2n_formula A)[[L]].
 Proof.

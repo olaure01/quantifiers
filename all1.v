@@ -91,7 +91,7 @@ revert r Hc; induction pi; intros r Hc;
 - clear pi' Hs; destruct (IHpi (↑r)) as [pi' Hs]; intuition.
   simpl; rewrite <- Hs; clear Hs.
   revert pi'; rnow idtac.
-  revert pi'; rewrite <- 2 lift_esubs; intros pi'.
+  revert pi'; rewrite <- 2 felift_esubs; intros pi'.
   exists (frlr pi'); reflexivity.
 - simpl; rewrite <- Hs; clear Hs.
   revert pi'; rnow idtac.

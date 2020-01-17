@@ -29,6 +29,7 @@ Hint Rewrite (@multi_tsubs_evar vatom tatom) : term_db.
 (* * From Hilbert System to Natural Deduction *)
 
 Notation xf := (@fresh vatom nil).
+
 Definition vars_to_nat l :=
   ((fix f n s : list (vatom * nat) :=
     match s with
@@ -168,7 +169,7 @@ Proof. formula_induction A;
     apply snd_remove_snd in Hin; intuition.
 Qed.
 
-Lemma hilbert_vs_nj : forall A,
+Proposition hilbert_vs_nj : forall A,
   { L : _ & hprove A -> prove nil (multi_subs L (h2n_formula A))
           & prove nil (multi_subs L (h2n_formula A)) -> hprove A }.
 Proof.
@@ -355,10 +356,11 @@ Proof. formula_induction A;
   + f_equal; destruct n; intuition.
 Qed.
 
-Lemma nj_vs_hilbert : forall A, freevars A = nil ->
+Proposition nj_vs_hilbert : forall A, freevars A = nil ->
   { r : _ & prove nil A -> hprove (n2h_formula r A)
           & hprove (n2h_formula r A) -> prove nil A }.
-(* closedness hypothesis required because of formulas like (∀x.∀y.P x) ⟶ P y *)
+(* closedness hypothesis on [A] required because of formulas like
+   (∀x.P x) ⟶ P y or (∀x.∀y.P x) ⟶ P y *)
 Proof.
 intros A; exists (freshterms (fvars A)); intros pi.
 - change A with (s2f nil A).

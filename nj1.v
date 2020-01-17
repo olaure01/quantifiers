@@ -40,7 +40,7 @@ Hint Rewrite (@subs_esubs vatom tatom fatom Nocon Icon Qcon nat)
                          using try (intuition; fail);
                              (try apply no_ecapture_not_egenerated); try (intuition; fail);
                              (try apply fclosed_no_ecapture); intuition; fail : term_db.
-Hint Rewrite <- (@lift_esubs vatom tatom fatom Nocon Icon Qcon) : term_db.
+Hint Rewrite <- (@felift_esubs vatom tatom fatom Nocon Icon Qcon) : term_db.
 Hint Rewrite (@esubs_fup vatom tatom fatom Nocon Icon Qcon) : term_db.
 
 Hint Resolve (@fclosed_felift vatom tatom) : term_db.
@@ -62,26 +62,6 @@ Global Arguments exse { l C }.
 
 Lemma ax_hd {l A} : prove (A :: l) A.
 Proof (ax nil l A).
-
-(* This [weakening] lemma is not required in the development, see rather [nweakening] below *)
-(* It is given here for comparison with alternative formalizations of Natural Deduction *)
-Lemma weakening : forall l A, prove l A -> forall l0, prove (l ++ l0) A.
-Proof.
-intros l A pi; induction pi; intros; subst;
-  try (econstructor; rewrite_all map_app; rewrite ? app_comm_cons; intuition; intuition; fail).
-rewrite <- app_assoc, <- app_comm_cons; intuition.
-Qed.
-(* an alternative slightly more general statement:
-Lemma weakening_middle : forall l A,
-  prove l A -> forall l0 l1 l2, l = l1 ++ l2 -> prove (l1 ++ l0 ++ l2) A.
-Proof.
-intros l A pi; induction pi; intros; subst;
-  try (econstructor; rewrite_all map_app; rewrite ? app_comm_cons; intuition; intuition; fail).
-destruct (elt_eq_app _ _ _ _ _ H) as [ [? [? ?]] | [? [? ?]] ]; subst;
-  rewrite ? (app_assoc _ _ (A::_)), <- ? (app_assoc _ (A::_)), <- ? app_comm_cons;
-  intuition.
-Qed.
-*)
 
 
 (** Normal Forms *)
@@ -152,11 +132,11 @@ clear r Hc; apply rnprove_mutrect; intros; (try simpl in X);
 - rcauto; rnow apply nfrle.
 - specialize X with (↑r0).
   revert X; rcauto.
-  rewrite map_map, <- (map_ext _ _ (lift_esubs (evar 0) _)), <- map_map in X; intuition.
+  rewrite map_map, <- (map_ext _ _ (felift_esubs (evar 0) _)), <- map_map in X; intuition.
 - specialize X with r0.
   rnow apply (rexsi (tesubs r0 u)).
 - specialize X0 with (↑r0); simpl in X0.
-  rewrite map_map, <- (map_ext _ _ (lift_esubs (evar 0) _)), <- map_map in X0.
+  rewrite map_map, <- (map_ext _ _ (felift_esubs (evar 0) _)), <- map_map in X0.
   rnow eapply rexse.
 Qed.
 
@@ -186,7 +166,7 @@ Theorem denormalization :
  * (forall l A, rprove l A -> prove l A).
 Proof. now apply rnprove_mutrect; intros; try (econstructor; eassumption). Qed.
 
-Lemma nweakening :
+Lemma rweakening :
    (forall l A, nprove l A -> forall l0 l1 l2, l = l1 ++ l2 -> nprove (l1 ++ l0 ++ l2) A)
  * (forall l A, rprove l A -> forall l0 l1 l2, l = l1 ++ l2 -> rprove (l1 ++ l0 ++ l2) A).
 Proof.
@@ -211,7 +191,7 @@ remember (imp A B) as C; revert A B HeqC; induction pi;
   + clear - Hsub; intros D l B Hs pi1 pi2.
     rnow eapply (Hsub D).
   + rewrite <- (app_nil_l l⇈), app_comm_cons, <- (app_nil_l _).
-    eapply nweakening; [ | reflexivity ].
+    eapply rweakening; [ | reflexivity ].
     now apply rnpesubs.
 Qed.
 
@@ -244,10 +224,10 @@ remember (exs x A) as A'; revert A x HeqA'; induction pi;
     rnow eapply (Hsub D).
   + simpl; rewrite <- (app_nil_l (subs x _ _ :: _)),
                    app_comm_cons, <- (app_nil_l (map (esubs ⇑) _)), app_comm_cons.
-    eapply nweakening; [ | reflexivity ].
+    eapply rweakening; [ | reflexivity ].
     apply (rnpesubs (↑⇑)) in pi2; intuition.
     rnow simpl in pi2 then simpl in pi2.
-    now rewrite map_map, <- (map_ext _ _ (lift_esubs (evar 0) _)), <- map_map in pi2.
+    now rewrite map_map, <- (map_ext _ _ (felift_esubs (evar 0) _)), <- map_map in pi2.
 Qed.
 
 Lemma substitution : forall n m A, fsize A = n ->
@@ -311,7 +291,7 @@ apply (lt_wf_double_rect (fun n m =>
   apply rimpi.
   refine (snd (IHm _ _ _ _) _ _ _ pi2 _ _)...
   rewrite <- app_comm_cons, <- (app_nil_l (l1 ++ l2)), app_comm_cons, <- (app_nil_l _).
-  eapply nweakening...
+  eapply rweakening...
 - apply rfrli; rewrite map_app.
   apply (rnpesubs ⇑) in pi1; intuition.
   revert pi1 pi2 Hpi; rewrite ? map_app; simpl; intros pi1 pi2 Hpi.
@@ -319,7 +299,7 @@ apply (lt_wf_double_rect (fun n m =>
 - eapply rexsi...
   refine (snd (IHm _ _ _ _) _ _ _ pi2 _ _)...
 - rewrite <- (app_nil_l _) in pi1.
-  assert (pi1' := snd nweakening _ _ (snd (rnpesubs ⇑ fclosed_fup) pi1)
+  assert (pi1' := snd rweakening _ _ (snd (rnpesubs ⇑ fclosed_fup) pi1)
                   (A0↑[evar 0//x] :: nil) nil _ eq_refl) ; simpl in pi1'.
   rewrite map_app in pi1' ; rewrite app_comm_cons in pi1'.
   revert pi2 pi1' Hpi; rewrite ? map_app; simpl; rewrite app_comm_cons;

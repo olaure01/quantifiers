@@ -40,7 +40,7 @@ Hint Rewrite (@subs_esubs vatom tatom fatom Nocon Icon FQcon nat)
                          using try (intuition; fail);
                              (try apply no_ecapture_not_egenerated); try (intuition; fail);
                              (try apply fclosed_no_ecapture); intuition; fail : term_db.
-Hint Rewrite <- (@lift_esubs vatom tatom fatom Nocon Icon FQcon) : term_db.
+Hint Rewrite <- (@felift_esubs vatom tatom fatom Nocon Icon FQcon) : term_db.
 Hint Rewrite (@esubs_fup vatom tatom fatom Nocon Icon FQcon) : term_db.
 
 Hint Resolve (@fclosed_felift vatom tatom) : term_db.
@@ -110,9 +110,6 @@ Ltac run_nax :=
   end.
 Ltac auto_nax := rewrite <- (app_nil_l _); run_nax.
 
-(* Apply all (reversible) introduction rules *)
-Ltac rev_intros := intros; repeat (repeat apply rimpi; repeat (apply rfrli; simpl)); apply rninj.
-
 Fixpoint nsize {l A} (pi : nprove l A) : nat :=
 match pi with
 | nax _ _ _  => 1
@@ -150,7 +147,7 @@ clear r Hc; apply rnprove_mutrect; intros; (try simpl in X);
 - rcauto; rnow apply nfrle.
 - specialize X with (↑r0).
   revert X; rcauto.
-  rewrite map_map, <- (map_ext _ _ (lift_esubs (evar 0) _)), <- map_map in X; intuition.
+  rewrite map_map, <- (map_ext _ _ (felift_esubs (evar 0) _)), <- map_map in X; intuition.
 Qed.
 
 Lemma rpsubsz {l A x u} : closed u ->
@@ -162,7 +159,7 @@ rnow simpl in pi then simpl in pi.
 now rewrite map_map, (map_ext _ _ (esubs_fup _)), map_id in pi.
 Qed.
 
-Lemma nweakening :
+Lemma rweakening :
    (forall l A, nprove l A -> forall l0 l1 l2, l = l1 ++ l2 -> nprove (l1 ++ l0 ++ l2) A)
  * (forall l A, rprove l A -> forall l0 l1 l2, l = l1 ++ l2 -> rprove (l1 ++ l0 ++ l2) A).
 Proof.
@@ -237,7 +234,7 @@ apply lt_wf_double_rect; unfold IH; clear IH; simpl;
   apply rimpi.
   refine (snd (IHm _ _ _ _) _ _ _ pi2 _ _)...
   rewrite <- app_comm_cons, <- (app_nil_l (l1 ++ l2)), app_comm_cons, <- (app_nil_l _).
-  eapply nweakening...
+  eapply rweakening...
 - apply rfrli; rewrite map_app.
   apply (rnpesubs ⇑) in pi1; intuition.
   revert pi1 pi2 Hpi; rewrite ? map_app; simpl; intros pi1 pi2 Hpi.
