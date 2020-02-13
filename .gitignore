@@ -19,12 +19,15 @@ TODO.org
 
 .coqdeps.d
 Makefile.conf
+.Makefile.d
 
 *.o
 *.v.crashcoqide
 *.v.d
 *.vio
 *.vo
+*.vok
+*.vos
 .coq-native/
 .csdp.cache
 .lia.cache

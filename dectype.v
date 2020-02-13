@@ -231,6 +231,7 @@ exists (fun x => i (S (s x))).
   + now apply section_inj with i.
 - exists (i 0); intros x Heq.
   apply section_inj with _ _ 0 (S (s x)) in Hsec2; intuition.
+  inversion Hsec2.
 Qed.
 
 End Infinite.
