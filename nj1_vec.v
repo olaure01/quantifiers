@@ -1,8 +1,9 @@
 (* Natural Deduction for First-Order Intuitionistic Logic *)
 
-Require Import List Lia.
-Require Import stdlib_more.
-Require Import dectype term_tactics fot_vec.
+Require Import Lia.
+Require Import List_more dectype Wf_nat_more.
+Require Vector_more.
+Require Import term_tactics fot_vec.
 
 Import EqNotations.
 
@@ -422,7 +423,7 @@ Qed.
 Lemma subs_subs_com : forall x v y u, x <> y -> closed u -> closed v ->
   forall A, subs y u (subs x v A) = subs x (tsubs y u v) (subs y u A).
 Proof. induction A.
-- simpl ; f_equal ; rnow rewrite 2 Vector_map_map ; apply Vector_map_ext.
+- simpl ; f_equal ; rnow rewrite 2 Vector_more.map_map; apply Vector_more.map_ext.
   rewrite tsubs_tsubs_com, (nfree_tsubs _ _ v);
     (try now apply closed_nofreevars); intuition.
 - rnow idtac then f_equal.

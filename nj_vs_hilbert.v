@@ -1,7 +1,7 @@
 (* Tight links between Natural Deduction and Hilbert System *)
 
 Require Import Lia.
-Require Import stdlib_more_dec.
+Require Import List_more infinite List_assoc.
 Require Import hilbert2nj nj2hilbert.
 
 Set Implicit Arguments.
@@ -109,18 +109,18 @@ Proof. formula_induction A;
 - apply Forall_fold_right, Forall_forall; intros t Ht.
   rewrite map_map in Ht; apply in_map_iff in Ht; destruct Ht as [ u [Heq Hu] ]; subst.
   apply no_tecapture_nthvar; intuition.
-- replace (remove_snd x (map (fun '(x0, i) => (x0, evar i)) lvn))
-     with (map (fun '(x0,i) => (x0, evar i : term)) (remove_snd x lvn))
-    by (clear; induction lvn; intuition; unfold remove_snd;
+- replace (remove_assoc x (map (fun '(x0, i) => (x0, evar i)) lvn))
+     with (map (fun '(x0,i) => (x0, evar i : term)) (remove_assoc x lvn))
+    by (clear; induction lvn; intuition; unfold remove_assoc;
         repeat case_analysis; f_equal; intuition).
   apply IHA.
   + intros z Hz Hinz.
-    rewrite <- remove_snd_remove in Hz; apply in_remove in Hz.
+    rewrite <- remove_assoc_remove in Hz; apply in_remove in Hz.
     inversion Hinz; subst; intuition.
     apply H with z; intuition.
-  + now apply NoDup_remove_snd.
-  + intros i Hin; apply NoDup_remove_snd2; intuition.
-    apply snd_remove_snd in Hin; intuition.
+  + now apply NoDup_remove_assoc_snd.
+  + intros i Hin; apply NoDup_remove_assoc_in; intuition.
+    apply snd_remove_assoc in Hin; intuition.
 Qed.
 
 Lemma hilbert_vs_nj_term : forall t r lvn,
@@ -159,14 +159,14 @@ Proof. formula_induction A;
   simpl; f_equal; intuition.
 - rewrite 2 map_map; rewrite <- (map_id l) at 2; apply map_ext_in; intros t Ht.
   now apply hilbert_vs_nj_term.
-- replace (remove_snd x (map (fun '(x0, i) => (x0, evar i)) lvn))
-     with (map (fun '(x0,i) => (x0, evar i : term)) (remove_snd x lvn))
-    by (clear; induction lvn; intuition; unfold remove_snd;
+- replace (remove_assoc x (map (fun '(x0, i) => (x0, evar i)) lvn))
+     with (map (fun '(x0,i) => (x0, evar i : term)) (remove_assoc x lvn))
+    by (clear; induction lvn; intuition; unfold remove_assoc;
         repeat case_analysis; f_equal; intuition).
   apply IHA.
-  + now apply NoDup_remove_snd.
-  + intros i Hin; apply NoDup_remove_snd2; intuition.
-    apply snd_remove_snd in Hin; intuition.
+  + now apply NoDup_remove_assoc_snd.
+  + intros i Hin; apply NoDup_remove_assoc_in; intuition.
+    apply snd_remove_assoc in Hin; intuition.
 Qed.
 
 Proposition hilbert_vs_nj : forall A,
@@ -294,7 +294,7 @@ Proof. formula_induction A; intros z Hz.
 - apply in_remove in Hz; destruct Hz as [Hz Hneq].
   apply IHA with (n:= n) in Hz; intuition.
   + apply in_or_app; apply in_app_or in Hz; destruct Hz as [Hz|Hz]; [left| now right].
-    now apply notin_remove.
+    now apply in_in_remove.
   + intros y Hy; apply H; in_solve.
 Qed.
 
@@ -343,7 +343,7 @@ Proof. formula_induction A;
   + intros z Hz; apply H0; now apply in_flat_map; exists t.
 - apply IHA1; [ lia | intros z Hz; apply H0; in_solve ].
 - apply IHA2; [ lia | intros z Hz; apply H0; in_solve ].
-- enough (remove_snd x (freshvars_to_nat lv n) = freshvars_to_nat lv n) as Heq.
+- enough (remove_assoc x (freshvars_to_nat lv n) = freshvars_to_nat lv n) as Heq.
   { rewrite Heq; apply IHA; intuition.
     intros z Hz; apply H0; in_solve. }
   assert (In x lv) as Hin by (apply H0; intuition).

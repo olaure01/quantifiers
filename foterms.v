@@ -2,8 +2,9 @@
 (*   with holes in [nat] for de Bruijn indices *)
 
 Require Export PeanoNat Lia List.
-Require Import stdlib_more.
-Require Export dectype term_tactics.
+Require Import List_more.
+Require Export dectype.
+Require Export term_tactics.
 
 Set Implicit Arguments.
 

@@ -1,10 +1,10 @@
 (* Sequent Calculus for Second-Order Propositional Additive Linear Logic *)
 
-Require Import PeanoNat Wf_nat Lia List.
-Require Import stdlib_more.
-Require Import dectype term_tactics.
+Require Import PeanoNat Wf_nat Lia.
+Require Import List_more dectype.
+Require Import term_tactics.
 
-Hint Resolve notin_remove : term_db.
+Hint Resolve in_in_remove : term_db.
 
 
 Parameter atom : Type. (* second-order constants *)
@@ -329,6 +329,4 @@ destruct A.
 - apply frlr.
   simpl ; apply (frll (dvar 0) eq_refl) ; auto with term_db.
 Qed.
-
-
 

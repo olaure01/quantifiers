@@ -1,7 +1,7 @@
 (* First-Order Formulas *)
 
 Require Import Lia.
-Require Import stdlib_more_dec.
+Require Import List_more List_assoc.
 Require Export foterms.
 
 Set Implicit Arguments.
@@ -138,7 +138,7 @@ Arguments tvar {_} {_} {T} _.
 Arguments tvars {_} {_} {T} _.
 Implicit Type A : formula T.
 
-Hint Rewrite (@remove_snd_remove vatom (formula T)) : term_db.
+Hint Rewrite (@remove_assoc_remove vatom (formula T)) : term_db.
 
 (** * Formula substitution *)
 
@@ -177,14 +177,14 @@ Notation "x ∉ A" := (~ In x (freevars A)) (at level 30).
 
 Lemma freevars_qtf : forall qcon x y, y <> x -> forall A,
   x ∈ A -> x ∈ (fqtf qcon y A).
-Proof. intros; apply notin_remove; intuition. Qed.
+Proof. intros; apply in_in_remove; intuition. Qed.
 
 Lemma nfree_subs : forall x u A, x ∉ A -> A[u//x] = A.
 Proof. formula_induction A.
 - rnow apply notin_tsubs then apply H.
 - rnow apply H.
 - rcauto; rnow rewrite IHA.
-  apply H, notin_remove; intuition.
+  apply H, in_in_remove; intuition.
 Qed.
 Hint Rewrite nfree_subs using intuition; fail : term_db.
 
@@ -215,7 +215,7 @@ Proof. formula_induction A; try in_solve.
     apply in_remove in H; intuition.
   + assert (Hin := proj1 (in_remove _ _ _ _ H)).
     apply IHA in Hin; destruct Hin as [Hin|Hin]; [left|right]; intuition;
-      apply notin_remove; intuition.
+      apply in_in_remove; intuition.
     subst; revert H; apply remove_In.
 Qed.
 
@@ -238,7 +238,7 @@ Proof. formula_induction A; try in_solve.
   apply in_or_app; apply in_app_or in Hin1; destruct Hin1 as [Hin1|Hin1]; [left|right]; rcauto.
   apply tvars_tsubs; intuition.
 - exfalso; now apply remove_In in H0.
-- apply notin_remove; intuition.
+- apply in_in_remove; intuition.
   apply in_remove in H0; destruct H0 as [Hin Hneq].
   apply IHA; intuition.
 Qed.
@@ -262,12 +262,12 @@ Proof. induction A; simpl; intros Hnc; f_equal.
      [ destruct (in_dec eq_dt_dec x (freevars A)) | ]; rcauto.
     exfalso.
     specialize_Forall Hnc with y; apply Hnc; intuition.
-    now apply notin_remove.
+    now apply in_in_remove.
   + destruct (in_dec eq_dt_dec x (freevars A)).
     * apply IHA.
       apply Forall_forall; intros z Hinz.
       specialize_Forall Hnc with z; apply Hnc.
-      apply notin_remove; intuition.
+      apply in_in_remove; intuition.
     * rewrite 2 (nfree_subs x); [ reflexivity | | assumption ].
       intros Hin; apply n.
       rewrite freevars_subs_closed in Hin; [ | assumption ].
@@ -312,6 +312,7 @@ Qed.
 
 Definition multi_subs L A := fold_left (fun F '(x,u) => F[u//x]) L A.
 Notation "A [[ L ]]" := (multi_subs L A) (at level 8, format "A [[ L ]]").
+Notation "L ∖ x" := (remove_assoc x L) (at level 18).
 
 Lemma multi_subs_nil : multi_subs nil = id.
 Proof. reflexivity. Qed.
@@ -330,7 +331,7 @@ Proof. now induction L; intros A B; simpl; [ | destruct a; rewrite IHL ]. Qed.
 Hint Rewrite multi_subs_fbin : term_db.
 
 Lemma multi_subs_fqtf : forall qcon L x A,
-  (fqtf qcon x A)[[L]] = fqtf qcon x A[[remove_snd x L]].
+  (fqtf qcon x A)[[L]] = fqtf qcon x A[[remove_assoc x L]].
 Proof.
 induction L; intros x A; simpl; [ reflexivity | destruct a; simpl ].
 case_analysis; rewrite IHL; f_equal.
@@ -512,7 +513,7 @@ Proof. formula_induction A; try in_solve.
   apply tesubs_tvars in Hint; intuition.
   rewrite <- flat_map_concat_map; apply in_flat_map; exists t; intuition.
 - apply in_remove in H0; destruct H0 as [Hin Hneq].
-  apply notin_remove; intuition.
+  apply in_in_remove; intuition.
 Qed.
 
 Lemma subs_esubs : forall x u A, not_egenerated x A ->

@@ -1,8 +1,14 @@
 -R . ""
 
-stdlib_more.v
+List_more.v
+List_Type.v
+List_Type_more.v
+funtheory.v
 dectype.v
-stdlib_more_dec.v
+infinite.v
+List_assoc.v
+Vector_more.v
+Wf_nat_more.v
 
 term_tactics.v
 foterms.v

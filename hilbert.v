@@ -1,7 +1,6 @@
 (* Hilbert system for Intuitionistic Logic with implication and quantifiers *)
 
-Require Import List.
-Require Import stdlib_more.
+Require Import List_more.
 Require Import foformulas.
 
 Set Implicit Arguments.

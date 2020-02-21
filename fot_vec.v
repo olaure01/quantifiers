@@ -5,9 +5,9 @@
 
 Require Export PeanoNat.
 Require List.
-Require Import stdlib_more.
+Require Import Vector_more dectype.
 Notation vec := Vector.t.
-Require Import term_tactics dectype.
+Require Import term_tactics.
 
 
 (** * Different kinds of atoms *)
@@ -57,8 +57,8 @@ Ltac term_induction u :=
   [ intros nn ; try reflexivity ; try assumption ; simpl
   | intros xx ; try reflexivity ; try assumption ; simpl
   | intros cc ll IHll ; simpl ;
-    repeat (rewrite List.flat_map_concat_map) ; repeat (rewrite Vector_map_map) ;
-    try f_equal ; try (apply Vector_map_ext_in ; apply Vector_Forall_forall) ; try assumption ] ;
+    repeat (rewrite List.flat_map_concat_map) ; repeat (rewrite map_map) ;
+    try f_equal ; try (apply map_ext_in ; apply Forall_forall) ; try assumption ] ;
   try ((rnow idtac) ; fail) ; try (rcauto ; fail).
 
 
@@ -109,7 +109,7 @@ Hint Rewrite ntsubs_tup_com : term_db.
 
 Lemma ntsubs_z_tup : forall u v, ntsubs 0 u (tup 0 v) = v.
 Proof. term_induction v.
-now rewrite <- (Vector_map_id l) at 2 ; apply Vector_map_ext_in ; apply Vector_Forall_forall.
+now rewrite <- (map_id l) at 2; apply map_ext_in, Forall_forall.
 Qed.
 Hint Rewrite ntsubs_z_tup : term_db.
 
@@ -164,9 +164,9 @@ Hint Rewrite freevars_ntsubs using intuition ; fail : term_db.
 
 Lemma nfree_tsubs : forall x u v, ~ List.In x (freevars v) -> tsubs x u v = v.
 Proof. term_induction v ; try rcauto; f_equal.
-rewrite <- (Vector_map_id l) at 2.
-apply Vector_map_ext_in; intros a Ha.
-eapply Vector_Forall_forall in IHl; [ apply IHl | eassumption ].
+rewrite <- (map_id l) at 2.
+apply map_ext_in; intros a Ha.
+eapply Forall_forall in IHl; [ apply IHl | eassumption ].
 intros Hin; apply H.
 revert Hin; clear - Ha; induction Ha; intros Hin; simpl.
 - now apply List.in_or_app; left.

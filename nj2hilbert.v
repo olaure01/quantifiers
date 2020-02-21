@@ -1,6 +1,6 @@
 (* From Natural Deduction to Hilbert System *)
 
-Require Import stdlib_more_dec.
+Require Import List_more infinite List_assoc.
 Require Export nj1 hilbert.
 
 Set Implicit Arguments.
@@ -22,7 +22,7 @@ Notation fclosed r := (forall n, closed (r n)).
 Notation "A ⟦ r ⟧" := (esubs r A) (at level 8, left associativity, format "A ⟦ r ⟧").
 Notation "A [ u // x ]" := (subs x u A) (at level 8, format "A [ u // x ]").
 Notation "A [[ L ]]" := (multi_subs L A) (at level 8, format "A [[ L ]]").
-Notation "L ∖ x" := (remove_snd x L) (at level 18).
+Notation "L ∖ x" := (remove_assoc x L) (at level 18).
 Notation "⇑" := fup.
 Notation "A ↑" := (A⟦⇑⟧) (at level 8, format "A ↑").
 Notation "l ⇈" := (map (fun F => F↑) l) (at level 8, format "l ⇈").
@@ -179,10 +179,10 @@ Proof. formula_induction A.
   + rewrite map_map, <- flat_map_concat_map; apply in_flat_map; exists u; intuition.
   + apply H0, in_flat_map; exists u; intuition.
 - apply in_or_app; apply in_app_or in H1; destruct H1 as [Hin|Hin]; [left|right]; intuition.
-- apply in_remove in H1; destruct H1 as [Hin Hneq]; apply notin_remove; intuition.
+- apply in_remove in H1; destruct H1 as [Hin Hneq]; apply in_in_remove; intuition.
   apply IHA; intuition.
   + apply no_ecapture_less with (lv1:= x::nil) in H; [ intuition | in_solve ].
-  + apply H0, notin_remove; intuition.
+  + apply H0, in_in_remove; intuition.
 Qed.
 
 Lemma fvars_n2h_rrename : forall x y r A z,
@@ -330,7 +330,7 @@ Proof. formula_induction A.
 - apply IHA2; intros Hin; apply H; in_solve.
 - apply IHA; intros Hin; apply H; right.
   apply in_or_app; apply in_app_or in Hin; destruct Hin as [Hin|Hin]; [left|right]; intuition.
-  apply notin_remove; intuition.
+  apply in_in_remove; intuition.
 Qed.
 
 Lemma hrrename : forall r y x A,
@@ -348,12 +348,12 @@ revert Hnin Hg; clear; formula_induction A.
   + apply IHA; intuition.
     * apply H2.
       apply in_or_app; apply in_app_or in H0; destruct H0 as [Hin|Hin]; [left|right]; intuition.
-      apply notin_remove; intuition.
+      apply in_in_remove; intuition.
     * apply no_ecapture_less with (lv1:=nil) in Hg; [ intuition | in_solve ].
   + intros Heq; subst.
     apply Hnin; right.
     apply in_or_app; right.
-    apply in_remove in H; destruct H as [Hin Hneq]; apply notin_remove; intuition.
+    apply in_remove in H; destruct H as [Hin Hneq]; apply in_in_remove; intuition.
     apply freevars_n2h_rrename_self in Hin; intuition.
     apply H0, in_or_app; left.
     now apply freevars_fvars.

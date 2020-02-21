@@ -1,11 +1,11 @@
 (* Natural Deduction for Second-Order Propositional Intuitionistic Logic *)
 (*  aka System F *)
 
-Require Import PeanoNat Lia List.
-Require Import stdlib_more.
-Require Import dectype term_tactics.
+Require Import PeanoNat Lia.
+Require Import List_more dectype Wf_nat_more.
+Require Import term_tactics.
 
-Hint Resolve notin_remove : term_db.
+Hint Resolve in_in_remove : term_db.
 
 Parameter atom : Type. (* second-order constants *)
 Parameter vatom : DecType. (* variables for quantification *)

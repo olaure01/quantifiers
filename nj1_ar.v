@@ -1,8 +1,8 @@
 (* Natural Deduction for First-Order Intuitionistic Logic *)
 
 Require Import Lia.
-Require Import stdlib_more.
-Require Import term_tactics dectype fot_ar.
+Require Import List_more dectype Wf_nat_more.
+Require Import term_tactics fot_ar.
 
 Import EqNotations.
 
@@ -501,6 +501,4 @@ replace (fconstr
 Qed.
 
 End Examples.
-
-
 

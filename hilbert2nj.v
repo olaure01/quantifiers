@@ -1,6 +1,6 @@
 (* From Hilbert System to Natural Deduction *)
 
-Require Import stdlib_more_dec.
+Require Import List_more List_assoc.
 Require Export foterms_std nj1 hilbert.
 
 Set Implicit Arguments.
@@ -23,7 +23,7 @@ Notation fclosed r := (forall n, closed (r n)).
 Notation "A ⟦ r ⟧" := (esubs r A) (at level 8, left associativity, format "A ⟦ r ⟧").
 Notation "A [ u // x ]" := (subs x u A) (at level 8, format "A [ u // x ]").
 Notation "A [[ L ]]" := (multi_subs L A) (at level 8, format "A [[ L ]]").
-Notation "L ∖ x" := (remove_snd x L) (at level 18).
+Notation "L ∖ x" := (remove_assoc x L) (at level 18).
 Notation "⇑" := fup.
 Notation "A ↑" := (A⟦⇑⟧) (at level 8, format "A ↑").
 Notation "l ⇈" := (map (fun F => F↑) l) (at level 8, format "l ⇈").
@@ -154,9 +154,9 @@ intros A pi; induction pi; intros L Hcl Hsub;
     revert Hsub; case (eq_dt_reflect z x); intros Heq Hsub; subst;
       rewrite map_app; simpl; try in_solve.
     rewrite map_map, map_ext with (g:= fst) by (intros [? ?]; reflexivity).
-    rewrite <- remove_snd_remove.
-    eapply notin_remove with (y:= x) in Hinz; intuition ; apply Hsub in Hinz.
-    apply notin_remove with (Hdec:= eq_dt_dec) (y:= x) in Hinz; intuition.
+    rewrite <- remove_assoc_remove.
+    eapply in_in_remove with (y:= x) in Hinz; intuition ; apply Hsub in Hinz.
+    apply in_in_remove with (Hdec:= eq_dt_dec) (y:= x) in Hinz; intuition.
 - rewrite multi_subs_fqtf, subs_esubs; intuition.
   rewrite multi_subs_subs; try assumption.
   + destruct (in_dec eq_dt_dec x (freevars (h2n_formula A))) as [Hf|Hf].

@@ -1,7 +1,7 @@
 (* Sequent Calculus for First-Order Additive Linear Logic *)
 
 Require Import Lia.
-Require Import stdlib_more.
+Require Import List_more Wf_nat_more.
 Require Import foformulas.
 
 Set Implicit Arguments.

@@ -1,6 +1,5 @@
 (* First-Order Terms with no Eigen Variable *)
 
-Require Import stdlib_more.
 Require Export foterms.
 
 Set Implicit Arguments.
