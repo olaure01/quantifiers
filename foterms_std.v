@@ -29,4 +29,3 @@ Proof. intros s n; destruct n. Qed.
 Hint Rewrite fecomp_r_empty : term_db.
 
 End Terms.
-

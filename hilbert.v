@@ -1,6 +1,6 @@
 (* Hilbert system for Intuitionistic Logic with implication and quantifiers *)
 
-Require Import List_more.
+From Coq Require Import List.
 Require Import foformulas.
 
 Set Implicit Arguments.
@@ -111,4 +111,3 @@ eapply hprove_MP.
 Qed.
 
 End Proofs.
-

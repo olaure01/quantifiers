@@ -3,11 +3,13 @@
 
 (* arity check based on vectors *)
 
-Require Export PeanoNat.
-Require List.
-Require Import Vector_more dectype.
-Notation vec := Vector.t.
+From Coq Require Export PeanoNat.
+From Coq Require Import Vector.
+From Coq Require List.
+From OLlibs Require Import dectype.
 Require Import term_tactics.
+
+Notation vec := Vector.t.
 
 
 (** * Different kinds of atoms *)
@@ -109,7 +111,7 @@ Hint Rewrite ntsubs_tup_com : term_db.
 
 Lemma ntsubs_z_tup : forall u v, ntsubs 0 u (tup 0 v) = v.
 Proof. term_induction v.
-now rewrite <- (map_id l) at 2; apply map_ext_in, Forall_forall.
+now rewrite <- (map_id _ _ l) at 2; apply map_ext_in, Forall_forall.
 Qed.
 Hint Rewrite ntsubs_z_tup : term_db.
 
@@ -139,7 +141,7 @@ apply (term_ind_vec_Forall u) ;
   try ((rnow idtac) ; fail) ; try (rcauto ; fail).
 revert IHll; induction ll ; intros IHl ; intuition.
 inversion IHl ; subst.
-apply inj_pairT2_nat in H1 ; subst.
+apply (Eqdep_dec.inj_pair2_eq_dec _ Nat.eq_dec) in H1 ; subst.
 apply IHll in H3.
 simpl ; rewrite H3 ; rewrite H2 ; reflexivity.
 Qed.
@@ -156,7 +158,7 @@ apply (term_ind_vec_Forall v) ;
   try ((rnow idtac) ; fail) ; try (rcauto ; fail).
 revert IHll; induction ll ; intros IHl ; intuition.
 inversion IHl ; subst.
-apply inj_pairT2_nat in H2 ; subst.
+apply (Eqdep_dec.inj_pair2_eq_dec _ Nat.eq_dec) in H2 ; subst.
 apply IHll in H4.
 simpl ; rewrite H4 ; rewrite H3 ; reflexivity.
 Qed.
@@ -164,7 +166,7 @@ Hint Rewrite freevars_ntsubs using intuition ; fail : term_db.
 
 Lemma nfree_tsubs : forall x u v, ~ List.In x (freevars v) -> tsubs x u v = v.
 Proof. term_induction v ; try rcauto; f_equal.
-rewrite <- (map_id l) at 2.
+rewrite <- (map_id _ _ l) at 2.
 apply map_ext_in; intros a Ha.
 eapply Forall_forall in IHl; [ apply IHl | eassumption ].
 intros Hin; apply H.
@@ -188,4 +190,3 @@ Proof. term_induction w. Qed.
 Hint Rewrite tsubs_tsubs_com using try (intuition ; fail) ;
                                   (try apply closed_nofreevars) ; intuition ; fail : term_db.
 *)
-

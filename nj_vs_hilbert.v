@@ -1,7 +1,7 @@
 (* Tight links between Natural Deduction and Hilbert System *)
 
-Require Import Lia.
-Require Import List_more infinite List_assoc.
+From Coq Require Import Lia.
+From OLlibs Require Import infinite List_more List_assoc.
 Require Import hilbert2nj nj2hilbert.
 
 Set Implicit Arguments.
@@ -45,7 +45,7 @@ Lemma vars_to_nat_snd : forall l, map snd (vars_to_nat l) = rev (seq 0 (length l
 Proof. now induction l; intuition; simpl length; rewrite seq_S, rev_unit; simpl; f_equal. Qed.
 
 Lemma vars_to_nat_snd_NoDup : forall (A : hformula), NoDup (map snd (vars_to_nat (freevars A))).
-Proof. intros A; rewrite vars_to_nat_snd; apply NoDup_rev, NoDup_seq. Qed.
+Proof. intros A; rewrite vars_to_nat_snd; apply NoDup_rev, seq_NoDup. Qed.
 
 Definition nthvar_nat l := fun n => nth (length l - S n) l xf.
 
@@ -111,7 +111,7 @@ Proof. formula_induction A;
   apply no_tecapture_nthvar; intuition.
 - replace (remove_assoc x (map (fun '(x0, i) => (x0, evar i)) lvn))
      with (map (fun '(x0,i) => (x0, evar i : term)) (remove_assoc x lvn))
-    by (clear; induction lvn; intuition; unfold remove_assoc;
+    by (clear; induction lvn; intuition; unfold remove_assoc; simpl;
         repeat case_analysis; f_equal; intuition).
   apply IHA.
   + intros z Hz Hinz.
@@ -161,7 +161,7 @@ Proof. formula_induction A;
   now apply hilbert_vs_nj_term.
 - replace (remove_assoc x (map (fun '(x0, i) => (x0, evar i)) lvn))
      with (map (fun '(x0,i) => (x0, evar i : term)) (remove_assoc x lvn))
-    by (clear; induction lvn; intuition; unfold remove_assoc;
+    by (clear; induction lvn; intuition; unfold remove_assoc; simpl;
         repeat case_analysis; f_equal; intuition).
   apply IHA.
   + now apply NoDup_remove_assoc_snd.
@@ -380,4 +380,3 @@ intros A; exists (freshterms (fvars A)); intros pi.
 Qed.
 
 End NJvsH.
-

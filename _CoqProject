@@ -1,14 +1,4 @@
--R . ""
-
-List_more.v
-List_Type.v
-List_Type_more.v
-funtheory.v
-dectype.v
-infinite.v
-List_assoc.v
-Vector_more.v
-Wf_nat_more.v
+-R . Quantifiers
 
 term_tactics.v
 foterms.v

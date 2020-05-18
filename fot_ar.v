@@ -3,9 +3,9 @@
 
 (* with arity checks *)
 
-
-Require Export PeanoNat List.
-Require Import dectype term_tactics.
+From Coq Require Export PeanoNat List.
+From OLlibs Require Import dectype.
+Require Import term_tactics.
 
 
 (** * Different kinds of atoms *)
@@ -138,4 +138,3 @@ Proof. simpl_term_induction w. Qed.
 Hint Rewrite tsubs_tsubs_com using try (intuition ; fail) ;
                                    (try apply closed_nofreevars) ; intuition ; fail : term_db.
 *)
-

@@ -1,8 +1,8 @@
 (* Natural Deduction for Second-Order Propositional Intuitionistic Logic *)
 (*  aka System F *)
 
-Require Import PeanoNat Lia.
-Require Import List_more dectype Wf_nat_more.
+From Coq Require Import PeanoNat Wf_nat Lia List.
+From OLlibs Require Import dectype.
 Require Import term_tactics.
 
 Hint Resolve in_in_remove : term_db.
@@ -387,4 +387,3 @@ intros l A pi ; induction pi ;
   clear ; intros ; eapply smp_substitution...
 - eapply frl_reduction...
 Qed.
-

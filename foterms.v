@@ -1,9 +1,9 @@
 (* Definitions and properties of first-order terms *)
 (*   with holes in [nat] for de Bruijn indices *)
 
-Require Export PeanoNat Lia List.
-Require Import List_more.
-Require Export dectype.
+From Coq Require Export PeanoNat Lia List.
+From OLlibs Require Import List_more.
+From OLlibs Require Export dectype.
 Require Export term_tactics.
 
 Set Implicit Arguments.
@@ -266,7 +266,7 @@ Lemma multi_tsubs_closed : forall L t,
   closed t[[L]].
 Proof.
 induction L; simpl; intros t Hc Hf.
-- now apply incl_nil_inv.
+- now apply incl_l_nil.
 - destruct a; simpl; simpl in Hc, Hf; inversion_clear Hc.
   apply IHL; intuition.
   intros z Hinz.
@@ -302,8 +302,7 @@ Notation "t [[ L ]]" := (multi_tsubs L t) (at level 8, format "t [[ L ]]").
 Hint Rewrite notin_tsubs using try easy;
                               (try (intuition; fail));
                               (try apply closed_notvars); intuition; fail : term_db.
-
-Hint Resolve (@closed_notvars T1) : term_db.
+Hint Resolve closed_notvars : term_db.
 
 
 (** * Additional results with variable eigen type *)
@@ -335,7 +334,7 @@ Notation "#[[ lv ]] t" := (no_tecapture_at lv t) (at level 30, format "#[[ lv ]]
 Lemma no_tecapture_less : forall lv1 lv2 t, incl lv1 lv2 ->
   #[[lv2]] t -> #[[lv1]] t.
 Proof. term_induction t.
-- intro; apply Forall_incl; intuition.
+- intro; apply incl_Forall; intuition.
 - apply Forall_fold_right in H0.
   apply Forall_fold_right, Forall_forall; intros u Hu.
   specialize_Forall_all u; intuition.
@@ -516,4 +515,3 @@ Ltac term_induction t :=
     try (apply Forall_forall; intros i Hi; specialize_Forall_all i);
     try (now intuition) ];
   try (now (rnow idtac)); try (now rcauto).
-

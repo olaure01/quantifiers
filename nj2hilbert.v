@@ -1,6 +1,6 @@
 (* From Natural Deduction to Hilbert System *)
 
-Require Import List_more infinite List_assoc.
+From OLlibs Require Import infinite List_more List_assoc.
 Require Export nj1 hilbert.
 
 Set Implicit Arguments.
@@ -33,7 +33,7 @@ Notation "r #[[ l ]] A" := (no_ecapture_at r l A) (at level 30, format "r  #[[ l
 
 Infix "→" := (fbin imp_con) (at level 55, right associativity).
 
-Hint Resolve (@no_ecapture_not_egenerated vatom tatom fatom Nocon Icon Qcon nat Empty_set) : term_db.
+Hint Resolve no_ecapture_not_egenerated : term_db.
 
 
 Section Fixed_r.
@@ -216,7 +216,8 @@ term_induction t.
   apply H.
   apply in_or_app; apply in_app_or in H1; destruct H1 as [H1|H1]; [left|right]; intuition.
   rewrite flat_map_concat_map.
-  now apply in_concat with (tvars u).
+  apply in_concat.
+  now exists (tvars u).
 Qed.
 
 Lemma no_ecapture_rrename : forall r y x (A : formula) lv, ~ In y (fvars A ++ lv) ->
@@ -713,4 +714,3 @@ now apply n2h; [ | apply Forall_forall; intros; apply fclosed_no_ecapture ].
 Qed.
 
 End N2H.
-

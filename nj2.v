@@ -1,8 +1,8 @@
 (* Natural Deduction for Second-Order Propositional Intuitionistic Logic *)
 (*   with universal and existential second-order quantifications *)
 
-Require Import PeanoNat Lia.
-Require Import List_more dectype.
+From Coq Require Import PeanoNat Lia List.
+From OLlibs Require Import dectype.
 Require Import term_tactics.
 
 Hint Resolve in_in_remove : term_db.
@@ -302,4 +302,3 @@ apply rnprove_mutrect ; intros ; try (econstructor ; intuition ; intuition ; fai
   + apply X ; reflexivity.
   + rewrite ? map_app ; rewrite app_comm_cons ; apply X0 ; rewrite map_app ; reflexivity.
 Qed.
-

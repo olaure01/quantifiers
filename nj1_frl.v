@@ -1,7 +1,7 @@
 (* Natural Deduction for First-Order Intuitionistic Logic *)
 
-Require Import Lia.
-Require Import List_Type_more Wf_nat_more.
+From Coq Require Import Wf_nat Lia.
+From OLlibs Require Import List_more.
 Require Export foformulas.
 
 Set Implicit Arguments.
@@ -43,8 +43,8 @@ Hint Rewrite (@subs_esubs vatom tatom fatom Nocon Icon FQcon nat)
 Hint Rewrite <- (@felift_esubs vatom tatom fatom Nocon Icon FQcon) : term_db.
 Hint Rewrite (@esubs_fup vatom tatom fatom Nocon Icon FQcon) : term_db.
 
-Hint Resolve (@fclosed_felift vatom tatom) : term_db.
-Hint Resolve (@fclosed_fesubs vatom tatom) : term_db.
+Hint Resolve fclosed_felift : term_db.
+Hint Resolve fclosed_fesubs : term_db.
 
 
 (** Proofs *)
@@ -165,7 +165,7 @@ Lemma rweakening :
 Proof.
 apply rnprove_mutrect; intros; subst;
   try (econstructor; rewrite_all map_app; rewrite ? app_comm_cons; intuition; fail).
-destruct (dichot_Type_elt_app _ _ _ _ _ H) as [ [? [? ?]] | [? [? ?]] ]; subst;
+destruct (dichot_elt_app_inf _ _ _ _ _ H) as [ [? [? ?]] | [? [? ?]] ]; subst;
   rewrite ? (app_assoc _ _ (A::_)), <- ? (app_assoc _ (A::_)), <- ? app_comm_cons;
   intuition.
 Qed.
@@ -189,7 +189,7 @@ apply lt_wf_double_rect; unfold IH; clear IH; simpl;
  intros B l1 l2 pi2 Hpi; [ intros HF | | ]; intros pi1;
  remember (l1 ++ A :: l2) as ll; destruct pi2; subst; simpl in Hpi.
 (* first statement *)
-- destruct (dichot_Type_elt_app _ _ _ _ _ Heqll)
+- destruct (dichot_elt_app_inf _ _ _ _ _ Heqll)
     as [ (l' & Heq0 & Heq) | (l' & Heq0 & Heq) ]; subst.
   + rewrite <- app_assoc; apply nax.
   + destruct l'; inversion Heq; subst.
@@ -253,4 +253,3 @@ intros l A pi; induction pi; try (econstructor; (idtac + econstructor); eassumpt
 Qed.
 
 End Proofs.
-

@@ -1,7 +1,7 @@
 (* Sequent Calculus for Second-Order Propositional Additive Linear Logic *)
 
-Require Import PeanoNat Wf_nat Lia.
-Require Import List_more dectype.
+From Coq Require Import PeanoNat Wf_nat Lia List.
+From OLlibs Require Import dectype.
 Require Import term_tactics.
 
 Hint Resolve in_in_remove : term_db.
@@ -329,4 +329,3 @@ destruct A.
 - apply frlr.
   simpl ; apply (frll (dvar 0) eq_refl) ; auto with term_db.
 Qed.
-

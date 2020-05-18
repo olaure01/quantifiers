@@ -1,7 +1,7 @@
 (* First-Order Formulas *)
 
-Require Import Lia.
-Require Import List_more List_assoc.
+From Coq Require Import Lia.
+From OLlibs Require Import List_more List_assoc.
 Require Export foterms.
 
 Set Implicit Arguments.
@@ -41,9 +41,9 @@ Hint Rewrite (@notin_tsubs_bivar vatom tatom)
 Hint Rewrite (@tsubs_tesubs vatom tatom) using try (intuition; fail) : term_db.
 Hint Rewrite (@multi_tsubs_nil vatom tatom) : term_db.
 
-Hint Resolve (@tesubs_ext vatom tatom) : term_db.
-Hint Resolve (@closed_notvars vatom tatom) : term_db.
-Hint Resolve (@fclosed_no_tecapture vatom tatom) : term_db.
+Hint Resolve tesubs_ext : term_db.
+Hint Resolve closed_notvars : term_db.
+Hint Resolve fclosed_no_tecapture : term_db.
 
 
 Context { fatom : Type }.  (* relation symbols for [formula] *)
@@ -198,7 +198,7 @@ Lemma freevars_subs_closed : forall x u, closed u -> forall A,
 Proof. formula_induction A; rewrite ? remove_app; try now f_equal.
 - now f_equal; apply tvars_tsubs_closed.
 - symmetry; apply remove_remove_eq.
-- now rewrite remove_remove_neq by (now intros Heq'; apply Heq); f_equal.
+- now rewrite remove_remove_comm by (now intros Heq'; apply Heq); f_equal.
 Qed.
 Hint Rewrite freevars_subs_closed using intuition; fail : term_db.
 
@@ -294,8 +294,8 @@ end.
 
 Lemma freevars_fvars : forall A, incl (freevars A) (fvars A).
 Proof. formula_induction A.
-eapply incl_tran; [ apply incl_remove | ].
-eapply incl_tran; [ apply IHA | intuition ].
+eapply incl_tran; [ apply remove_incl, IHA | ].
+intros y Hin; apply in_remove in Hin; intuition.
 Qed.
 Hint Resolve freevars_fvars : term_db.
 
@@ -350,7 +350,7 @@ Lemma multi_subs_closed : forall L A,
   freevars A[[L]] = nil.
 Proof.
 induction L; simpl; intros A Hc Hf.
-- now apply incl_nil_inv in Hf; subst.
+- now apply incl_l_nil in Hf; subst.
 - destruct a; simpl; simpl in Hc, Hf; inversion_clear Hc as [ | ? ? Hc2 HcF].
   apply IHL; intuition.
   intros z Hinz.
@@ -378,10 +378,10 @@ Proof.
 induction L; simpl; intros x u Hc A Hb; [ reflexivity | destruct a; simpl; simpl in Hc ].
 inversion_clear Hc as [ | ? ? Hct HcF ].
 case_analysis; rewrite <- IHL; intuition; f_equal; rcauto.
-- apply Forall_incl with (tvars u); intuition.
-  apply incl_remove.
-- apply Forall_incl with (tvars u).
-  + apply incl_remove.
+- apply incl_Forall with (tvars u); intuition.
+  now intros x Hin; apply in_remove in Hin.
+- apply incl_Forall with (tvars u).
+  + now intros y Hin; apply in_remove in Hin.
   + apply Forall_impl with (fun y => y #[x] A); trivial.
     intros a; now apply no_capture_subs.
 Qed.
@@ -621,4 +621,3 @@ Ltac formula_induction A :=
   | (try apply (f_equal (fqtf _ _))); repeat case_analysis; try (intuition; fail); 
      try (now rcauto) ];
   try (now rcauto).
-

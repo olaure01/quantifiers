@@ -1,6 +1,6 @@
 (* From Hilbert System to Natural Deduction *)
 
-Require Import List_more List_assoc.
+From OLlibs Require Import List_more List_assoc.
 Require Export foterms_std nj1 hilbert.
 
 Set Implicit Arguments.
@@ -37,12 +37,12 @@ Hint Rewrite (@tsubs_tesubs vatom tatom Empty_set nat)
                           using try (intuition; fail);
                                (try apply fclosed_no_tecapture); intuition; fail : term_db.
 
-Hint Resolve (@fclosed_r_empty vatom tatom) : term_db.
+Hint Resolve fclosed_r_empty : term_db.
 Hint Rewrite (@fecomp_r_empty vatom tatom) : term_db.
 
-Hint Resolve (@fclosed_no_tecapture vatom tatom Empty_set nat) : term_db.
-Hint Resolve (@fclosed_no_ecapture vatom tatom fatom Nocon Icon Qcon Empty_set nat) : term_db.
-Hint Resolve (@no_ecapture_not_egenerated vatom tatom fatom Nocon Icon Qcon Empty_set nat) : term_db.
+Hint Resolve fclosed_no_tecapture : term_db.
+Hint Resolve fclosed_no_ecapture : term_db.
+Hint Resolve no_ecapture_not_egenerated : term_db.
 
 Ltac run_ax :=
   match goal with
@@ -107,7 +107,7 @@ intros A pi; induction pi; intros L Hcl Hsub;
       now specialize_Forall f with z.
     * assert (x ∉ (h2n_formula A)[[L ∖ x]]) as Hnin.
       { intros Hin; apply Hf; apply multi_subs_freevars in Hin; try assumption.
-        apply Forall_incl with (map snd L); intuition.
+        apply incl_Forall with (map snd L); intuition.
         clear; induction L; intuition; simpl; case_analysis; intuition. }
       rewrite nfree_subs by assumption.
       rewrite <- (nfree_subs _ (evar 0) _ Hnin).
@@ -131,7 +131,7 @@ intros A pi; induction pi; intros L Hcl Hsub;
     rewrite freevars_fup in Hin; subst.
     apply multi_subs_freevars in Hin.
     * now rewrite <- freevars_esubs_fclosed with (r:= r_h2n).
-    * apply Forall_incl with (map snd L); intuition.
+    * apply incl_Forall with (map snd L); intuition.
       clear; induction L; intuition; simpl; case_analysis; intuition.
   + now rewrite freevars_esubs_fclosed.
 - rewrite multi_subs_fqtf.
@@ -142,7 +142,7 @@ intros A pi; induction pi; intros L Hcl Hsub;
                              ++ (x, evar 0) :: nil]]))
     by now unfold multi_subs; rewrite fold_left_app; simpl.
   apply IHpi.
-  + rewrite map_app; apply Forall_app.
+  + rewrite map_app; apply Forall_app; split.
     * rewrite map_map; simpl; rewrite <- map_map.
       revert Hcl; clear; induction L; simpl; intros HF; [ now constructor | destruct a ].
       simpl in HF; inversion_clear HF.
@@ -156,7 +156,7 @@ intros A pi; induction pi; intros L Hcl Hsub;
     rewrite map_map, map_ext with (g:= fst) by (intros [? ?]; reflexivity).
     rewrite <- remove_assoc_remove.
     eapply in_in_remove with (y:= x) in Hinz; intuition ; apply Hsub in Hinz.
-    apply in_in_remove with (Hdec:= eq_dt_dec) (y:= x) in Hinz; intuition.
+    apply in_in_remove with (eq_dec:= eq_dt_dec) (y:= x) in Hinz; intuition.
 - rewrite multi_subs_fqtf, subs_esubs; intuition.
   rewrite multi_subs_subs; try assumption.
   + destruct (in_dec eq_dt_dec x (freevars (h2n_formula A))) as [Hf|Hf].
@@ -171,7 +171,7 @@ intros A pi; induction pi; intros L Hcl Hsub;
       now specialize_Forall f with z.
     * assert (x ∉ (h2n_formula A)[[L ∖ x]]) as Hnin.
       { intros Hin; apply Hf; apply multi_subs_freevars in Hin; try assumption.
-        apply Forall_incl with (map snd L); intuition.
+        apply incl_Forall with (map snd L); intuition.
         clear; induction L; intuition; simpl; case_analysis; intuition. }
       rewrite nfree_subs by assumption.
       apply exsi with (evar 0); [ reflexivity | ].
@@ -193,10 +193,9 @@ intros A pi; induction pi; intros L Hcl Hsub;
     rewrite freevars_fup in Hin; subst.
     apply multi_subs_freevars in Hin.
     * now rewrite <- freevars_esubs_fclosed with (r:=r_h2n).
-    * apply Forall_incl with (map snd L); intuition.
+    * apply incl_Forall with (map snd L); intuition.
       clear; induction L; intuition; simpl; case_analysis; intuition.
   + now rewrite freevars_esubs_fclosed.
 Qed.
 
 End H2N.
-

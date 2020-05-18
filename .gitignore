@@ -18,6 +18,7 @@ TODO.org
 *.native
 
 .coqdeps.d
+Makefile
 Makefile.conf
 .Makefile.d
 

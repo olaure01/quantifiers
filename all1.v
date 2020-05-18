@@ -1,7 +1,6 @@
 (* Sequent Calculus for First-Order Additive Linear Logic *)
 
-Require Import Lia.
-Require Import List_more Wf_nat_more.
+From Coq Require Import Wf_nat Lia.
 Require Import foformulas.
 
 Set Implicit Arguments.
@@ -40,8 +39,8 @@ Hint Rewrite (@freevars_fup vatom tatom fatom Ncon Bcon Qcon) : term_db.
 Hint Rewrite (@esubs_fup vatom tatom fatom Ncon Bcon Qcon) : term_db.
 Hint Rewrite (@nfree_subs vatom tatom fatom Ncon Bcon Qcon nat) using intuition; fail : term_db.
 
-Hint Resolve (@fclosed_fesubs vatom tatom) : term_db.
-Hint Resolve (@fclosed_felift vatom tatom) : term_db.
+Hint Resolve fclosed_fesubs : term_db.
+Hint Resolve fclosed_felift : term_db.
 Hint Rewrite (@subs_esubs vatom tatom fatom Ncon Bcon Qcon nat)
                         using try (intuition; fail);
                              (try apply no_ecapture_not_egenerated); try (intuition; fail);
@@ -192,4 +191,3 @@ destruct A; [ | destruct n | destruct b | destruct q ].
 - apply frlr.
   rnow apply (frll (evar 0)).
 Qed.
-
