@@ -1,7 +1,8 @@
 (* From Hilbert System to Natural Deduction *)
 
-From OLlibs Require Import List_more List_assoc.
-Require Export foterms_std nj1 hilbert.
+Require Import lib_files.List_more lib_files.List_assoc.
+
+Require Export foterms_std nj1_frlexs hilbert.
 
 Set Implicit Arguments.
 

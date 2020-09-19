@@ -1,20 +1,18 @@
 -R . Quantifiers
 
 lib_files/dectype.v
+lib_files/infinite.v
 lib_files/List_more.v
 lib_files/List_assoc.v
 
 term_tactics.v
 foterms.v
 foformulas.v
-nj1_frl.v
+nj1.v
+
+nj1_frlexs.v
 
 foterms_std.v
-
-nj1.v
-nj2.v
-F.v
-
 hilbert.v
 hilbert2nj.v
 nj2hilbert.v
