@@ -1,7 +1,9 @@
 (* Natural Deduction for First-Order Intuitionistic Logic *)
 
 From Coq Require Import Wf_nat Lia.
-From OLlibs Require Import List_more.
+
+Require Import lib_files.List_more.
+
 Require Export foformulas.
 
 Set Implicit Arguments.
