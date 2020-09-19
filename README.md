@@ -1,22 +1,29 @@
 # Formalizing Quantifiers
 
-(working with `Coq 8.10.2`)
+(working with `Coq 8.12.0` and [`OLlibs 2.0.0`](https://github.com/olaure01/ollibs))
 
 A formalization of quantifiers based on:
 
-* formulas as first-order structures (no alpha-equivalence)
-* binding for quantifier rules implemented with de Bruijn indices
+* formulas as first-order structures (no alpha-equivalence);
+* binding for quantifier rules implemented with de Bruijn indices.
 
 It applies to:
 
-* first-order logics
-* propositional second-order logics (a la system F for example)
+* first-order logics;
+* propositional second-order logics (a la system F for example).
 
-Content:
+### Installation
 
-* `stdlib_more.v`: various lemmas missing in the standard library
-* `dectype.v`: types (including infinite ones) with Boolean equality
-* `stdlib_more_dec.v`: additional general purpose lemmas using a type with decidable equality
+Requires [OLlibs v2.0.0](https://github.com/olaure01/ollibs) (add-ons for the standard library): [see installation instructions](https://github.com/olaure01/ollibs/blob/master/README.md).
+
+1. [install OLlibs v2.0.0](https://github.com/olaure01/ollibs/blob/master/README.md)
+2. install development
+
+        $ ./configure
+        $ make
+        $ make install
+
+### Content:
 
 * `term_tactics.v`: some tactics used in following files
 * `foterms.v`: definitions and properties of first-order terms (with two kinds of variables)
