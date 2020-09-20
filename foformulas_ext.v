@@ -66,10 +66,18 @@ Lemma subs_subs_eq : forall x u v A, A[v//x][u//x] = A[tsubs x u v//x].
 Proof. formula_induction A. Qed.
 Hint Rewrite subs_subs_eq : term_db.
 
+(** * Variables *)
+
+(** ** Free variables in [formula] *)
+Fixpoint freevars A :=
+match A with
+| fvar _ l => flat_map tvars l
+| fnul _ _ => nil
+| fbin _ B C => freevars B ++ freevars C
+| fqtf _ x B => remove eq_dt_dec x (freevars B)
+end.
 Notation "x ∈ A" := (In x (freevars A)) (at level 30).
 Notation "x ∉ A" := (~ In x (freevars A)) (at level 30).
-
-(** * Variables *)
 
 Lemma freevars_qtf : forall qcon x y, y <> x -> forall A,
   x ∈ A -> x ∈ (fqtf qcon y A).
@@ -326,7 +334,12 @@ Notation "y #[ x ] A" := (no_capture_at x y A) (at level 30, format "y  #[ x ]  
 
 (** * Additional results with variable eigen type *)
 
-Hint Rewrite (@freevars_esubs_fclosed vatom tatom fatom) using intuition; fail : term_db.
+Lemma freevars_esubs_fclosed : fclosed -> forall A, freevars A⟦r⟧ = freevars A.
+Proof. formula_induction A.
+- now rewrite IHA1, IHA2.
+- now rewrite IHA.
+Qed.
+Hint Rewrite freevars_esubs_fclosed using intuition; fail : term_db.
 
 Lemma no_capture_esubs : fclosed -> forall x y A, y #[x] A -> y #[x] A⟦r⟧.
 Proof. formula_induction A. Qed.
@@ -444,7 +457,7 @@ Qed.
 
 End Two_Eigen_Types.
 
-Hint Rewrite (@freevars_esubs_fclosed vatom tatom fatom) using intuition; fail : term_db.
+Hint Rewrite freevars_esubs_fclosed using intuition; fail : term_db.
 
 Fixpoint eigen_max (A : formula nat) :=
 match A with

@@ -1,6 +1,7 @@
 (** Infinite Types *)
 
 From Coq Require Import Bool PeanoNat Lia List.
+
 Require Import funtheory.
 Require Export dectype.
 
@@ -26,6 +27,7 @@ Set Implicit Arguments.
     inversion Hnd; intuition.
   - apply IHl; now inversion Hnd.
   Qed.
+
 
 (** a pigeonhole principle *)
 Definition pigeon X := forall (l1 l2 : list X),

@@ -36,8 +36,6 @@ Notation formula := (@formula vatom tatom fatom Nocon Icon FQcon nat).
 Hint Rewrite (@fsize_esubs vatom tatom fatom Nocon Icon FQcon) : term_db.
 Hint Rewrite (@fsize_subs vatom tatom fatom Nocon Icon FQcon nat) : term_db.
 Hint Rewrite (@tvars_tesubs_fclosed vatom tatom) using intuition; fail : term_db.
-Hint Rewrite (@freevars_esubs_fclosed vatom tatom fatom Nocon Icon FQcon nat)
-                 using intuition; fail : term_db.
 Hint Rewrite (@subs_esubs vatom tatom fatom Nocon Icon FQcon nat)
                          using intuition; fail : term_db.
 Hint Rewrite <- (@felift_esubs vatom tatom fatom Nocon Icon FQcon) : term_db.
