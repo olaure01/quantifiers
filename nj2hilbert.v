@@ -35,6 +35,9 @@ Notation "r #[[ l ]] A" := (no_ecapture_at r l A) (at level 30, format "r  #[[ l
 Infix "→" := (fbin imp_con) (at level 55, right associativity).
 
 Hint Resolve no_ecapture_not_egenerated : term_db.
+Hint Rewrite (@tsubs_tesubs_notecap vatom tatom Empty_set nat)
+                          using try (intuition; fail);
+                               (try apply fclosed_no_tecapture); intuition; fail : term_db.
 
 
 Section Fixed_r.
@@ -452,7 +455,7 @@ Proof. formula_induction A. Qed.
 Lemma n2h_hfelift_fupz : forall x t A r, r #[[x::nil]] A ->
   n2h_formula (⇑[t]r) A↑[evar 0//x] = (n2h_formula r A)[t//x].
 Proof.
-intros; rewrite subs_esubs.
+intros; rewrite subs_esubs_notegen.
 - f_equal; apply n2h_hfelift_fup.
 - now apply no_ecapture_not_egenerated, no_ecapture_hfelift.
 Qed.
@@ -534,7 +537,7 @@ intros l A pi; induction pi; intros r Hg.
       apply in_remove in Hin; destruct Hin as [Hin Hneq]; apply Hneq.
       inversion_clear Hg as [ | ? ? Hgx _ ]; simpl in Hgx.
       apply no_ecapture_hfelift with (u:= tvar y) in Hgx; rewrite <- Heqr1 in Hgx.
-      rewrite subs_esubs in Hin; intuition.
+      rewrite subs_esubs_notegen in Hin; intuition.
       apply freevars_subs in Hin; simpl in Hin; intuition.
     - assert (~ In y (fvars (n2h_formula r1 A↑))) as HA.
       { intros Hin; rewrite Heqr1, n2h_hfelift_fup in Hin.
@@ -549,7 +552,7 @@ intros l A pi; induction pi; intros r Hg.
           apply freevars_fvars in Hin; intuition.
       + enough ((n2h_formula r1 (esubs ⇑ A)[tvar y//x])[tvar x//y] = n2h_formula r A)
           as Heq by (rewrite Heq; apply hprove_I).
-        rewrite subs_esubs; simpl; intuition; subst r1.
+        rewrite subs_esubs_notegen; simpl; intuition; subst r1.
         * rewrite notin_subs_bivar; intuition.
           apply n2h_hfelift_fup.
         * inversion_clear Hg.
@@ -585,7 +588,7 @@ intros l A pi; induction pi; intros r Hg.
       + now apply no_ecapture_s2f. }
   apply Hp.
   eapply hprove_MP; [ eapply hprove_MP; [ apply hprove_Bsequent | ] | apply IHpi ]; auto.
-  rewrite subs_esubs; [ apply hprove_INST | ]; intuition.
+  rewrite subs_esubs_notegen; [ apply hprove_INST | ]; intuition.
   + inversion_clear Hg1.
     apply no_ecapture_esubs_subs_closed; intuition.
   + inversion Hg1; intuition.
@@ -614,7 +617,7 @@ intros l A pi; induction pi; intros r Hg.
       + now apply no_ecapture_s2f. }
   apply Hp.
   eapply hprove_MP; [ eapply hprove_MP; [ apply hprove_Bsequent | ] | apply IHpi ]; auto.
-  + rewrite subs_esubs; simpl; [ apply hprove_EINST | ]; intuition.
+  + rewrite subs_esubs_notegen; simpl; [ apply hprove_EINST | ]; intuition.
     * inversion_clear Hg1.
       apply no_ecapture_esubs_subs_closed; intuition.
     * inversion Hg1; intuition.
@@ -674,7 +677,7 @@ intros l A pi; induction pi; intros r Hg.
       apply n2h_sequent_fvars, fvars_esubs; in_solve.
     * apply hprove_GEN.
       replace (tvar y) with (n2h_term r1 (tvar y)) by reflexivity.
-      rewrite <- subs_esubs; intuition.
+      rewrite <- subs_esubs_notegen; intuition.
       apply hprove_sequent_imp.
       remember (⇑[tvar y]r1) as r2.
       assert (Forall (no_ecapture r2) (C↑ :: A↑[evar 0//x] :: map (esubs ⇑) l)) as pi.
@@ -698,7 +701,7 @@ intros l A pi; induction pi; intros r Hg.
         rewrite n2h_hfelift_fup; intuition.
         enough (n2h_formula r1 A[tvar y//x] = (n2h_formula r1 A)[tvar y//x])
           as Heq by (rewrite Heq; apply hprove_I).
-        rewrite subs_esubs; intuition. }
+        rewrite subs_esubs_notegen; intuition. }
       clear - Heqr2 pi HBD; revert B D pi HBD; induction l; simpl; intros B D pi HBD.
       -- eapply hprove_MP; eassumption.
       -- apply IHl with (a↑ → B); auto.

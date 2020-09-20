@@ -34,7 +34,7 @@ Notation "y #[ x ] A" := (no_capture_at x y A) (at level 30, format "y  #[ x ]  
 
 Infix "→" := (fbin imp_con) (at level 55, right associativity).
 
-Hint Rewrite (@tsubs_tesubs vatom tatom Empty_set nat)
+Hint Rewrite (@tsubs_tesubs_notecap vatom tatom Empty_set nat)
                           using try (intuition; fail);
                                (try apply fclosed_no_tecapture); intuition; fail : term_db.
 
@@ -95,7 +95,7 @@ intros A pi; induction pi; intros L Hcl Hsub;
   + subst AAA; apply IHpi2; rewrite ? map_app.
     * apply Forall_app; intuition.
     * apply incl_appr; rewrite HfstLA; apply incl_refl.
-- rewrite multi_subs_fqtf, subs_esubs, multi_subs_subs; intuition.
+- rewrite multi_subs_fqtf, subs_esubs_notegen, multi_subs_subs; intuition.
   + destruct (in_dec eq_dt_dec x (freevars (h2n_formula A))) as [Hf|Hf].
     * apply frle; [ | apply ax_hd ].
       clear - f Hcl Hsub Hf.
@@ -158,7 +158,7 @@ intros A pi; induction pi; intros L Hcl Hsub;
     rewrite <- remove_assoc_remove.
     eapply in_in_remove with (y:= x) in Hinz; intuition ; apply Hsub in Hinz.
     apply in_in_remove with (eq_dec:= eq_dt_dec) (y:= x) in Hinz; intuition.
-- rewrite multi_subs_fqtf, subs_esubs; intuition.
+- rewrite multi_subs_fqtf, subs_esubs_notegen; intuition.
   rewrite multi_subs_subs; try assumption.
   + destruct (in_dec eq_dt_dec x (freevars (h2n_formula A))) as [Hf|Hf].
     * eapply exsi; [ | apply ax_hd ].

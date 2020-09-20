@@ -1,11 +1,31 @@
 (** Infinite Types *)
 
 From Coq Require Import Bool PeanoNat Lia List.
-From OLlibs Require Import funtheory List_Type.
-From OLlibs Require Export dectype.
+Require Import funtheory.
+Require Export dectype.
 
 Set Implicit Arguments.
 
+(* from List_Type *)
+  Inductive NoDup_inf A : list A -> Type :=
+    | NoDup_inf_nil : NoDup_inf nil
+    | NoDup_inf_cons : forall x l, (In x l -> False) -> NoDup_inf l -> NoDup_inf (x::l).
+
+  Lemma NoDup_NoDup_inf A : forall l : list A, NoDup l -> NoDup_inf l.
+  Proof.
+  induction l; intros Hnd; constructor.
+  - intros Hnin.
+    inversion Hnd; intuition.
+  - apply IHl; now inversion Hnd.
+  Qed.
+
+  Lemma NoDup_inf_NoDup A : forall l : list A, NoDup_inf l -> NoDup l.
+  Proof.
+  induction l; intros Hnd; constructor.
+  - intros Hnin.
+    inversion Hnd; intuition.
+  - apply IHl; now inversion Hnd.
+  Qed.
 
 (** a pigeonhole principle *)
 Definition pigeon X := forall (l1 l2 : list X),
@@ -147,7 +167,6 @@ Section InfiniteDec.
   - apply NoDup_NoDup_inf in Hnd.
     inversion_clear Hnd as [ | ? ? Hnin Hnd2 ].
     apply NoDup_inf_NoDup in Hnd2.
-    apply notin_inf_notin in Hnin.
     apply IHl1 with (remove eq_dt_dec a l2) in Hnd2.
     + destruct Hnd2 as [b Hb Hnb].
       exists b.

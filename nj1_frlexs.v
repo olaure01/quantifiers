@@ -1,8 +1,10 @@
 (* Natural Deduction for First-Order Intuitionistic Logic *)
 
 From Coq Require Import Wf_nat Lia.
-From OLlibs Require Import List_more.
-Require Export foformulas.
+
+Require Import lib_files.List_more.
+
+Require Export foformulas_ext.
 
 Set Implicit Arguments.
 
@@ -36,7 +38,7 @@ Hint Rewrite (@fsize_subs vatom tatom fatom Nocon Icon Qcon nat) : term_db.
 Hint Rewrite (@tvars_tesubs_fclosed vatom tatom) using intuition; fail : term_db.
 Hint Rewrite (@freevars_esubs_fclosed vatom tatom fatom Nocon Icon Qcon nat)
                  using intuition; fail : term_db.
-Hint Rewrite (@subs_esubs vatom tatom fatom Nocon Icon Qcon nat)
+Hint Rewrite (@subs_esubs_notegen vatom tatom fatom Nocon Icon Qcon nat)
                          using try (intuition; fail);
                              (try apply no_ecapture_not_egenerated); try (intuition; fail);
                              (try apply fclosed_no_ecapture); intuition; fail : term_db.

@@ -1,5 +1,6 @@
 -R . Quantifiers
 
+lib_files/funtheory.v
 lib_files/dectype.v
 lib_files/infinite.v
 lib_files/List_more.v
@@ -10,6 +11,8 @@ foterms.v
 foformulas.v
 nj1.v
 
+foterms_ext.v
+foformulas_ext.v
 nj1_frlexs.v
 
 foterms_std.v

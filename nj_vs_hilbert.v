@@ -1,7 +1,9 @@
 (* Tight links between Natural Deduction and Hilbert System *)
 
 From Coq Require Import Lia.
-From OLlibs Require Import infinite List_more List_assoc.
+
+Require Import lib_files.infinite lib_files.List_more lib_files.List_assoc.
+
 Require Import hilbert2nj nj2hilbert.
 
 Set Implicit Arguments.
