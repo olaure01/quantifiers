@@ -58,7 +58,7 @@ Global Arguments impe { l B }.
 Lemma ax_hd {l A} : prove (A :: l) A.
 Proof (ax nil l A).
 
-(* This [weakening] lemma is not required in the development, see rather [nweakening] below *)
+(* This [weakening] lemma is not required in the development, see rather [rweakening] below *)
 (* It is given here for comparison with alternative formalizations of Natural Deduction *)
 Lemma weakening : forall l A, prove l A -> forall l0, prove (l ++ l0) A.
 Proof.
