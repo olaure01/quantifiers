@@ -46,7 +46,7 @@ Hint Resolve tesubs_ext : term_db.
 Hint Resolve closed_notvars : term_db.
 
 Context { fatom : Type }.  (* relation symbols for [formula] *)
-(* Generic sets of connectives (thanks to D.Pous for the suggestion) *)
+(* Generic sets of connectives *)
 Context { NCon : Type }. (* nullary connectives *)
 Context { BCon : Type }. (* binary connectives *)
 Context { QCon : Type }. (* quantifiers *)
