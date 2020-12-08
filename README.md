@@ -14,7 +14,7 @@ A formalization of quantifiers based on:
 
 ### Content:
 
-* `lib_files/*.v` : external library files
+* `ollibs/*.v` : external library files from [OLlibs](https://github.com/olaure01/ollibs) (put here to get a self-contained set of files)
 
 * `term_tactics.v`: some tactics used in following files
 * `foterms.v`: definitions and properties of first-order terms (with two kinds of variables)

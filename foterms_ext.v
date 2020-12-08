@@ -2,8 +2,8 @@
 
 From Coq Require Export PeanoNat Lia List.
 
-Require Import lib_files.List_more.
-Require Export lib_files.dectype.
+Require Import ollibs.List_more.
+Require Export ollibs.dectype.
 
 Require Export term_tactics foterms.
 

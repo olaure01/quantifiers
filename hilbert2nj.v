@@ -1,6 +1,6 @@
 (* From Hilbert System to Natural Deduction *)
 
-Require Import lib_files.List_more lib_files.List_assoc.
+Require Import ollibs.List_more ollibs.List_assoc.
 
 Require Export foterms_std nj1_frlexs hilbert.
 

@@ -2,8 +2,6 @@
 
 From Coq Require Import Lia.
 
-Require Import lib_files.List_more.
-
 Require Export foterms.
 
 Set Implicit Arguments.

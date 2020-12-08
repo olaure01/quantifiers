@@ -2,7 +2,7 @@
 
 From Coq Require Import Lia.
 
-Require Import lib_files.infinite lib_files.List_more lib_files.List_assoc.
+Require Import ollibs.infinite ollibs.List_more ollibs.List_assoc.
 
 Require Import hilbert2nj nj2hilbert.
 

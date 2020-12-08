@@ -1,10 +1,10 @@
 -R . Quantifiers
 
-lib_files/funtheory.v
-lib_files/dectype.v
-lib_files/infinite.v
-lib_files/List_more.v
-lib_files/List_assoc.v
+ollibs/funtheory.v
+ollibs/dectype.v
+ollibs/infinite.v
+ollibs/List_more.v
+ollibs/List_assoc.v
 
 term_tactics.v
 foterms.v

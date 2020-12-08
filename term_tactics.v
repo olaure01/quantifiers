@@ -2,7 +2,7 @@
 
 From Coq Require Import PeanoNat List.
 
-Require Import lib_files.dectype.
+Require Import ollibs.dectype.
 
 Create HintDb term_db.
 
