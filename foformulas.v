@@ -1,7 +1,5 @@
 (* First-Order Formulas *)
 
-From Coq Require Import Lia.
-
 Require Export foterms.
 
 Set Implicit Arguments.

@@ -1,7 +1,7 @@
 (* Definitions and Properties of First-Order Terms *)
 (*   with holes in [nat] for de Bruijn indices *)
 
-From Coq Require Export PeanoNat Lia List.
+From Coq Require Export PeanoNat List.
 
 Require Import ollibs.List_more.
 Require Export ollibs.dectype.
@@ -31,12 +31,6 @@ match goal with
 | H : ?y <> ?x |- context f [eq_dt_dec ?x ?y] => rewrite (if_eq_dt_dec_neq x y (not_eq_sym H))
 | |- context f [eq_dt_dec ?x ?y] => case_eq (eq_dt_dec x y); intros Heq Heqeq; [ subst x | ]
 end; simpl.
-Ltac e_case_intuition := repeat e_case_analysis; (try now intuition); (try (exfalso; lia)).
-(* [ne_reference_list] would be better below, but apparently not available, see Ltac2? *)
-(*   see also https://github.com/coq/coq/issues/11209 *)
-Tactic Notation "e_case_intuition" "unfolding" reference(ref) :=
-  intros; unfold ref; e_case_intuition.
-
 
 
 (** * First-Order Terms *)
@@ -45,14 +39,15 @@ Section Terms.
 
 Context { vatom : DecType } { tatom : Type }.
 
-(** terms with quantifiable variables *)
-(** arity not given meaning that we have a copy of each function name for each arity *)
-(** [evar] for De Bruijn style eigen variables in proofs *)
-(**          type for these indices as parameter called the eigen type *)
-(**          but mostly used with [nat] *)
-(**          other values can be used for terms without indices (use [Empty_set]) *)
-(**          or for mapping into other syntaxes *)
-(** [tvar] for quantified variables in formulas *)
+(** terms with quantifiable variables
+
+    arity not given meaning that we have a copy of each function name for each arity
+
+ - [evar] for De Bruijn style eigen variables in proofs,
+             type for these indices as parameter called the eigen type,
+             but mostly used with [nat].
+             Other values can be used (for terms without indices, use [Empty_set]).
+ - [tvar] for quantified variables in formulas *)
 Inductive term T :=
 | evar : T -> term T
 | tvar : vatom -> term T

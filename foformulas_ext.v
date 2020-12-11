@@ -1,7 +1,5 @@
 (* More about First-Order Formulas *)
 
-From Coq Require Import Lia.
-
 Require Import ollibs.List_more ollibs.List_assoc.
 
 Require Export foterms_ext foformulas.

@@ -1,7 +1,5 @@
 (* More Properties of First-Order Terms *)
 
-From Coq Require Export PeanoNat Lia List.
-
 Require Import ollibs.List_more.
 Require Export ollibs.dectype.
 
@@ -46,7 +44,7 @@ Arguments tvar {_} {_} {_} _.
 Lemma tvars_tsubs : forall x y u t,
   x ∈ t[u//y] <-> (x ∈ u /\ y ∈ t) \/ (x ∈ t /\ x <> y).
 Proof. split; term_induction t.
-- e_case_intuition.
+- e_case_analysis; auto.
   intros Heq2; right; intuition; subst; intuition.
 - revert H IHl; induction l; simpl; intros Hin Hl.
   + inversion Hin.
