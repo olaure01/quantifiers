@@ -14,7 +14,7 @@ A formalization of quantifiers based on:
 
 ### Content:
 
-* `ollibs/*.v` : external library files from [OLlibs](https://github.com/olaure01/ollibs) (put here to get a self-contained set of files)
+* `ollibs/*.v`: external library files from [OLlibs](https://github.com/olaure01/ollibs) (put here to get a self-contained set of files)
 
 * `term_tactics.v`: some tactics used in following files
 * `foterms.v`: definitions and properties of first-order terms (with two kinds of variables)
@@ -29,6 +29,8 @@ A formalization of quantifiers based on:
 * `hilbert.v`: Hilbert system for first-order Intuitionistic Logic with both universal and existential quantification (standard alpha-equivalence-free presentation)
 * `hilbert2nj.v`: translation of Hilbert system into natural deduction
 * `nj2hilbert.v`: translation of natural deduction into Hilbert system
-* `nj_vs_hilbert.v` : equivalence of the two systems through the previous translations
+* `nj_vs_hilbert.v`: equivalence of the two systems through the previous translations
+
+* `statements.md`: correspondence between statements in the article and in the formalization files
 
 Current examples are developed in Coq, but formalization does not depend on the surrounding meta-theory and should be adaptable to (any?) proof assistant.
