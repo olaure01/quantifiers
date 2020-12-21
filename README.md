@@ -1,4 +1,4 @@
-# Formalizing Quantifiers
+# An Anti-Locally-Nameless Approach to Formalizing Quantifiers
 
 (working with `Coq 8.12.0`)
 
@@ -34,3 +34,5 @@ A formalization of quantifiers based on:
 * `statements.md`: correspondence between statements in the article and in the formalization files
 
 Current examples are developed in Coq, but formalization does not depend on the surrounding meta-theory and should be adaptable to (any?) proof assistant.
+
+*(Thanks to Damien Pous for important suggestions and support.)*
