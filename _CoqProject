@@ -2,20 +2,23 @@
 
 term_tactics.v
 foterms.v
-foterms_std.v
 foformulas.v
-
-all1.v
-all2.v
-nj1.v
 nj1_frl.v
-nj2.v
-F.v
 
+foterms_ext.v
+foformulas_ext.v
+nj1.v
+
+foterms_std.v
 hilbert.v
 hilbert2nj.v
 nj2hilbert.v
 nj_vs_hilbert.v
+
+all1.v
+all2.v
+F.v
+nj2.v
 
 fot_ar.v
 nj1_ar.v

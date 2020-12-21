@@ -34,12 +34,8 @@ Notation formula := (@formula vatom tatom fatom Nocon Icon FQcon nat).
 Hint Rewrite (@fsize_esubs vatom tatom fatom Nocon Icon FQcon) : term_db.
 Hint Rewrite (@fsize_subs vatom tatom fatom Nocon Icon FQcon nat) : term_db.
 Hint Rewrite (@tvars_tesubs_fclosed vatom tatom) using intuition; fail : term_db.
-Hint Rewrite (@freevars_esubs_fclosed vatom tatom fatom Nocon Icon FQcon nat)
-                 using intuition; fail : term_db.
 Hint Rewrite (@subs_esubs vatom tatom fatom Nocon Icon FQcon nat)
-                         using try (intuition; fail);
-                             (try apply no_ecapture_not_egenerated); try (intuition; fail);
-                             (try apply fclosed_no_ecapture); intuition; fail : term_db.
+                         using intuition; fail : term_db.
 Hint Rewrite <- (@felift_esubs vatom tatom fatom Nocon Icon FQcon) : term_db.
 Hint Rewrite (@esubs_fup vatom tatom fatom Nocon Icon FQcon) : term_db.
 
@@ -57,10 +53,7 @@ Inductive prove : list formula -> formula -> Type :=
 Hint Constructors prove : term_db.
 Global Arguments impe { l B }.
 
-Lemma ax_hd {l A} : prove (A :: l) A.
-Proof (ax nil l A).
-
-(* This [weakening] lemma is not required in the development, see rather [nweakening] below *)
+(* This [weakening] lemma is not required in the development, see rather [rweakening] below *)
 (* It is given here for comparison with alternative formalizations of Natural Deduction *)
 Lemma weakening : forall l A, prove l A -> forall l0, prove (l ++ l0) A.
 Proof.
@@ -98,18 +91,6 @@ Scheme nrprove_rect := Induction for nprove Sort Type
   with rnprove_rect := Induction for rprove Sort Type.
 Combined Scheme rnprove_mutrect from nrprove_rect, rnprove_rect.
 
-Lemma nax_hd {l A} : nprove (A :: l) A.
-Proof (nax nil l A).
-Hint Resolve nax_hd : term_db.
-
-(* automatic tactic for application of the [nax] constructor *)
-Ltac run_nax :=
-  match goal with
-  | |- nprove (?l1 ++ ?B :: ?l2) ?A => (try now apply nax);
-         rewrite <- (app_nil_l l2); rewrite app_comm_cons, app_assoc; run_nax
-  end.
-Ltac auto_nax := rewrite <- (app_nil_l _); run_nax.
-
 Fixpoint nsize {l A} (pi : nprove l A) : nat :=
 match pi with
 | nax _ _ _  => 1
@@ -131,7 +112,7 @@ Proof. now apply rnprove_mutrect; intros; try (econstructor; eassumption). Qed.
 
 (** * Normalization *)
 
-(** apply [r] in normal form *)
+(** apply [r] on normal form *)
 Theorem rnpesubs r (Hc : fclosed r) {l A} :
    (nprove l A -> nprove (map (esubs r) l) A⟦r⟧)
  * (rprove l A -> rprove (map (esubs r) l) A⟦r⟧).
@@ -171,7 +152,7 @@ destruct (dichot_elt_app_inf _ _ _ _ _ H) as [ [? [? ?]] | [? [? ?]] ]; subst;
 Qed.
 
 Lemma substitution : forall l A B, rprove l A -> rprove (A :: l) B -> rprove l B.
-Proof with try eassumption; try reflexivity; try lia.
+Proof.
 pose (IH := (fun n m =>
  forall A, fsize A = n ->
    (forall B l1 l2 (pi : nprove (l1 ++ A :: l2) B),
@@ -197,48 +178,48 @@ apply lt_wf_double_rect; unfold IH; clear IH; simpl;
     * rewrite app_assoc; apply nax.
 - assert (nsize pi2 < S (nsize pi2 + rsize r)) as IH1 by lia.
   assert (rsize r < S (nsize pi2 + rsize r)) as IH2 by lia.
-  eapply nimpe; eapply (IHm (S (nsize pi2 + rsize r))); simpl...
-- apply nfrle...
-  rnow eapply (IHm _ Hpi)...
+  eapply nimpe; eapply (IHm (S (nsize pi2 + rsize r))); simpl; eauto; lia.
+- apply nfrle; auto.
+  rnow eapply (IHm _ Hpi).
 (* second statement *)
 - enough (forall l l1 l2, l0 ++ A0 :: l3 = l1 ++ A :: l2 ->
       rprove (l ++ l1 ++ l2) A -> rprove (l ++ l1 ++ l2) A0)
     as HI by (eapply (HI nil); eassumption) ; clear.
-  induction l0; intros l l1 l2 Heq pi; destruct l1; inversion Heq; subst...
+  induction l0; intros l l1 l2 Heq pi; destruct l1; inversion Heq; subst; auto.
   + rewrite <- app_comm_cons; apply rninj, nax.
   + rewrite 2 app_assoc; apply rninj, nax.
   + rewrite <- app_comm_cons, <- (app_nil_l l1), <- app_assoc, app_comm_cons, app_assoc.
-    apply IHl0...
-    rewrite <- ? app_assoc, <- app_comm_cons...
+    apply IHl0; auto.
+    now rewrite <- ? app_assoc, <- app_comm_cons.
 - assert (nsize pi2 < S (nsize pi2 + rsize r)) as IH1 by lia.
   assert (rsize r < S (nsize pi2 + rsize r)) as IH2 by lia.
-  eapply IHm in IH2...
+  eapply IHm in IH2; eauto.
   assert ({fsize (imp A0 B) <= fsize A} + {fsize A < fsize (imp A0 B)}) as [ Ho | Ho ]
     by (case (CompareSpec2Type (Nat.compare_spec (fsize (imp A0 B)) (fsize A))); intros Ho;
           [ left | left | right ]; lia); simpl in Ho.
-  + eapply IHm in IH1...
+  + eapply IHm in IH1; eauto.
     inversion_clear IH1 as [ l' A' pi1' | l' A' B' pi1' | ].
-    * apply rninj; eapply nimpe...
+    * apply rninj; eapply nimpe; eauto.
     * rewrite <- (app_nil_l _) in pi1'.
-      refine (snd (IHn (fsize A0) (S (rsize pi1')) _ _ _) _ _ _ pi1' _ IH2)...
-  + apply rninj, (nimpe A0)...
-    eapply IHm...
+      refine (snd (IHn (fsize A0) (S (rsize pi1')) _ _ _) _ _ _ pi1' _ IH2); lia.
+  + apply rninj, (nimpe A0); auto.
+    eapply IHm; eauto; lia.
 - assert (nsize pi2 < S (nsize pi2)) as IH1 by lia.
-  eapply IHm in IH1...
+  apply IHm in IH1; auto.
   inversion_clear IH1.
-  + apply rninj; eapply nfrle...
+  + now apply rninj, nfrle.
   + now apply rpsubsz.
 (* third statement *)
-- refine (snd (fst (IHm _ _ _ _)) _ _ _ n _ _)...
+- refine (snd (fst (IHm _ _ _ _)) _ _ _ n _ _); auto; lia.
 - revert pi2 Hpi; rewrite app_comm_cons; intros pi2 Hpi.
   apply rimpi.
-  refine (snd (IHm _ _ _ _) _ _ _ pi2 _ _)...
+  refine (snd (IHm _ _ _ _) _ _ _ pi2 _ _); auto; try lia.
   rewrite <- app_comm_cons, <- (app_nil_l (l1 ++ l2)), app_comm_cons, <- (app_nil_l _).
-  eapply rweakening...
+  eapply rweakening; eauto.
 - apply rfrli; rewrite map_app.
   apply (rnpesubs ⇑) in pi1; intuition.
   revert pi1 pi2 Hpi; rewrite ? map_app; simpl; intros pi1 pi2 Hpi.
-  rnow refine (snd (IHm _ _ _ _) _ _ _ pi2 _ _)...
+  rnow (refine (snd (IHm _ _ _ _) _ _ _ pi2 _ _); auto).
 Qed.
 
 Theorem normalization : forall l A, prove l A -> rprove l A.

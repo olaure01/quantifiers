@@ -1,7 +1,7 @@
 (* Sequent Calculus for First-Order Additive Linear Logic *)
 
 From Coq Require Import Wf_nat Lia.
-Require Import foformulas.
+Require Import foformulas_ext.
 
 Set Implicit Arguments.
 
