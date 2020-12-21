@@ -9,27 +9,8 @@ Require Export term_tactics.
 
 Set Implicit Arguments.
 
-
 (* Extensional equality of functions *)
 Infix "==" := (fun f g => forall x, f x = g x) (at level 70).
-
-Ltac e_case_analysis :=
-let Heq := fresh "Heq" in
-let Heqeq := fresh "Heqeq" in
-match goal with
-| |- context f [?x =? ?y] => case_eq (x =? y); intros Heq
-| |- context f [?x <? ?y] => case_eq (x <? y); intros Heq
-| |- context f [?x ?= ?y] => case_eq (x ?= y); intros Heq;
-                             [ rewrite Nat.compare_eq_iff in Heq
-                             | rewrite Nat.compare_lt_iff in Heq
-                             | rewrite Nat.compare_gt_iff in Heq ]
-| |- context f [eqb ?x ?x] => rewrite (eqb_refl x)
-| |- context f [eqb ?x ?y] => case eq_dt_reflect; intros Heq; [ try subst x | ]
-| |- context f [eq_dt_dec ?x ?x] => rewrite (if_eq_dt_dec_refl x)
-| H : ?x <> ?y |- context f [eq_dt_dec ?x ?y] => rewrite (if_eq_dt_dec_neq x y H)
-| H : ?y <> ?x |- context f [eq_dt_dec ?x ?y] => rewrite (if_eq_dt_dec_neq x y (not_eq_sym H))
-| |- context f [eq_dt_dec ?x ?y] => case_eq (eq_dt_dec x y); intros Heq Heqeq; [ subst x | ]
-end; simpl.
 
 
 (** * First-Order Terms *)

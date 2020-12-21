@@ -1,4 +1,7 @@
+misc
 TODO.org
+*.zip
+*.tgz
 *.pdf
 *~
 .*.aux
