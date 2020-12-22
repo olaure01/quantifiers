@@ -20,8 +20,9 @@ all2.v
 F.v
 nj2.v
 
-fot_ar.v
-nj1_ar.v
+foterms_ar.v
+foformulas_ar.v
+nj1_frl_ar.v
 
 fot_vec.v
 nj1_vec.v
