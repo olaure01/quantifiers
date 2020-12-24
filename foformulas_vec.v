@@ -1,8 +1,16 @@
 (* First-Order Formulas *)
 
-Require Export foterms.
+(* arity check based on vectors *)
+
+Require Vector_more.
+
+From Coq Require Vector.
+
+Require Export foterms_vec.
 
 Set Implicit Arguments.
+
+Notation vec := Vector.t.
 
 
 (** * First-Order Formulas *)
@@ -10,10 +18,10 @@ Set Implicit Arguments.
 
 Section Formulas.
 
-Context { vatom : DecType } { tatom : Type }.
-Notation term := (@term vatom tatom).
-Arguments evar _ _ {T}.
-Notation evar := (evar vatom tatom).
+Context { vatom : DecType } { tatom : Type } { tarity : tatom -> nat }.
+Notation term := (@term vatom tatom tarity).
+Arguments evar _ _ _ {T}.
+Notation evar := (evar vatom tatom tarity).
 
 Notation "r ;; s" := (fecomp r s) (at level 20, format "r  ;;  s").
 Notation closed t := (tvars t = nil).
@@ -42,6 +50,7 @@ Hint Resolve tesubs_ext : term_db.
 Hint Resolve closed_notvars : term_db.
 
 Context { fatom : Type }.  (* relation symbols for [formula] *)
+Context { farity : fatom -> nat }.  (* arity of relation symbols *)
 (* Generic sets of connectives *)
 Context { NCon : Type }. (* nullary connectives *)
 Context { BCon : Type }. (* binary connectives *)
@@ -50,10 +59,11 @@ Context { QCon : Type }. (* quantifiers *)
 (** formulas *)
 (** first-order formulas *)
 Inductive formula T :=
-| fvar : fatom -> list (term T)-> formula T
+| fvar : forall R, vec (term T) (farity R) -> formula T
 | fnul : NCon -> formula T
 | fbin : BCon -> formula T -> formula T -> formula T
 | fqtf : QCon -> vatom -> formula T -> formula T.
+Arguments fvar {T} R _.
 Arguments fnul {T} _.
 (* Nullary connectives in [NCon] and [fnul] are mostly redundant with [fvar f nil] *)
 
@@ -69,11 +79,12 @@ Ltac formula_induction A :=
   let ll := fresh "l" in
   let lll := fresh "l" in
   let tt := fresh "t" in
+  let kk := fresh "k" in
   let IHll := fresh "IHl" in
   induction A as [ XX ll | ncon | bcon A1 ? A2 ? | qcon xx A ]; simpl; intros;
   [ rewrite ? flat_map_concat_map;
     try (apply (f_equal (fvar _)));
-    try (induction ll as [ | tt lll IHll ]; simpl; intuition;
+    try (induction ll as [ | tt kk lll IHll ]; simpl; intuition;
          rewrite IHll; f_equal; intuition)
   | try ((try f_equal); intuition; fail)
   | try (apply (f_equal2 (fbin _))); intuition
@@ -99,7 +110,7 @@ end.
 (* capture is not avoided *)
 Fixpoint esubs T1 T2 (r : T1 -> term T2) (A : formula T1) :=
 match A with
-| fvar X l => fvar X (map (tesubs r) l)
+| fvar X l => fvar X (Vector.map (tesubs r) l)
 | fnul ncon => fnul ncon
 | fbin bcon B C => fbin bcon (esubs r B) (esubs r C)
 | fqtf qcon x B => fqtf qcon x (esubs r B)
@@ -132,7 +143,7 @@ Proof. formula_induction A. Qed.
 (* capture is not avoided *)
 Fixpoint subs T x u (A : formula T) :=
 match A with
-| fvar X l => fvar X (map (tsubs x u) l)
+| fvar X l => fvar X (Vector.map (tsubs x u) l)
 | fnul ncon => fnul ncon
 | fbin bcon B C => fbin bcon (subs x u B) (subs x u C)
 | fqtf qcon y B => fqtf qcon y (if (eqb y x) then B else subs x u B)
@@ -191,11 +202,12 @@ Ltac formula_induction A :=
   let ll := fresh "l" in
   let lll := fresh "l" in
   let tt := fresh "t" in
+  let kk := fresh "k" in
   let IHll := fresh "IHl" in
   induction A as [ XX ll | ncon | bcon A1 ? A2 ? | qcon xx A ]; simpl; intros;
   [ rewrite ? flat_map_concat_map;
     try (apply (f_equal (fvar _)));
-    try (induction ll as [ | tt lll IHll ]; simpl; intuition;
+    try (induction ll as [ | tt kk lll IHll ]; simpl; intuition;
          rewrite IHll; f_equal; intuition)
   | try ((try f_equal); intuition; fail)
   | try (apply (f_equal2 (fbin _))); intuition

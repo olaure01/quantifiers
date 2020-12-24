@@ -1,5 +1,7 @@
 -R . Quantifiers
 
+Vector_more.v
+
 term_tactics.v
 foterms.v
 foformulas.v
@@ -24,5 +26,6 @@ foterms_ar.v
 foformulas_ar.v
 nj1_frl_ar.v
 
-fot_vec.v
-nj1_vec.v
+foterms_vec.v
+foformulas_vec.v
+nj1_frl_vec.v
