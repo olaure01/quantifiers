@@ -39,8 +39,8 @@ Hint Rewrite (@freevars_fup vatom tatom fatom Ncon Bcon Qcon) : term_db.
 Hint Rewrite (@esubs_fup vatom tatom fatom Ncon Bcon Qcon) : term_db.
 Hint Rewrite (@nfree_subs vatom tatom fatom Ncon Bcon Qcon nat) using intuition; fail : term_db.
 
-Hint Resolve fclosed_fesubs : term_db.
-Hint Resolve fclosed_felift : term_db.
+#[local] Hint Resolve fclosed_fesubs : term_db.
+#[local] Hint Resolve fclosed_felift : term_db.
 Hint Rewrite (@subs_esubs vatom tatom fatom Ncon Bcon Qcon nat)
                         using try (intuition; fail);
                              (try apply no_ecapture_not_egenerated); try (intuition; fail);
@@ -60,7 +60,7 @@ Inductive prove : formula -> formula -> Type :=
 | wdglr { A C } : forall B, prove A C -> prove (B﹠A) C
 | frlr { x C A } : prove C↑ A↑[evar 0//x] -> prove C (∀x A)
 | frll { x A C } : forall u, closed u -> prove A[u//x] C -> prove (∀x A) C.
-Hint Constructors prove : term_db.
+#[local] Hint Constructors prove : term_db.
 
 (** height of proofs *)
 Fixpoint psize {A B} (pi : prove A B) : nat :=

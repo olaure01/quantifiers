@@ -2,7 +2,9 @@ Require Import Vector.
 Require List.
 Import EqNotations.
 
-(* TODO Uniformize use of implicit arguments in stdlib Vector*)
+(* TODO Uniformize use of implicit arguments in stdlib Vector *)
+
+(* TODO remove when integrated in Coq (8.14 ?) *)
 
 Lemma length_to_list A n (v : t A n): length (to_list v) = n.
 Proof. induction v; simpl; auto. Qed.

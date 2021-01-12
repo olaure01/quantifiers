@@ -4,7 +4,7 @@ From Coq Require Import PeanoNat Wf_nat Lia List.
 From OLlibs Require Import dectype.
 Require Import term_tactics.
 
-Hint Resolve in_in_remove : term_db.
+#[local] Hint Resolve in_in_remove : term_db.
 
 
 Parameter atom : Type. (* second-order constants *)
@@ -167,7 +167,7 @@ Inductive prove : formula -> formula -> Type :=
 | wdglr { A C } : forall B, prove A C -> prove (wdg B A) C
 | frlr { X C A } : prove (fupz C) (subs X (dvar 0) (fupz A)) -> prove C (frl X A)
 | frll { X A C } : forall F, closed F -> prove (subs X F A) C -> prove (frl X A) C.
-Hint Constructors prove : term_db.
+#[local] Hint Constructors prove : term_db.
 
 (** height of proofs *)
 Fixpoint psize {A B} (pi : prove A B) :=

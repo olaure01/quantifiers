@@ -5,7 +5,7 @@ From Coq Require Import PeanoNat Lia List.
 From OLlibs Require Import dectype.
 Require Import term_tactics.
 
-Hint Resolve in_in_remove : term_db.
+#[local] Hint Resolve in_in_remove : term_db.
 
 Parameter atom : Type. (* second-order constants *)
 Parameter vatom : DecType. (* variables for quantification *)
@@ -165,7 +165,7 @@ Inductive prove : list formula -> formula -> Type :=
 | exsi { X l A } : forall C, closed C -> prove l (subs X C A) -> prove l (exs X A)
 | exse { X l C } : forall A, prove l (exs X A) ->
                              prove (subs X (dvar 0) (fupz A) :: map fupz l) (fupz C) -> prove l C.
-Hint Constructors prove : term_db.
+#[local] Hint Constructors prove : term_db.
 
 (** Normal Forms *)
 Inductive nprove : list formula -> formula -> Type := (* neutral terms *)
@@ -179,7 +179,7 @@ with rprove : list formula -> formula -> Type := (* normal forms *)
 | rexsi { x l A } : forall u, closed u -> rprove l (subs x u A) -> rprove l (exs x A)
 | rexse { l C } : forall x A, nprove l (exs x A) ->
                               rprove (subs x (dvar 0) (fupz A) :: map fupz l) (fupz C) -> rprove l C.
-Hint Constructors nprove rprove : term_db.
+#[local] Hint Constructors nprove rprove : term_db.
 
 Scheme nrprove_rect := Induction for nprove Sort Type
   with rnprove_rect := Induction for rprove Sort Type.
@@ -187,7 +187,7 @@ Combined Scheme rnprove_mutrect from nrprove_rect, rnprove_rect.
 
 Lemma nax_hd {l A} : nprove (A :: l) A.
 Proof. rewrite <- (app_nil_l (A :: l)) ; apply nax. Qed.
-Hint Resolve nax_hd : term_db.
+#[local] Hint Resolve nax_hd : term_db.
 
 Fixpoint nsize {l A} (pi : nprove l A) : nat :=
 match pi with
