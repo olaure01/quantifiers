@@ -18,8 +18,8 @@ Arguments tvar {_} {_} {T} _.
 Notation term := (@term vatom tatom Empty_set).
 Notation closed t := (tvars t = nil).
 
-Notation formula := (@formula vatom tatom fatom Nocon Icon Qcon Empty_set).
-Notation fvar := (@fvar vatom tatom fatom Nocon Icon Qcon Empty_set).
+Notation formula := (@formula vatom tatom fatom Nocon Nocon Icon Qcon Empty_set).
+Notation fvar := (@fvar vatom tatom fatom Nocon Nocon Icon Qcon Empty_set).
 Notation "A [ u // x ]" := (subs x u A) (at level 8, format "A [ u // x ]").
 Notation "x ∈ A" := (In x (freevars A)) (at level 30).
 Notation "x ∉ A" := (~ In x (freevars A)) (at level 30).

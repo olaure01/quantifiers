@@ -8,7 +8,6 @@ Set Implicit Arguments.
 
 
 (** * First-Order Formulas *)
-(* parametrized by a set of binary connectives and a set of unary quantifiers *)
 
 Section Formulas.
 
@@ -47,6 +46,7 @@ Context { fatom : Type }.  (* relation symbols for [formula] *)
 Context { farity : fatom -> nat }.  (* arity of relation symbols *)
 (* Generic sets of connectives *)
 Context { NCon : Type }. (* nullary connectives *)
+Context { UCon : Type }. (* unary connectives *)
 Context { BCon : Type }. (* binary connectives *)
 Context { QCon : Type }. (* quantifiers *)
 
@@ -56,6 +56,7 @@ Inductive formula T : nat -> Type :=
 | frel : forall X, formula T (farity X)
 | fconstr : forall (t : term T 0) {k}, formula T (S k) -> formula T k
 | fnul : NCon -> formula T 0
+| funa : UCon -> formula T 0 -> formula T 0
 | fbin : BCon -> formula T 0 -> formula T 0 -> formula T 0
 | fqtf : QCon -> vatom -> formula T 0 -> formula T 0.
 Arguments frel {T} _.
@@ -67,6 +68,7 @@ Ltac formula_induction A :=
   let XX := fresh "X" in
   let xx := fresh "x" in
   let ncon := fresh "ncon" in
+  let ucon := fresh "ucon" in
   let bcon := fresh "bcon" in
   let qcon := fresh "qcon" in
   let A1 := fresh A in
@@ -74,10 +76,11 @@ Ltac formula_induction A :=
   let BB := fresh "B" in
   let lll := fresh "l" in
   let tt := fresh "t" in
-  induction A as [ XX | tt BB | ncon | bcon A1 ? A2 ? | qcon xx A ]; simpl; intros;
+  induction A as [ XX | tt BB | ncon | ucon A ? | bcon A1 ? A2 ? | qcon xx A ]; simpl; intros;
   [ try ((try f_equal); intuition; fail)
   | try (apply (f_equal2 (fun x y => fconstr x y))); intuition
   | try ((try f_equal); intuition; fail)
+  | try (apply (f_equal (funa _))); intuition
   | try (apply (f_equal2 (fbin _))); intuition
   | (try apply (f_equal (fqtf _ _))); repeat case_analysis; try (intuition; fail);
      try (now rcauto) ];
@@ -91,6 +94,7 @@ match A with
 | frel _ => 1
 | fconstr _ _ => 1
 | fnul _ => 1
+| funa _ B => S (fsize B)
 | fbin _ B C => S (fsize B + fsize C)
 | fqtf _ _ B => S (fsize B)
 end.
@@ -105,6 +109,7 @@ match A with
 | frel X => frel X
 | fconstr t B => fconstr ((tesubs r) t) (esubs r B)
 | fnul ncon => fnul ncon
+| funa ucon B => funa ucon (esubs r B)
 | fbin bcon B C => fbin bcon (esubs r B) (esubs r C)
 | fqtf qcon x B => fqtf qcon x (esubs r B)
 end.
@@ -139,6 +144,7 @@ match A with
 | frel X => frel X
 | fconstr t B => fconstr (tsubs x u t) (subs x u B)
 | fnul ncon => fnul ncon
+| funa ucon B => funa ucon (subs x u B)
 | fbin bcon B C => fbin bcon (subs x u B) (subs x u C)
 | fqtf qcon y B => fqtf qcon y (if (eqb y x) then B else subs x u B)
 end.
@@ -189,6 +195,7 @@ Ltac formula_induction A :=
   let XX := fresh "X" in
   let xx := fresh "x" in
   let ncon := fresh "ncon" in
+  let ucon := fresh "ucon" in
   let bcon := fresh "bcon" in
   let qcon := fresh "qcon" in
   let A1 := fresh A in
@@ -196,10 +203,11 @@ Ltac formula_induction A :=
   let BB := fresh "B" in
   let lll := fresh "l" in
   let tt := fresh "t" in
-  induction A as [ XX | tt BB | ncon | bcon A1 ? A2 ? | qcon xx A ]; simpl; intros;
+  induction A as [ XX | tt BB | ncon | ucon A ? | bcon A1 ? A2 ? | qcon xx A ]; simpl; intros;
   [ try ((try f_equal); intuition; fail)
   | try (apply (f_equal2 (fun x y => fconstr x y))); intuition
   | try ((try f_equal); intuition; fail)
+  | try (apply (f_equal (funa _))); intuition
   | try (apply (f_equal2 (fbin _))); intuition
   | (try apply (f_equal (fqtf _ _))); repeat case_analysis; try (intuition; fail);
      try (now rcauto) ];

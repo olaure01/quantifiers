@@ -29,15 +29,15 @@ Notation "l ⇈" := (map (fun F => F↑) l) (at level 8, format "l ⇈").
 Inductive FQcon := frl_con.
 Notation frl := (fqtf frl_con).
 
-Notation formula := (@formula vatom tatom fatom Nocon Icon FQcon nat).
+Notation formula := (@formula vatom tatom fatom Nocon Nocon Icon FQcon nat).
 
-Hint Rewrite (@fsize_esubs vatom tatom fatom Nocon Icon FQcon) : term_db.
-Hint Rewrite (@fsize_subs vatom tatom fatom Nocon Icon FQcon nat) : term_db.
+Hint Rewrite (@fsize_esubs vatom tatom fatom Nocon Nocon Icon FQcon) : term_db.
+Hint Rewrite (@fsize_subs vatom tatom fatom Nocon Nocon Icon FQcon nat) : term_db.
 Hint Rewrite (@tvars_tesubs_fclosed vatom tatom) using intuition; fail : term_db.
-Hint Rewrite (@subs_esubs vatom tatom fatom Nocon Icon FQcon nat)
+Hint Rewrite (@subs_esubs vatom tatom fatom Nocon Nocon Icon FQcon nat)
                          using intuition; fail : term_db.
-Hint Rewrite <- (@felift_esubs vatom tatom fatom Nocon Icon FQcon) : term_db.
-Hint Rewrite (@esubs_fup vatom tatom fatom Nocon Icon FQcon) : term_db.
+Hint Rewrite <- (@felift_esubs vatom tatom fatom Nocon Nocon Icon FQcon) : term_db.
+Hint Rewrite (@esubs_fup vatom tatom fatom Nocon Nocon Icon FQcon) : term_db.
 
 Hint Resolve fclosed_felift : term_db.
 Hint Resolve fclosed_fesubs : term_db.

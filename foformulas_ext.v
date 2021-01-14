@@ -13,12 +13,12 @@ Set Implicit Arguments.
 Section Formulas.
 
 Context { vatom : DecType } { tatom fatom : Type }.
-Context { NCon BCon QCon : Type }.
+Context { NCon UCon BCon QCon : Type }.
 
 Notation term := (@term vatom tatom).
 Arguments evar _ _ {T}.
 Notation evar := (evar vatom tatom).
-Notation formula := (@formula vatom tatom fatom NCon BCon QCon).
+Notation formula := (@formula vatom tatom fatom NCon UCon BCon QCon).
 
 Notation "r ;; s" := (fecomp r s) (at level 20, format "r  ;;  s").
 Notation closed t := (tvars t = nil).
@@ -71,6 +71,7 @@ Fixpoint freevars A :=
 match A with
 | fvar _ l => flat_map tvars l
 | fnul _ _ => nil
+| funa _ B => freevars B
 | fbin _ B C => freevars B ++ freevars C
 | fqtf _ x B => remove eq_dt_dec x (freevars B)
 end.
@@ -126,6 +127,7 @@ Fixpoint no_capture_at x y A :=
 match A with
 | fvar _ _ => True
 | fnul _ _ => True
+| funa _ B => no_capture_at x y B
 | fbin _ B C => no_capture_at x y B /\ no_capture_at x y C
 | fqtf qcon z B => x ∈ (fqtf qcon z B) -> no_capture_at x y B /\ y <> z
 end.
@@ -156,6 +158,7 @@ Lemma subs_subs : forall x u y v, x <> y -> closed v -> forall A,
   Forall (fun y => y #[x] A) (tvars u) -> A[u//x][v//y] = A[v//y][tsubs y v u//x].
 Proof. induction A; simpl; intros Hnc; f_equal.
 - rnow rewrite 2 map_map; apply map_ext; rcauto.
+- apply IHA; eapply Forall_impl; [ | eassumption ]; simpl; intuition.
 - apply IHA1; eapply Forall_impl; [ | eassumption ]; simpl; intuition.
 - apply IHA2; eapply Forall_impl; [ | eassumption ]; simpl; intuition.
 - repeat case_analysis; intuition.
@@ -189,6 +192,7 @@ Fixpoint fvars A :=
 match A with
 | fvar _ l => flat_map tvars l
 | fnul _ _ => nil
+| funa _ B => fvars B
 | fbin _ B C => fvars B ++ fvars C
 | fqtf _ x B => x :: fvars B
 end.
@@ -360,6 +364,7 @@ Fixpoint no_ecapture_at lv A :=
 match A with
 | fvar X l => fold_right (fun t P => and (no_tecapture_at r lv t) P) True l
 | fnul _ _ => True
+| funa _ B => no_ecapture_at lv B
 | fbin _ B C => no_ecapture_at lv B /\ no_ecapture_at lv C
 | fqtf _ z B => no_ecapture_at (z :: lv) B
 end.
@@ -370,6 +375,7 @@ Lemma no_ecapture_less : forall A lv1 lv2, incl lv1 lv2 ->
 Proof. formula_induction A.
 - apply Forall_fold_right in H0; apply Forall_fold_right.
   eapply Forall_impl; [ intros t; apply no_tecapture_less | ]; eassumption.
+- eapply IHA; eassumption.
 - eapply IHA1; eassumption.
 - eapply IHA2; eassumption.
 - eapply IHA; [ | eassumption ]; in_solve.
@@ -398,6 +404,7 @@ Fixpoint not_egenerated x A :=
 match A with
 | fvar X l => fold_right (fun t P => and (no_tecapture_at r (x::nil) t) P) True l
 | fnul _ _ => True
+| funa _ B => not_egenerated x B
 | fbin _ B C => not_egenerated x B /\ not_egenerated x C
 | fqtf _ z B => x <> z -> not_egenerated x B
 end.
@@ -461,6 +468,7 @@ Fixpoint eigen_max (A : formula nat) :=
 match A with
 | fvar _ l => list_max (map teigen_max l)
 | fnul _ _ => 0
+| funa _ B => eigen_max B
 | fbin _ B C => max (eigen_max B) (eigen_max C)
 | fqtf _ _ B => eigen_max B
 end.

@@ -14,10 +14,10 @@ Context { vatom : InfDecType } { tatom fatom : Type }.
 Arguments tvar {_} {_} {T} _.
 
 Notation hterm := (@term vatom tatom Empty_set).
-Notation hformula := (@formula vatom tatom fatom Nocon Icon Qcon Empty_set).
+Notation hformula := (@formula vatom tatom fatom Nocon Nocon Icon Qcon Empty_set).
 
 Notation term := (@term vatom tatom nat).
-Notation formula := (@formula vatom tatom fatom Nocon Icon Qcon nat).
+Notation formula := (@formula vatom tatom fatom Nocon Nocon Icon Qcon nat).
 Notation closed t := (tvars t = nil).
 Notation fclosed r := (forall n, closed (r n)).
 Notation "A ⟦ r ⟧" := (esubs r A) (at level 8, left associativity, format "A ⟦ r ⟧").
@@ -135,7 +135,7 @@ End Fixed_r.
 
 
 Notation n2h_term := (@tesubs vatom tatom nat Empty_set).
-Notation n2h_formula := (@esubs vatom tatom fatom Nocon Icon Qcon nat Empty_set).
+Notation n2h_formula := (@esubs vatom tatom fatom Nocon Nocon Icon Qcon nat Empty_set).
 Notation n2h_sequent r l A := (n2h_formula r (s2f l A)).
 Notation no_ecapture r := (no_ecapture_at r nil).
 

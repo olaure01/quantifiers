@@ -27,19 +27,19 @@ Notation "⇑" := fup.
 Notation "A ↑" := (A⟦⇑⟧) (at level 8, format "A ↑").
 Notation "l ⇈" := (map (fun F => F↑) l) (at level 8, format "l ⇈").
 
-Notation formula := (@formula vatom tatom fatom Nocon Icon Qcon nat).
+Notation formula := (@formula vatom tatom fatom Nocon Nocon Icon Qcon nat).
 
-Hint Rewrite (@fsize_esubs vatom tatom fatom Nocon Icon Qcon) : term_db.
-Hint Rewrite (@fsize_subs vatom tatom fatom Nocon Icon Qcon nat) : term_db.
+Hint Rewrite (@fsize_esubs vatom tatom fatom Nocon Nocon Icon Qcon) : term_db.
+Hint Rewrite (@fsize_subs vatom tatom fatom Nocon Nocon Icon Qcon nat) : term_db.
 Hint Rewrite (@tvars_tesubs_fclosed vatom tatom) using intuition; fail : term_db.
-Hint Rewrite (@freevars_esubs_fclosed vatom tatom fatom Nocon Icon Qcon nat)
+Hint Rewrite (@freevars_esubs_fclosed vatom tatom fatom Nocon Nocon Icon Qcon nat)
                  using intuition; fail : term_db.
-Hint Rewrite (@subs_esubs_notegen vatom tatom fatom Nocon Icon Qcon nat)
+Hint Rewrite (@subs_esubs_notegen vatom tatom fatom Nocon Nocon Icon Qcon nat)
                          using try (intuition; fail);
                              (try apply no_ecapture_not_egenerated); try (intuition; fail);
                              (try apply fclosed_no_ecapture); intuition; fail : term_db.
-Hint Rewrite <- (@felift_esubs vatom tatom fatom Nocon Icon Qcon) : term_db.
-Hint Rewrite (@esubs_fup vatom tatom fatom Nocon Icon Qcon) : term_db.
+Hint Rewrite <- (@felift_esubs vatom tatom fatom Nocon Nocon Icon Qcon) : term_db.
+Hint Rewrite (@esubs_fup vatom tatom fatom Nocon Nocon Icon Qcon) : term_db.
 
 Hint Resolve fclosed_felift : term_db.
 Hint Resolve fclosed_fesubs : term_db.
@@ -599,7 +599,7 @@ Qed.
 (** * Examples *)
 Section Examples.
 
-Notation fvar := (@fvar vatom tatom fatom Nocon Icon Qcon nat).
+Notation fvar := (@fvar vatom tatom fatom Nocon Nocon Icon Qcon nat).
 
 Variable x y : vatom.
 

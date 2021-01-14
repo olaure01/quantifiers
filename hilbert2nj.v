@@ -14,10 +14,10 @@ Context { vatom : DecType } { tatom fatom : Type }.
 Arguments tvar {_} {_} {T} _.
 
 Notation hterm := (@term vatom tatom Empty_set).
-Notation hformula := (@formula vatom tatom fatom Nocon Icon Qcon Empty_set).
+Notation hformula := (@formula vatom tatom fatom Nocon Nocon Icon Qcon Empty_set).
 
 Notation term := (@term vatom tatom nat).
-Notation formula := (@formula vatom tatom fatom Nocon Icon Qcon nat).
+Notation formula := (@formula vatom tatom fatom Nocon Nocon Icon Qcon nat).
 Notation r_h2n := (@r_empty vatom tatom nat).
 Notation closed t := (tvars t = nil).
 Notation fclosed r := (forall n, closed (r n)).
@@ -55,7 +55,7 @@ Ltac auto_ax := rewrite <- (app_nil_l _); run_ax.
 
 (* Translation of terms and formulas: trivial embedding *)
 Notation h2n_term := (@tesubs vatom tatom Empty_set nat r_h2n).
-Notation h2n_formula := (@esubs vatom tatom fatom Nocon Icon Qcon Empty_set nat r_h2n).
+Notation h2n_formula := (@esubs vatom tatom fatom Nocon Nocon Icon Qcon Empty_set nat r_h2n).
 
 Lemma h2n : forall A, hprove A ->
   forall L, Forall (fun z => closed z) (map snd L) -> incl (freevars A) (map fst L) ->

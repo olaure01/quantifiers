@@ -14,14 +14,14 @@ Context { vatom : InfDecType } { tatom fatom : Type }.
 Arguments tvar {_} {_} {T} _.
 
 Notation hterm := (@term vatom tatom Empty_set).
-Notation hformula := (@formula vatom tatom fatom Nocon Icon Qcon Empty_set).
+Notation hformula := (@formula vatom tatom fatom Nocon Nocon Icon Qcon Empty_set).
 Notation r_h2n := (r_empty nat).
 Notation term := (@term vatom tatom nat).
-Notation formula := (@formula vatom tatom fatom Nocon Icon Qcon nat).
+Notation formula := (@formula vatom tatom fatom Nocon Nocon Icon Qcon nat).
 Notation n2h_term r := (@tesubs vatom tatom nat Empty_set r).
-Notation n2h_formula r := (@esubs vatom tatom fatom Nocon Icon Qcon nat Empty_set r).
+Notation n2h_formula r := (@esubs vatom tatom fatom Nocon Nocon Icon Qcon nat Empty_set r).
 Notation h2n_term := (@tesubs vatom tatom Empty_set nat r_h2n).
-Notation h2n_formula := (@esubs vatom tatom fatom Nocon Icon Qcon Empty_set nat r_h2n).
+Notation h2n_formula := (@esubs vatom tatom fatom Nocon Nocon Icon Qcon Empty_set nat r_h2n).
 
 Hint Rewrite (@multi_tsubs_evar vatom tatom) : term_db.
 

@@ -25,7 +25,7 @@ Notation "A ↑" := (A⟦⇑⟧) (at level 8, format "A ↑").
 Notation "x ∈ A" := (In x (freevars A)) (at level 30).
 Notation "x ∉ A" := (~ In x (freevars A)) (at level 30).
 
-Notation formula := (@formula vatom tatom fatom Ncon Bcon Qcon nat).
+Notation formula := (@formula vatom tatom fatom Ncon Nocon Bcon Qcon nat).
 (*
 Notation top := (fnul nat top_con).
 Notation wth := (fbin wth_con).
@@ -35,13 +35,13 @@ Notation "⟙" := (fnul nat top_con).
 Infix "﹠" := (fbin wth_con) (at level 50).
 Notation "∀" := (fqtf frl_con).
 
-Hint Rewrite (@freevars_fup vatom tatom fatom Ncon Bcon Qcon) : term_db.
-Hint Rewrite (@esubs_fup vatom tatom fatom Ncon Bcon Qcon) : term_db.
-Hint Rewrite (@nfree_subs vatom tatom fatom Ncon Bcon Qcon nat) using intuition; fail : term_db.
+Hint Rewrite (@freevars_fup vatom tatom fatom Ncon Nocon Bcon Qcon) : term_db.
+Hint Rewrite (@esubs_fup vatom tatom fatom Ncon Nocon Bcon Qcon) : term_db.
+Hint Rewrite (@nfree_subs vatom tatom fatom Ncon Nocon Bcon Qcon nat) using intuition; fail : term_db.
 
 #[local] Hint Resolve fclosed_fesubs : term_db.
 #[local] Hint Resolve fclosed_felift : term_db.
-Hint Rewrite (@subs_esubs vatom tatom fatom Ncon Bcon Qcon nat)
+Hint Rewrite (@subs_esubs vatom tatom fatom Ncon Nocon Bcon Qcon nat)
                         using try (intuition; fail);
                              (try apply no_ecapture_not_egenerated); try (intuition; fail);
                              (try apply fclosed_no_ecapture); intuition; fail : term_db.
@@ -184,10 +184,9 @@ Proof.
 enough (Hn : forall n A, fsize A = n -> prove A A)
   by (intros A; eapply Hn; reflexivity).
 induction n as [n IH] using lt_wf_rect; intros; subst.
-destruct A; [ | destruct n | destruct b | destruct q ].
+destruct A; [ | destruct n | destruct n | destruct b | destruct q ].
 - apply ax.
 - apply topr.
 - apply wdgr; [ apply wdgll | apply wdglr ]; (eapply IH; [ | reflexivity ]); simpl; lia.
-- apply frlr.
-  rnow apply (frll (evar 0)).
+- apply frlr; rnow apply (frll (evar 0)).
 Qed.

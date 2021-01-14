@@ -6,7 +6,6 @@ Set Implicit Arguments.
 
 
 (** * First-Order Formulas *)
-(* parametrized by a set of binary connectives and a set of unary quantifiers *)
 
 Section Formulas.
 
@@ -44,6 +43,7 @@ Hint Resolve closed_notvars : term_db.
 Context { fatom : Type }.  (* relation symbols for [formula] *)
 (* Generic sets of connectives *)
 Context { NCon : Type }. (* nullary connectives *)
+Context { UCon : Type }. (* unary connectives *)
 Context { BCon : Type }. (* binary connectives *)
 Context { QCon : Type }. (* quantifiers *)
 
@@ -52,6 +52,7 @@ Context { QCon : Type }. (* quantifiers *)
 Inductive formula T :=
 | fvar : fatom -> list (term T)-> formula T
 | fnul : NCon -> formula T
+| funa : UCon -> formula T -> formula T
 | fbin : BCon -> formula T -> formula T -> formula T
 | fqtf : QCon -> vatom -> formula T -> formula T.
 Arguments fnul {T} _.
@@ -62,6 +63,7 @@ Ltac formula_induction A :=
   let XX := fresh "X" in
   let xx := fresh "x" in
   let ncon := fresh "ncon" in
+  let ucon := fresh "ucon" in
   let bcon := fresh "bcon" in
   let qcon := fresh "qcon" in
   let A1 := fresh A in
@@ -70,12 +72,13 @@ Ltac formula_induction A :=
   let lll := fresh "l" in
   let tt := fresh "t" in
   let IHll := fresh "IHl" in
-  induction A as [ XX ll | ncon | bcon A1 ? A2 ? | qcon xx A ]; simpl; intros;
+  induction A as [ XX ll | ncon | ucon A ? | bcon A1 ? A2 ? | qcon xx A ]; simpl; intros;
   [ rewrite ? flat_map_concat_map;
     try (apply (f_equal (fvar _)));
     try (induction ll as [ | tt lll IHll ]; simpl; intuition;
          rewrite IHll; f_equal; intuition)
   | try ((try f_equal); intuition; fail)
+  | try (apply (f_equal (funa _))); intuition
   | try (apply (f_equal2 (fbin _))); intuition
   | (try apply (f_equal (fqtf _ _))); repeat case_analysis; try (intuition; fail);
      try (now rcauto) ];
@@ -88,6 +91,7 @@ Fixpoint fsize T (A : formula T) :=
 match A with
 | fvar _ _ => 1
 | fnul _ => 1
+| funa _ B => S (fsize B)
 | fbin _ B C => S (fsize B + fsize C)
 | fqtf _ _ B => S (fsize B)
 end.
@@ -101,6 +105,7 @@ Fixpoint esubs T1 T2 (r : T1 -> term T2) (A : formula T1) :=
 match A with
 | fvar X l => fvar X (map (tesubs r) l)
 | fnul ncon => fnul ncon
+| funa ucon B => funa ucon (esubs r B)
 | fbin bcon B C => fbin bcon (esubs r B) (esubs r C)
 | fqtf qcon x B => fqtf qcon x (esubs r B)
 end.
@@ -134,6 +139,7 @@ Fixpoint subs T x u (A : formula T) :=
 match A with
 | fvar X l => fvar X (map (tsubs x u) l)
 | fnul ncon => fnul ncon
+| funa ucon B => funa ucon (subs x u B)
 | fbin bcon B C => fbin bcon (subs x u B) (subs x u C)
 | fqtf qcon y B => fqtf qcon y (if (eqb y x) then B else subs x u B)
 end.
@@ -184,6 +190,7 @@ Ltac formula_induction A :=
   let XX := fresh "X" in
   let xx := fresh "x" in
   let ncon := fresh "ncon" in
+  let ucon := fresh "ucon" in
   let bcon := fresh "bcon" in
   let qcon := fresh "qcon" in
   let A1 := fresh A in
@@ -192,12 +199,13 @@ Ltac formula_induction A :=
   let lll := fresh "l" in
   let tt := fresh "t" in
   let IHll := fresh "IHl" in
-  induction A as [ XX ll | ncon | bcon A1 ? A2 ? | qcon xx A ]; simpl; intros;
+  induction A as [ XX ll | ncon | ucon A ? | bcon A1 ? A2 ? | qcon xx A ]; simpl; intros;
   [ rewrite ? flat_map_concat_map;
     try (apply (f_equal (fvar _)));
     try (induction ll as [ | tt lll IHll ]; simpl; intuition;
          rewrite IHll; f_equal; intuition)
   | try ((try f_equal); intuition; fail)
+  | try (apply (f_equal (funa _))); intuition
   | try (apply (f_equal2 (fbin _))); intuition
   | (try apply (f_equal (fqtf _ _))); repeat case_analysis; try (intuition; fail);
      try (now rcauto) ];
