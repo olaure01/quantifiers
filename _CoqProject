@@ -16,6 +16,8 @@ hilbert2nj.v
 nj2hilbert.v
 nj_vs_hilbert.v
 
+formulas.v
+
 all1.v
 all2.v
 F.v
