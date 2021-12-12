@@ -1,5 +1,6 @@
 (* More Properties of First-Order Terms *)
 
+From Coq Require Import Lia.
 From OLlibs Require Import List_more.
 From OLlibs Require Export dectype.
 
@@ -226,5 +227,16 @@ match t with
 | evar n => n
 | tconstr _ l => list_max (map teigen_max l)
 end.
+
+Lemma tesubs_ext_max T (r1 r2 : nat -> term T) t :
+  (forall n, n <= (teigen_max t) -> r1 n = r2 n) -> tesubs r1 t = tesubs r2 t.
+Proof.
+term_induction t.
+apply IHl; intros n Hleq; apply H.
+cut (teigen_max i <= list_max (map teigen_max l)); [ lia | ].
+clear IHl Hleq; revert i Hi; clear.
+induction l; simpl; intros i Hi; intuition; subst; try lia.
+apply IHl in H; lia.
+Qed.
 
 End Terms.

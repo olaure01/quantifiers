@@ -10,6 +10,7 @@ nj1_frl.v
 foterms_ext.v
 foformulas_ext.v
 nj1.v
+nj1_frl_ext.v
 
 foterms_std.v
 hilbert.v

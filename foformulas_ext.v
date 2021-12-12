@@ -1,5 +1,6 @@
 (* More about First-Order Formulas *)
 
+From Coq Require Import Lia.
 From OLlibs Require Import List_more List_assoc.
 
 Require Export foterms_ext foformulas.
@@ -475,6 +476,13 @@ end.
 
 Notation "A ⟦ r ⟧" := (esubs r A) (at level 8, left associativity, format "A ⟦ r ⟧").
 Notation "A ↑" := (A⟦⇑⟧) (at level 8, format "A ↑").
+
+Lemma esubs_ext_max T (r1 r2 : nat -> term T) A :
+  (forall n, n <= (eigen_max A) -> r1 n = r2 n) -> A⟦r1⟧ = A⟦r2⟧.
+Proof.
+formula_induction A; (try apply IHA1); (try apply IHA2); try (intros; apply H; simpl; lia).
+apply tesubs_ext_max; intros; apply H; simpl; lia.
+Qed.
 
 Lemma freevars_fup : forall (A : formula nat), freevars A↑ = freevars A.
 Proof. rcauto. Qed.
