@@ -599,8 +599,8 @@ intros l A pi; induction pi; intros r Hg.
                      (flat_map (fun C => fvars (n2h_formula r C)) (exs x A :: l)) r).
     - split; [ constructor; simpl | ].
       + apply no_ecapture_rrefresh_preserv.
-        * intros z Hz; apply in_app_or in Hz; destruct Hz as [Hz|Hz]; try in_solve.
-          eapply or_introl in Hz; apply in_or_app, fvars_esubs with (r0:=r) in Hz; in_solve.
+        * intros z Hz; apply in_app_or in Hz; destruct Hz as [Hz|Hz]; [ | in_solve ].
+          now right; apply in_or_app; left; apply fvars_esubs, in_or_app; left.
         * now inversion Hg.
       + apply Forall_forall; intros C HC.
         apply (no_ecapture_rrefresh_preserv (fvars (n2h_formula r A[u//x]))).

@@ -87,7 +87,7 @@ intros A pi; induction pi; intros L Hcl Hsub;
   apply (impe AAA).
   + specialize IHpi1 with (L ++ LA).
     simpl in IHpi1; rewrite ? multi_subs_fbin in IHpi1.
-    subst AAA BB; rewrite multi_subs_extend with (L':= LA) (A0:= h2n_formula B);
+    subst AAA BB; rewrite (multi_subs_extend _ (h2n_formula B)) with LA;
       [ apply IHpi1 | assumption | rewrite freevars_esubs_fclosed ]; rewrite ? map_app; intuition.
     * apply Forall_app; intuition.
     * apply incl_app; [ apply incl_appr | apply incl_appl ]; intuition.
@@ -104,7 +104,7 @@ intros A pi; induction pi; intros L Hcl Hsub;
       apply Hsub; simpl.
       rewrite freevars_esubs_fclosed in Hf; [ | intuition ].
       rewrite tvars_tesubs_fclosed in Hinz; [ | intuition ].
-      apply no_capture_subs_freevars with (x0:= z) (u:= t) in Hf; intuition.
+      apply (no_capture_subs_freevars _ z _ t ) in Hf; intuition.
       now specialize_Forall f with z.
     * assert (x ∉ (h2n_formula A)[[L ∖ x]]) as Hnin.
       { intros Hin; apply Hf; apply multi_subs_freevars in Hin; try assumption.
@@ -168,7 +168,7 @@ intros A pi; induction pi; intros L Hcl Hsub;
       apply Hsub; simpl.
       rewrite freevars_esubs_fclosed in Hf; intuition.
       rewrite tvars_tesubs_fclosed in Hinz; intuition.
-      apply no_capture_subs_freevars with (x0:= z) (u:= t) in Hf; intuition.
+      apply (no_capture_subs_freevars _ z _ t) in Hf; intuition.
       now specialize_Forall f with z.
     * assert (x ∉ (h2n_formula A)[[L ∖ x]]) as Hnin.
       { intros Hin; apply Hf; apply multi_subs_freevars in Hin; try assumption.
