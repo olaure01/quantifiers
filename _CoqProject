@@ -1,7 +1,5 @@
 -R . Quantifiers
 
-Vector_more.v
-
 term_tactics.v
 foterms.v
 foformulas.v

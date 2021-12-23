@@ -3,8 +3,6 @@
 
 (* arity check based on vectors *)
 
-Require Vector_more.
-
 From Coq Require Export PeanoNat.
 From Coq Require Vector.
 From OLlibs Require Export dectype List_more.
@@ -75,7 +73,7 @@ Ltac term_induction t :=
   | intros xx; try (now intuition); simpl
   | intros cc ll IHll; simpl; intros;
     try (apply (f_equal (tconstr _)));
-    rewrite ? Vector_more.to_list_map, ? Vector.map_map;
+    rewrite ? Vector.to_list_map, ? Vector.map_map;
     rewrite ? flat_map_concat_map, ? map_map;
     try (apply (f_equal (@concat _)));
     match goal with
@@ -84,7 +82,7 @@ Ltac term_induction t :=
     end;
     try apply Vector.map_ext_in; try apply map_ext_in;
     try (intros i Hi; apply Vector.Forall_forall with (a:=i) in IHll);
-    try (now apply Vector_more.to_list_In);
+    try (now apply Vector.to_list_In);
     try (intuition; fail) ];
   try (now rcauto).
 
@@ -170,8 +168,8 @@ Lemma tvars_tsubs_closed : forall x u, closed u -> forall t,
   tvars t[u//x] = remove eq_dt_dec x (tvars t).
 Proof.
 term_induction t.
-rewrite remove_concat, flat_map_concat_map, ? Vector_more.to_list_map, ? map_map; f_equal.
-apply Vector_more.to_list_Forall in IHl.
+rewrite remove_concat, flat_map_concat_map, ? Vector.to_list_map, ? map_map; f_equal.
+apply Vector.to_list_Forall in IHl.
 apply map_ext_in; intros v Hv; now specialize_Forall IHl with v.
 Qed.
 Hint Rewrite tvars_tsubs_closed using intuition; fail : term_db.
@@ -180,9 +178,9 @@ Lemma notin_tsubs : forall x u t, x ∉ t -> t[u//x] = t.
 Proof.
 term_induction t; try rcauto; f_equal.
 apply IHl; intros Hx; apply H.
-rewrite Vector_more.to_list_map, <- flat_map_concat_map.
+rewrite Vector.to_list_map, <- flat_map_concat_map.
 apply in_flat_map; exists i; intuition.
-now apply Vector_more.to_list_In.
+now apply Vector.to_list_In.
 Qed.
 Hint Rewrite notin_tsubs using try easy;
                               (try (intuition; fail));
@@ -198,9 +196,9 @@ Lemma notin_tsubs_bivar : forall x y t, x ∉ t -> t[tvar x//y][tvar y//x] = t.
 Proof.
 term_induction t.
 apply IHl; intros Hx; apply H.
-rewrite Vector_more.to_list_map, <- flat_map_concat_map.
+rewrite Vector.to_list_map, <- flat_map_concat_map.
 apply in_flat_map; exists i; intuition.
-now apply Vector_more.to_list_In.
+now apply Vector.to_list_In.
 Qed.
 Hint Rewrite notin_tsubs_bivar using try easy;
                                     (try (intuition; fail));
@@ -333,7 +331,7 @@ Ltac term_induction t :=
   | intros xx; try (now intuition); simpl
   | intros cc ll IHll; simpl; intros;
     try (apply (f_equal (tconstr _)));
-    rewrite ? Vector_more.to_list_map, ? Vector.map_map;
+    rewrite ? Vector.to_list_map, ? Vector.map_map;
     rewrite ? flat_map_concat_map, ? map_map;
     try (apply (f_equal (@concat _)));
     match goal with
@@ -342,6 +340,6 @@ Ltac term_induction t :=
     end;
     try apply Vector.map_ext_in; try apply map_ext_in;
     try (intros i Hi; apply Vector.Forall_forall with (a:=i) in IHll);
-    try (now apply Vector_more.to_list_In);
+    try (now apply Vector.to_list_In);
     try (intuition; fail) ];
   try (now rcauto).

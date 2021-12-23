@@ -2,8 +2,6 @@
 
 (* arity check based on vectors *)
 
-Require Vector_more.
-
 From Coq Require Vector.
 
 Require Export foterms_vec.
