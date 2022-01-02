@@ -35,13 +35,13 @@ Notation "⟙" := (fnul nat top_con).
 Infix "﹠" := (fbin wth_con) (at level 50).
 Notation "∀" := (fqtf frl_con).
 
-Hint Rewrite (@freevars_fup vatom tatom fatom Ncon Nocon Bcon Qcon) : term_db.
-Hint Rewrite (@esubs_fup vatom tatom fatom Ncon Nocon Bcon Qcon) : term_db.
-Hint Rewrite (@nfree_subs vatom tatom fatom Ncon Nocon Bcon Qcon nat) using intuition; fail : term_db.
+#[local] Hint Rewrite (@freevars_fup vatom tatom fatom Ncon Nocon Bcon Qcon) : term_db.
+#[local] Hint Rewrite (@esubs_fup vatom tatom fatom Ncon Nocon Bcon Qcon) : term_db.
+#[local] Hint Rewrite (@nfree_subs vatom tatom fatom Ncon Nocon Bcon Qcon nat) using intuition; fail : term_db.
 
 #[local] Hint Resolve fclosed_fesubs : term_db.
 #[local] Hint Resolve fclosed_felift : term_db.
-Hint Rewrite (@subs_esubs vatom tatom fatom Ncon Nocon Bcon Qcon nat)
+#[local] Hint Rewrite (@subs_esubs vatom tatom fatom Ncon Nocon Bcon Qcon nat)
                         using try (intuition; fail);
                              (try apply no_ecapture_not_egenerated); try (intuition; fail);
                              (try apply fclosed_no_ecapture); intuition; fail : term_db.

@@ -7,7 +7,7 @@ Create HintDb term_db.
 
 Lemma ltb_S : forall n m, (S n <? S m) = (n <? m).
 Proof. reflexivity. Qed.
-Hint Rewrite ltb_S : term_db.
+#[export] Hint Rewrite ltb_S : term_db.
 
 
 Tactic Notation "rnow" tactic(t) :=

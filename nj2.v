@@ -61,12 +61,12 @@ Notation fupz := (fup 0).
 
 Lemma fsize_fup : forall k A, fsize (fup k A) = fsize A.
 Proof. formula_induction A. Qed.
-Hint Rewrite fsize_fup : term_db.
+#[local] Hint Rewrite fsize_fup : term_db.
 
 Lemma fup_fup_com : forall k A,
   fup (S k) (fupz A) = fupz (fup k A).
 Proof. formula_induction A. Qed.
-Hint Rewrite fup_fup_com : term_db.
+#[local] Hint Rewrite fup_fup_com : term_db.
 
 
 (** substitutes [formula] [F] for variable [X] in [formula] [A] (capture is possible) *)
@@ -82,12 +82,12 @@ end.
 
 Lemma fsize_subs_dvar : forall k X A, fsize (subs X (dvar k) A) = fsize A.
 Proof. formula_induction A. Qed.
-Hint Rewrite fsize_subs_dvar : term_db.
+#[local] Hint Rewrite fsize_subs_dvar : term_db.
 
 Lemma fup_subs_com : forall k X F A,
   fup k (subs X F A) = subs X (fup k F) (fup k A).
 Proof. now formula_induction A ; rcauto ; f_equal. Qed.
-Hint Rewrite fup_subs_com : term_db.
+#[local] Hint Rewrite fup_subs_com : term_db.
 
 
 
@@ -111,7 +111,7 @@ Lemma nsubs_fup_com : forall k F A,
 Proof. formula_induction A ; rcauto.
 now destruct k0 ; destruct k ; intuition.
 Qed.
-Hint Rewrite nsubs_fup_com : term_db.
+#[local] Hint Rewrite nsubs_fup_com : term_db.
 
 
 Fixpoint freevars A :=
@@ -130,27 +130,27 @@ Proof. intros A X Hc Hin ; now rewrite Hc in Hin. Qed.
 
 Lemma freevars_fup : forall k A, freevars (fup k A) = freevars A.
 Proof. formula_induction A. Qed.
-Hint Rewrite freevars_fup : term_db.
+#[local] Hint Rewrite freevars_fup : term_db.
 
 Lemma freevars_nsubs : forall n F, closed F -> forall A,
   freevars (nsubs n F A) = freevars A.
 Proof. formula_induction A. Qed.
-Hint Rewrite freevars_nsubs using assumption : term_db.
+#[local] Hint Rewrite freevars_nsubs using assumption : term_db.
 
 Lemma nfree_subs : forall X F A, ~ In X (freevars A) -> subs X F A = A.
 Proof. formula_induction A. Qed.
-Hint Rewrite nfree_subs using try (intuition ; fail) ;
+#[local] Hint Rewrite nfree_subs using try (intuition ; fail) ;
                               (try apply closed_nofreevars) ; intuition ; fail : term_db.
 
 Lemma nsubs_subs_com : forall X F n G, ~ In X (freevars G) -> forall A,
   nsubs n G (subs X F A) = subs X (nsubs n G F) (nsubs n G A).
 Proof. formula_induction A. Qed.
-Hint Rewrite nsubs_subs_com using try (intuition ; fail) ;
+#[local] Hint Rewrite nsubs_subs_com using try (intuition ; fail) ;
                                   (try apply closed_nofreevars) ; intuition ; fail : term_db.
 
 Lemma nsubs_z_fup : forall F A, nsubs 0 F (fupz A) = A.
 Proof. formula_induction A. Qed.
-Hint Rewrite nsubs_z_fup : term_db.
+#[local] Hint Rewrite nsubs_z_fup : term_db.
 
 
 (** * Proofs *)
