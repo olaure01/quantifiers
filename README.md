@@ -1,6 +1,6 @@
 # Formalizing Quantifiers
 
-(working with `Coq 8.13.0` and [`OLlibs 2.0.1`](https://github.com/olaure01/ollibs))
+(working with `Coq 8.14.1` and [`OLlibs 2.0.2`](https://github.com/olaure01/ollibs))
 
 A formalization of quantifiers based on:
 
