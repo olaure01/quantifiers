@@ -351,9 +351,9 @@ Proof. formula_induction A;
   revert Hn; clear - Hin; induction n; simpl; intros Hn; try lia.
   unfold freshvars_to_nat.
   rewrite seq_S, rev_unit; simpl.
-  case_analysis; intuition.
+  case_analysis.
   + exfalso; revert Hin; apply freshlist_fresh.
-  + f_equal; destruct n; intuition.
+  + f_equal. destruct n; [ reflexivity | apply IHn; lia ].
 Qed.
 
 Proposition nj_vs_hilbert : forall A, freevars A = nil ->
