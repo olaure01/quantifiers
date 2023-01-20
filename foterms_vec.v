@@ -26,8 +26,6 @@ Context { tarity : tatom -> nat }. (* arity of function symbols *)
 
 (** terms with quantifiable variables
 
-    arity not given meaning that we have a copy of each function name for each arity
-
  - [evar] for De Bruijn style eigen variables in proofs,
              type for these indices as parameter called the eigen type,
              but mostly used with [nat].
