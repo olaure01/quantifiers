@@ -3,8 +3,7 @@
 From Coq Require Import Lia.
 From OLlibs Require Import List_more.
 From OLlibs Require Export dectype.
-
-Require Export term_tactics foterms.
+From Quantifiers Require Export term_tactics foterms.
 
 Set Implicit Arguments.
 

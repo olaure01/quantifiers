@@ -1,7 +1,6 @@
 From Coq Require Import Lia.
 From OLlibs Require Import List_Type.
-
-Require Import foformulas_ext nj1_frl.
+From Quantifiers Require Import foformulas_ext nj1_frl.
 
 Set Implicit Arguments.
 

@@ -1,6 +1,6 @@
 (* First-Order Formulas *)
 
-Require Export foterms.
+From Quantifiers Require Export foterms.
 
 Set Implicit Arguments.
 
@@ -120,14 +120,12 @@ Lemma esubs_evar T : forall (A : formula T),
 Proof. formula_induction A. Qed.
 Hint Rewrite esubs_evar : term_db.
 
-Lemma esubs_comp T1 T2 T3 (r : T1 -> term T2) (s : T2 -> term T3) :
-  forall A, A⟦r⟧⟦s⟧ = A⟦r ;; s⟧.
+Lemma esubs_comp T1 T2 T3 (r : T1 -> term T2) (s : T2 -> term T3) A : A⟦r⟧⟦s⟧ = A⟦r ;; s⟧.
 Proof. formula_induction A. Qed.
 Hint Rewrite esubs_comp : term_db.
 
 (* the result of substitution depends extensionnaly on the substituting function *)
-Lemma esubs_ext T1 T2 (r1 r2 : T1 -> term T2) :
-  r1 == r2 -> forall A, A⟦r1⟧ = A⟦r2⟧.
+Lemma esubs_ext T1 T2 (r1 r2 : T1 -> term T2) : r1 ~ r2 -> forall A, A⟦r1⟧ = A⟦r2⟧.
 Proof. formula_induction A. Qed.
 
 

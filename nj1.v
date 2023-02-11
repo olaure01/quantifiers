@@ -2,8 +2,7 @@
 
 From Coq Require Import Wf_nat Lia.
 From OLlibs Require Import List_more.
-
-Require Export foformulas_ext.
+From Quantifiers Require Export foformulas_ext.
 
 Set Implicit Arguments.
 

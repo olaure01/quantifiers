@@ -6,13 +6,13 @@
 From Coq Require Export PeanoNat List.
 From OLlibs Require Import List_more.
 From OLlibs Require Export dectype.
-
-Require Export term_tactics.
+From Quantifiers Require Export term_tactics.
 
 Set Implicit Arguments.
 
 (* Extensional equality of functions *)
-Infix "==" := (fun f g => forall x, f x = g x) (at level 70).
+Definition ext_eq {A B} (f g : A -> B) := (forall a, f a = g a).
+Notation " f ~ g " := (ext_eq f g) (at level 60).
 
 
 (** * First-Order Terms *)
@@ -85,8 +85,7 @@ Proof. term_induction t. Qed.
 Hint Rewrite tesubs_comp : term_db.
 
 (* the result of substitution depends extensionnaly on the substituting function *)
-Lemma tesubs_ext T1 T2 k (r1 r2 : T1 -> term T2 0) :
-  r1 == r2 -> forall t : term T1 k, t⟦r1⟧ = t⟦r2⟧.
+Lemma tesubs_ext T1 T2 k (r1 r2 : T1 -> term T2 0) : r1 ~ r2 -> forall t : term T1 k, t⟦r1⟧ = t⟦r2⟧.
 Proof. term_induction t. Qed.
 Hint Resolve tesubs_ext : term_db.
 (* TODO could be turned into a morphism *)
@@ -110,7 +109,7 @@ match t with
 end.
 Notation "t [ u // x ]" := (tsubs x u t) (at level 8, format "t [ u // x ]").
 
-Lemma tsubs_tsubs_eq : forall x u v t, t[v//x][u//x] = t[v[u//x]//x].
+Lemma tsubs_tsubs_eq x u v t : t[v//x][u//x] = t[v[u//x]//x].
 Proof. term_induction t. Qed.
 Hint Rewrite tsubs_tsubs_eq : term_db.
 
@@ -129,8 +128,8 @@ Notation "x ∉ t" := (~ In x (tvars t)) (at level 30).
 Notation closed t := (tvars t = nil).
 Notation fclosed r := (forall n, closed (r n)).
 
-Lemma closed_notvars : forall t x, closed t -> x ∉ t.
-Proof. intros t x Hc Hin ; now rewrite Hc in Hin. Qed.
+Lemma closed_notvars t x : closed t -> x ∉ t.
+Proof. intros Hc Hin. rewrite Hc in Hin. destruct Hin. Qed.
 Hint Resolve closed_notvars : term_db.
 
 Lemma tvars_tsubs_closed : forall x u, closed u -> forall t,
@@ -174,12 +173,11 @@ Hint Rewrite notin_tsubs using try easy;
 
 (** * Additional results with variable eigen type *)
 
-Lemma tvars_tesubs_fclosed : fclosed -> forall k (t : term T1 k), tvars t⟦r⟧ = tvars t.
+Lemma tvars_tesubs_fclosed k (t : term T1 k) : fclosed -> tvars t⟦r⟧ = tvars t.
 Proof. term_induction t. Qed.
 Hint Rewrite tvars_tesubs_fclosed using intuition; fail : term_db.
 
-Lemma tsubs_tesubs : forall x u k (t : term T1 k), fclosed ->
-  t[u//x]⟦r⟧ = t⟦r⟧[u⟦r⟧//x].
+Lemma tsubs_tesubs x u k (t : term T1 k) : fclosed -> t[u//x]⟦r⟧ = t⟦r⟧[u⟦r⟧//x].
 Proof. term_induction t. Qed.
 Hint Rewrite tsubs_tesubs using intuition; fail : term_db.
 
@@ -207,7 +205,7 @@ Lemma fclosed_fup : fclosed ⇑.
 Proof. reflexivity. Qed.
 Hint Rewrite fclosed_fup : term_db.
 
-Lemma tvars_fup : forall k (t : term k), tvars t↑ = tvars t.
+Lemma tvars_fup k (t : term k) : tvars t↑ = tvars t.
 Proof. rcauto. Qed.
 Hint Rewrite tvars_fup : term_db.
 
@@ -218,12 +216,12 @@ Definition fesubs v := fun n =>
   end.
 Notation "v ⇓" := (fesubs v) (at level 18, format "v ⇓").
 
-Lemma fclosed_fesubs : forall v, closed v -> fclosed (v⇓).
-Proof. intros v Hc n; now destruct n. Qed.
+Lemma fclosed_fesubs v : closed v -> fclosed (v⇓).
+Proof. now intros Hc [|]. Qed.
 Hint Resolve fclosed_fesubs : term_db.
 
-Lemma fesubs_fup v : ⇑ ;; v⇓ == evar.
-Proof. intros ?; reflexivity. Qed.
+Lemma fesubs_fup v : ⇑ ;; v⇓ ~ evar.
+Proof. intro. reflexivity. Qed.
 
 Lemma tesubs_fup v k (t : term k) : t↑⟦v⇓⟧ = t.
 Proof. rcauto. Qed.
@@ -238,14 +236,14 @@ Definition felift u (r : _ -> term 0) := fun n =>
 Notation "⇑[ u ] r" := (felift u r) (at level 25, format "⇑[ u ] r").
 
 Lemma fclosed_felift u r : closed u -> fclosed r -> fclosed (⇑[u]r).
-Proof. intros ? ? n; rnow destruct n. Qed.
+Proof. rnow intros ? ? [|]. Qed.
 Hint Resolve fclosed_felift : term_db.
 
-Lemma felift_comp u r : r ;; ⇑ == ⇑ ;; ⇑[u]r.
-Proof. intros ?; reflexivity. Qed.
+Lemma felift_comp u r : r ;; ⇑ ~ ⇑ ;; ⇑[u]r.
+Proof. intro. reflexivity. Qed.
 Hint Rewrite felift_comp : term_db.
 
-Lemma felift_tesubs u r : forall k (t : term k), t⟦r⟧↑ = t↑⟦⇑[u]r⟧.
+Lemma felift_tesubs u r k (t : term k) : t⟦r⟧↑ = t↑⟦⇑[u]r⟧.
 Proof. rcauto. Qed.
 Hint Rewrite felift_tesubs : term_db.
 

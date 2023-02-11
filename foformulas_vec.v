@@ -3,8 +3,7 @@
 (* arity check based on vectors *)
 
 From Coq Require Vector.
-
-Require Export foterms_vec.
+From Quantifiers Require Export foterms_vec.
 
 Set Implicit Arguments.
 
@@ -135,8 +134,7 @@ Proof. formula_induction A. Qed.
 Hint Rewrite esubs_comp : term_db.
 
 (* the result of substitution depends extensionnaly on the substituting function *)
-Lemma esubs_ext T1 T2 (r1 r2 : T1 -> term T2) :
-  r1 == r2 -> forall A, A⟦r1⟧ = A⟦r2⟧.
+Lemma esubs_ext T1 T2 (r1 r2 : T1 -> term T2) : r1 ~ r2 -> forall A, A⟦r1⟧ = A⟦r2⟧.
 Proof. formula_induction A. Qed.
 
 

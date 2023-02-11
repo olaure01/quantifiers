@@ -3,7 +3,7 @@
 
 From Coq Require Import PeanoNat Lia List.
 From OLlibs Require Import dectype.
-Require Import term_tactics.
+From Quantifiers Require Import term_tactics.
 
 #[local] Hint Resolve in_in_remove : term_db.
 

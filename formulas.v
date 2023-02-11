@@ -1,7 +1,7 @@
 (* Formulas with separated first- and second-order quantifiers *)
 
 From Coq Require Import Lia.
-Require Export foterms.
+From Quantifiers Require Export foterms.
 
 Set Implicit Arguments.
 
@@ -162,8 +162,7 @@ Proof. formula_induction A. Qed.
 Hint Rewrite esubs_comp : term_db.
 
 (* the result of substitution depends extensionnaly on the substituting function *)
-Lemma esubs_ext U T1 T2 (r1 r2 : T1 -> term T2) :
-  r1 == r2 -> forall A : formula U T1, A⟦r1⟧ = A⟦r2⟧.
+Lemma esubs_ext U T1 T2 (r1 r2 : T1 -> term T2) : r1 ~ r2 -> forall A : formula U T1, A⟦r1⟧ = A⟦r2⟧.
 Proof. formula_induction A. Qed.
 
 
@@ -203,8 +202,7 @@ Proof. formula_induction A. Qed.
 Hint Rewrite essubs_comp : term_db.
 
 (* the result of substitution depends extensionnaly on the substituting function *)
-Lemma essubs_ext U1 U2 T (r1 r2 : U1 -> formula U2 T) :
-  r1 == r2 -> forall A, A⟦r1⟧2 = A⟦r2⟧2.
+Lemma essubs_ext U1 U2 T (r1 r2 : U1 -> formula U2 T) : r1 ~ r2 -> forall A, A⟦r1⟧2 = A⟦r2⟧2.
 Proof. formula_induction A. Qed.
 
 

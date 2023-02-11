@@ -2,8 +2,7 @@
 
 From Coq Require Import Lia.
 From OLlibs Require Import List_more List_assoc.
-
-Require Export foterms_ext foformulas.
+From Quantifiers Require Export foterms_ext foformulas.
 
 Set Implicit Arguments.
 

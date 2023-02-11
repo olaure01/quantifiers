@@ -2,7 +2,7 @@
 
 From Coq Require Import Lia.
 From OLlibs Require Import infinite List_more List_assoc.
-Require Import hilbert2nj nj2hilbert.
+From Quantifiers Require Import hilbert2nj nj2hilbert.
 
 Set Implicit Arguments.
 

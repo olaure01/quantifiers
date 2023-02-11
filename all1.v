@@ -1,7 +1,7 @@
 (* Sequent Calculus for First-Order Additive Linear Logic *)
 
 From Coq Require Import Wf_nat Lia.
-Require Import foformulas_ext.
+From Quantifiers Require Import foformulas_ext.
 
 Set Implicit Arguments.
 
@@ -94,7 +94,7 @@ revert r Hc; induction pi; intros r Hc;
   exists (frlr pi'); reflexivity.
 - simpl; rewrite <- Hs; clear Hs.
   revert pi'; rnow idtac.
-  rewrite <- (tvars_tesubs_fclosed r Hc) in e.
+  rewrite <- (tvars_tesubs_fclosed r _ Hc) in e.
   exists (frll _ e pi'); reflexivity.
 Qed.
 

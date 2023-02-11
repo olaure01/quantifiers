@@ -1,8 +1,7 @@
 (* From Hilbert System to Natural Deduction *)
 
 From OLlibs Require Import List_more List_assoc.
-
-Require Export foterms_std nj1 hilbert.
+From Quantifiers Require Export foterms_std nj1 hilbert.
 
 Set Implicit Arguments.
 
@@ -136,8 +135,8 @@ intros A pi; induction pi; intros L Hcl Hsub;
       clear; induction L; intuition; simpl; case_analysis; intuition.
   + now rewrite freevars_esubs_fclosed.
 - rewrite multi_subs_fqtf.
-  apply frli; simpl.
-  rewrite multi_subs_esubs, esubs_comp, esubs_ext with (r2:=r_h2n); intuition.
+  apply frli. simpl.
+  rewrite multi_subs_esubs, esubs_comp, esubs_ext with (r2:=r_h2n); try intro; intuition.
   replace (((h2n_formula A)[[map (fun '(x0, u) => (x0, tesubs ⇑ u)) (L ∖ x)]])[evar 0//x])
      with (((h2n_formula A)[[map (fun '(x0, u) => (x0, tesubs ⇑ u)) (L ∖ x)
                              ++ (x, evar 0) :: nil]]))
