@@ -209,44 +209,43 @@ end.
 Theorem rnpsubs n u (Hc : closed u) {l A} :
    (nprove l A -> nprove (map (nsubs n u) l) (nsubs n u A))
  * (rprove l A -> rprove (map (nsubs n u) l) (nsubs n u A)).
-Proof with try eassumption.
+Proof.
 revert l A.
 enough ((forall l A, nprove l A -> forall n u, closed u -> nprove (map (nsubs n u) l) (nsubs n u A))
       * (forall l A, rprove l A -> forall n u, closed u -> rprove (map (nsubs n u) l) (nsubs n u A)))
-  as He by (split ; intros ; apply He ; assumption).
+  as He by (split; intros; apply He; assumption).
 clear n u Hc ; apply rnprove_mutrect ; intros ; (try simpl in X) ;
   (try assert (IH1 := X n0 u H)) ; (try assert (IH2 := X0 n0 u H)) ; 
-  (try (econstructor ; (eassumption + intuition) ; fail)).
-- rewrite map_app ; apply nax.
+  (try (econstructor; (eassumption + intuition); fail)).
+- rewrite map_app. apply nax.
 - rnow idtac then rnow eapply nfrle.
 - assert (closed (fup 0 u)) by rnow idtac.
   specialize X with (S n) (fup 0 u).
-  rewrite map_map in X ; rewrite (map_ext _ _ (nsubs_fup_com _ _)) in X ; rewrite <- map_map in X.
+  rewrite map_map, (map_ext _ _ (nsubs_fup_com _ _)), <- map_map in X.
   rnow autorewrite with term_db in X.
 - rnow specialize X with n u0 then rnow eapply (rexsi (nsubs n u0 u)).
 - rewrite <- (freevars_fup 0) in H.
-  clear IH2 ; assert (IH2 := X0 (S n0) (fup 0 u) H) ; simpl in IH2.
-  rewrite map_map in IH2 ; rewrite (map_ext _ _ (nsubs_fup_com _ _)) in IH2 ;
-    rewrite <- map_map in IH2.
+  clear IH2. assert (IH2 := X0 (S n0) (fup 0 u) H). simpl in IH2.
+  rewrite map_map, (map_ext _ _ (nsubs_fup_com _ _)), <- map_map in IH2.
   rnow eapply rexse.
 Qed.
 
 Lemma rpsubsz_r {l A x u} : closed u ->
   rprove (map fupz l) (subs x (dvar 0) (fupz A)) -> rprove l (subs x u A).
-Proof with try assumption.
+Proof.
 intros Hc pi.
-apply (rnpsubs 0 u) in pi...
+apply (rnpsubs 0 u) in pi; [ | assumption ].
 rnow simpl in pi then simpl in pi.
-rewrite map_map in pi ; rewrite (map_ext _ _ (nsubs_z_fup _)) in pi ; rewrite map_id in pi...
+rewrite map_map, (map_ext _ _ (nsubs_z_fup _)), map_id in pi. exact pi.
 Qed.
 
 Lemma rpsubsz_l {l A x u C} : closed u ->
   rprove (subs x (dvar 0) (fupz A) :: map fupz l) (fupz C) -> rprove (subs x u A :: l) C.
-Proof with try assumption.
+Proof.
 intros Hc pi.
-apply (rnpsubs 0 u) in pi...
+apply (rnpsubs 0 u) in pi; [ | assumption ].
 rnow simpl in pi then simpl in pi.
-rewrite map_map in pi ; rewrite (map_ext _ _ (nsubs_z_fup _)) in pi ; rewrite map_id in pi...
+rewrite map_map, (map_ext _ _ (nsubs_z_fup _)), map_id in pi. exact pi.
 Qed.
 
 

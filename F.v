@@ -195,38 +195,38 @@ end.
 Theorem rnpsubs n u (Hc : closed u) {l A} :
    (nprove l A -> nprove (map (nsubs n u) l) (nsubs n u A))
  * (rprove l A -> rprove (map (nsubs n u) l) (nsubs n u A)).
-Proof with try eassumption.
+Proof.
 revert l A.
 enough ((forall l A, nprove l A -> forall n u, closed u -> nprove (map (nsubs n u) l) (nsubs n u A))
       * (forall l A, rprove l A -> forall n u, closed u -> rprove (map (nsubs n u) l) (nsubs n u A)))
-  as He by (split ; intros ; apply He ; assumption).
-clear n u Hc ; apply rnprove_mutrect ; intros ; (try simpl in X) ;
-  (try assert (IH1 := X n0 u H)) ; (try assert (IH2 := X0 n0 u H)) ; 
-  (try (econstructor ; (eassumption + intuition) ; fail)).
-- rewrite map_app ; apply nax.
+  as He by (split; intros; apply He; assumption).
+clear n u Hc. apply rnprove_mutrect; intros; try simpl in X;
+  try assert (IH1 := X n0 u H); try assert (IH2 := X0 n0 u H);
+  try (econstructor; (eassumption + intuition); fail).
+- rewrite map_app. apply nax.
 - rnow idtac then rnow eapply nfrle.
 - assert (closed (fup 0 u)) by rnow idtac.
   specialize X with (S n) (fup 0 u).
-  rewrite map_map in X ; rewrite (map_ext _ _ (nsubs_fup_com _ _)) in X ; rewrite <- map_map in X.
+  rewrite map_map, (map_ext _ _ (nsubs_fup_com _ _)), <- map_map in X.
   rnow autorewrite with term_db in X.
 Qed.
 
 Lemma rpsubsz_r {l A x u} : closed u ->
   rprove (map fupz l) (subs x (dvar 0) (fupz A)) -> rprove l (subs x u A).
-Proof with try assumption.
+Proof.
 intros Hc pi.
-apply (rnpsubs 0 u) in pi...
+apply (rnpsubs 0 u) in pi; [ | assumption ].
 rnow simpl in pi then simpl in pi.
-rewrite map_map in pi ; rewrite (map_ext _ _ (nsubs_z_fup _)) in pi ; rewrite map_id in pi...
+rewrite map_map, (map_ext _ _ (nsubs_z_fup _)), map_id in pi. exact pi.
 Qed.
 
 Lemma rpsubsz_l {l A x u C} : closed u ->
   rprove (subs x (dvar 0) (fupz A) :: map fupz l) (fupz C) -> rprove (subs x u A :: l) C.
-Proof with try assumption.
+Proof.
 intros Hc pi.
-apply (rnpsubs 0 u) in pi...
+apply (rnpsubs 0 u) in pi; [ | assumption ].
 rnow simpl in pi then simpl in pi.
-rewrite map_map in pi ; rewrite (map_ext _ _ (nsubs_z_fup _)) in pi ; rewrite map_id in pi...
+rewrite map_map, (map_ext _ _ (nsubs_z_fup _)), map_id in pi. exact pi.
 Qed.
 
 
@@ -275,26 +275,25 @@ apply rnprove_mutrect ; intros ; try (econstructor ; intuition ; intuition ; fai
 - apply rfrli ; rewrite ? map_app ; apply X ; rewrite map_app ; reflexivity.
 Qed.
 
-
 Lemma imp_reduction : forall A B l, rprove l (imp A B) ->
 (forall D l B, fsize D = fsize A -> rprove (D :: l) B -> rprove l D -> rprove l B) -> 
   rprove l A -> rprove l B.
-Proof with try eassumption ; try reflexivity.
+Proof.
 intros A B l pi.
-remember (imp A B) as C ; revert A B HeqC ; induction pi ;
-  intros A1 B1 HeqC ; inversion HeqC ; subst ; intros Hsub pi2.
-- apply rninj ; eapply nimpe...
-- eapply Hsub...
+remember (imp A B) as C; revert A B HeqC; induction pi;
+  intros A1 B1 HeqC; inversion HeqC; subst; intros Hsub pi2.
+- apply rninj. eapply nimpe; eassumption.
+- eapply Hsub; [ reflexivity | | ]; assumption.
 Qed.
 
 Lemma frl_reduction : forall A x l, rprove l (frl x A) ->
   forall u, closed u -> rprove l (subs x u A).
-Proof with try eassumption ; try reflexivity.
+Proof.
 intros A x l pi.
-remember (frl x A) as C ; revert A x HeqC ; induction pi ;
-  intros A1 x1 HeqC ; inversion HeqC ; subst ; intros u Hc.
-- apply rninj ; eapply nfrle...
-- eapply rpsubsz_r in pi...
+remember (frl x A) as C; revert A x HeqC; induction pi;
+  intros A1 x1 HeqC; inversion HeqC; subst; intros u Hc.
+- apply rninj. apply nfrle; assumption.
+- eapply rpsubsz_r in pi; eassumption.
 Qed.
 
 Lemma substitution : forall n m A, fsize A = n ->
@@ -304,7 +303,7 @@ Lemma substitution : forall n m A, fsize A = n ->
       nsize pi < m -> rprove (l1 ++ l2) A -> rprove (l1 ++ l2) B)
  * (forall B l1 l2 (pi : rprove (l1 ++ A :: l2) B),
       rsize pi < m -> rprove (l1 ++ l2) A -> rprove (l1 ++ l2) B).
-Proof with try eassumption ; try reflexivity ; try lia.
+Proof.
 apply (lt_wf_double_rect (fun n m =>
  forall A, fsize A = n ->
    (forall B l1 l2 (pi : nprove (l1 ++ A :: l2) B),
@@ -313,77 +312,75 @@ apply (lt_wf_double_rect (fun n m =>
       nsize pi < m -> rprove (l1 ++ l2) A -> rprove (l1 ++ l2) B)
  * (forall B l1 l2 (pi : rprove (l1 ++ A :: l2) B),
       rsize pi < m -> rprove (l1 ++ l2) A -> rprove (l1 ++ l2) B))) ;
-  intros n m IHn IHm A HA ; (split ; [ split | ] ) ; subst ;
-  intros B l1 l2 pi2 Hpi ; [ intros HF | | ] ; intros pi1 ;
-  remember (l1 ++ A :: l2) as ll ; destruct pi2 ; subst ;
-  simpl in IHm ; simpl in IHn ; simpl in Hpi ; try simpl in HF.
+  intros n m IHn IHm A HA; (split; [ split | ] ); subst;
+  intros B l1 l2 pi2 Hpi; [ intros HF | | ]; intros pi1;
+  remember (l1 ++ A :: l2) as ll; destruct pi2; subst;
+  simpl in IHm; simpl in IHn; simpl in Hpi; try simpl in HF.
 (* first statement *)
-- clear - Heqll HF ; revert l1 l2 Heqll HF ; induction l0 ; intros l1 l2 Heqll HF ;
-    destruct l1 ; inversion Heqll ; subst.
-  + exfalso...
+- clear - Heqll HF; revert l1 l2 Heqll HF; induction l0; intros l1 l2 Heqll HF;
+    destruct l1; inversion Heqll; subst.
+  + exfalso. lia.
   + apply nax_hd.
   + apply nax.
-  + apply IHl0 in H1...
-    change (f :: l1) with (nil ++ (f :: nil) ++ l1) ; rewrite <- ? app_assoc.
-    eapply weakening...
+  + apply IHl0 in H1; [ | assumption ].
+    change (f :: l1) with (nil ++ (f :: nil) ++ l1). rewrite <- ? app_assoc.
+    eapply weakening; [ eassumption | reflexivity ].
 - assert (nsize pi2 < S (nsize pi2 + rsize r)) as IH1 by lia.
   assert (rsize r < S (nsize pi2 + rsize r)) as IH2 by lia.
-  eapply nimpe ; eapply (IHm (S (nsize pi2 + rsize r))) ; simpl...
-- apply nfrle...
-  rnow eapply (IHm _ Hpi)...
-  etransitivity...
+  eapply nimpe; eapply (IHm (S (nsize pi2 + rsize r))); cbn; try eassumption; try reflexivity; lia.
+- apply nfrle; [ assumption | ].
+  rnow eapply (IHm _ Hpi).
+  etransitivity; [ eassumption | ].
 admit.
 (* second statement *)
 - enough (forall l l1 l2, l0 ++ A0 :: l3 = l1 ++ A :: l2 ->
       rprove (l ++ l1 ++ l2) A -> rprove (l ++ l1 ++ l2) A0)
     as HI by (eapply (HI nil) ; eassumption) ; clear.
-  induction l0 ; intros l l1 l2 Heq pi ; destruct l1 ; inversion Heq ; subst...
-  + rewrite <- app_comm_cons ; apply rninj ; apply nax.
-  + rewrite 2 app_assoc ; apply rninj ; apply nax.
-  + rewrite <- app_comm_cons ; rewrite <- (app_nil_l l1) ;
-      rewrite <- app_assoc ; rewrite app_comm_cons ; rewrite app_assoc.
-    apply IHl0...
-    rewrite <- ? app_assoc ; rewrite <- app_comm_cons...
+  induction l0; intros l l1 l2 Heq pi; destruct l1; inversion Heq; subst.
+  + assumption.
+  + rewrite <- app_comm_cons. apply rninj, nax.
+  + rewrite 2 app_assoc. apply rninj, nax.
+  + rewrite <- app_comm_cons, <- (app_nil_l l1), <- app_assoc, app_comm_cons, app_assoc.
+    apply IHl0; [ assumption | ].
+    rewrite <- ? app_assoc. assumption.
 - assert (nsize pi2 < S (nsize pi2 + rsize r)) as IH1 by lia.
   assert (rsize r < S (nsize pi2 + rsize r)) as IH2 by lia.
   assert ({fsize (imp A0 B) <= fsize A} + {fsize A < fsize (imp A0 B)}) as [ Ho | Ho ]
     by (case (CompareSpec2Type (Nat.compare_spec (fsize (imp A0 B)) (fsize A))); intros Ho;
           [ left | left | right ]; lia).
-  + eapply IHm in IH1 ; eapply IHm in IH2...
-    eapply imp_reduction...
-    simpl in Ho; intros D l' B' Heq pi1' pi2'.
+  + eapply IHm in IH1; eapply IHm in IH2; try assumption; try reflexivity.
+    eapply imp_reduction; try eassumption.
+    simpl in Ho. intros D l' B' Heq pi1' pi2'.
     rewrite <- (app_nil_l _) in pi1'.
-    refine (snd (IHn (fsize D) (S (rsize pi1')) _ _ _) _ _ _ pi1' _ pi2')...
-  + apply rninj ; eapply nimpe ; eapply IHm...
+    refine (snd (IHn (fsize D) (S (rsize pi1')) _ _ _) _ _ _ pi1' _ pi2'); lia.
+  + apply rninj. eapply nimpe; eapply IHm; try eassumption; reflexivity.
 - assert (nsize pi2 < S (nsize pi2)) as IH1 by lia.
-  eapply IHm in IH1...
-  eapply frl_reduction...
+  eapply IHm in IH1; try assumption; [ | reflexivity ].
+  apply frl_reduction; assumption.
 (* third statement *)
-- refine (snd (fst (IHm _ _ _ _)) _ _ _ n _ _)...
-- revert pi2 Hpi ; rewrite app_comm_cons ; intros pi2 Hpi.
+- refine (snd (fst (IHm _ _ _ _)) _ _ _ n _ _); try eassumption; lia.
+- revert pi2 Hpi. rewrite app_comm_cons. intros pi2 Hpi.
   apply rimpi.
-  refine (snd (IHm _ _ _ _) _ _ _ pi2 _ _)...
-  rewrite <- app_comm_cons ; rewrite <- (app_nil_l (l1 ++ l2)) ; rewrite app_comm_cons ;
-    rewrite <- (app_nil_l _).
-  eapply weakening...
-- apply rfrli ; rewrite map_app.
+  refine (snd (IHm _ _ _ _) _ _ _ pi2 _ _); try eassumption; try lia.
+  rewrite <- app_comm_cons, <- (app_nil_l (l1 ++ l2)), app_comm_cons, <- (app_nil_l _).
+  eapply weakening; [ eassumption | reflexivity ].
+- apply rfrli. rewrite map_app.
   apply (rnpup 0) in pi1.
-  revert pi1 pi2 Hpi ; rewrite ? map_app ; simpl ; intros pi1 pi2 Hpi.
-  rnow refine (snd (IHm _ _ _ _) _ _ _ pi2 _ _)...
+  revert pi1 pi2 Hpi. rewrite ? map_app. cbn. intros pi1 pi2 Hpi.
+  rnow refine (snd (IHm _ _ _ _) _ _ _ pi2 _ _). assumption.
 Admitted.
 
 Lemma smp_substitution : forall l A B, rprove l A -> rprove (A :: l) B -> rprove l B.
-Proof with try eassumption ; try reflexivity ; try lia.
+Proof.
 intros l A B pi1 pi2.
-rewrite <- (app_nil_l (A :: l)) in pi2 ; rewrite <- (app_nil_l l).
-refine (snd (substitution _ (S (rsize pi2)) _ _ ) _ _ _ pi2 _ _)...
+rewrite <- (app_nil_l (A :: l)) in pi2. rewrite <- (app_nil_l l).
+refine (snd (substitution _ (S (rsize pi2)) _ _ ) _ _ _ pi2 _ _); [ reflexivity | lia | assumption ].
 Qed.
 
 Theorem normalization : forall l A, prove l A -> rprove l A.
-Proof with try eassumption ; try reflexivity ; try lia.
-intros l A pi ; induction pi ;
-   try (econstructor ; (idtac + econstructor) ; eassumption).
-- eapply imp_reduction...
-  clear ; intros ; eapply smp_substitution...
-- eapply frl_reduction...
+Proof.
+intros l A pi. induction pi; try (econstructor; (idtac + econstructor); eassumption).
+- eapply imp_reduction; try eassumption.
+  clear. intros. eapply smp_substitution; eassumption.
+- apply frl_reduction; assumption.
 Qed.

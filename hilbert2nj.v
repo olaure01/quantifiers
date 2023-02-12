@@ -19,7 +19,7 @@ Notation term := (@term vatom tatom nat).
 Notation formula := (@formula vatom tatom fatom Nocon Nocon Icon Qcon nat).
 Notation r_h2n := (@r_empty vatom tatom nat).
 Notation closed t := (tvars t = nil).
-Notation fclosed r := (forall n, closed (r n)).
+Notation rclosed r := (forall n, closed (r n)).
 Notation "A ⟦ r ⟧" := (esubs r A) (at level 8, left associativity, format "A ⟦ r ⟧").
 Notation "A [ u // x ]" := (subs x u A) (at level 8, format "A [ u // x ]").
 Notation "A [[ L ]]" := (multi_subs L A) (at level 8, format "A [[ L ]]").
@@ -35,13 +35,13 @@ Infix "→" := (fbin imp_con) (at level 55, right associativity).
 
 Hint Rewrite (@tsubs_tesubs_notecap vatom tatom Empty_set nat)
                           using try (intuition; fail);
-                               (try apply fclosed_no_tecapture); intuition; fail : term_db.
+                                try apply closed_no_tecapture; intuition; fail : term_db.
 
-Hint Resolve fclosed_r_empty : term_db.
+Hint Resolve closed_r_empty : term_db.
 Hint Rewrite (@fecomp_r_empty vatom tatom) : term_db.
 
-Hint Resolve fclosed_no_tecapture : term_db.
-Hint Resolve fclosed_no_ecapture : term_db.
+Hint Resolve closed_no_tecapture : term_db.
+Hint Resolve closed_no_ecapture : term_db.
 Hint Resolve no_ecapture_not_egenerated : term_db.
 
 Ltac run_ax :=
@@ -87,7 +87,7 @@ intros A pi; induction pi; intros L Hcl Hsub;
   + specialize IHpi1 with (L ++ LA).
     simpl in IHpi1; rewrite ? multi_subs_fbin in IHpi1.
     subst AAA BB; rewrite (multi_subs_extend _ (h2n_formula B)) with LA;
-      [ apply IHpi1 | assumption | rewrite freevars_esubs_fclosed ]; rewrite ? map_app; intuition.
+      [ apply IHpi1 | assumption | rewrite freevars_esubs_closed ]; rewrite ? map_app; intuition.
     * apply Forall_app; intuition.
     * apply incl_app; [ apply incl_appr | apply incl_appl ]; intuition.
       rewrite HfstLA; apply incl_refl.
@@ -101,8 +101,8 @@ intros A pi; induction pi; intros L Hcl Hsub;
       apply multi_tsubs_closed; [ assumption | ].
       intros z Hinz.
       apply Hsub; simpl.
-      rewrite freevars_esubs_fclosed in Hf; [ | intuition ].
-      rewrite tvars_tesubs_fclosed in Hinz; [ | intuition ].
+      rewrite freevars_esubs_closed in Hf; [ | intuition ].
+      rewrite tvars_tesubs_closed in Hinz; [ | intuition ].
       apply (no_capture_subs_freevars _ z _ t ) in Hf; intuition.
       now specialize_Forall f with z.
     * assert (x ∉ (h2n_formula A)[[L ∖ x]]) as Hnin.
@@ -115,7 +115,7 @@ intros A pi; induction pi; intros L Hcl Hsub;
       rewrite nfree_subs by assumption.
       apply ax_hd.
   + apply Forall_forall; intros z Hinz.
-    rewrite tvars_tesubs_fclosed in Hinz; [ | intuition ].
+    rewrite tvars_tesubs_closed in Hinz; [ | intuition ].
     specialize_Forall f with z.
     apply no_capture_esubs; intuition.
 - rewrite ? multi_subs_fqtf.
@@ -130,10 +130,10 @@ intros A pi; induction pi; intros L Hcl Hsub;
     intros Hin; apply n.
     rewrite freevars_fup in Hin; subst.
     apply multi_subs_freevars in Hin.
-    * now rewrite <- freevars_esubs_fclosed with (r:= r_h2n).
+    * now rewrite <- freevars_esubs_closed with (r:= r_h2n).
     * apply incl_Forall with (map snd L); intuition.
       clear; induction L; intuition; simpl; case_analysis; intuition.
-  + now rewrite freevars_esubs_fclosed.
+  + now rewrite freevars_esubs_closed.
 - rewrite multi_subs_fqtf.
   apply frli. simpl.
   rewrite multi_subs_esubs, esubs_comp, esubs_ext with (r2:=r_h2n); try intro; intuition.
@@ -165,8 +165,8 @@ intros A pi; induction pi; intros L Hcl Hsub;
       apply multi_tsubs_closed; [ assumption | ].
       intros z Hinz.
       apply Hsub; simpl.
-      rewrite freevars_esubs_fclosed in Hf; intuition.
-      rewrite tvars_tesubs_fclosed in Hinz; intuition.
+      rewrite freevars_esubs_closed in Hf; intuition.
+      rewrite tvars_tesubs_closed in Hinz; intuition.
       apply (no_capture_subs_freevars _ z _ t) in Hf; intuition.
       now specialize_Forall f with z.
     * assert (x ∉ (h2n_formula A)[[L ∖ x]]) as Hnin.
@@ -178,7 +178,7 @@ intros A pi; induction pi; intros L Hcl Hsub;
       rewrite nfree_subs by assumption.
       apply ax_hd.
   + apply Forall_forall; intros z Hinz.
-    rewrite tvars_tesubs_fclosed in Hinz; [ | intuition ].
+    rewrite tvars_tesubs_closed in Hinz; [ | intuition ].
     specialize_Forall f with z.
     now apply no_capture_esubs.
 - rewrite 2 multi_subs_fqtf.
@@ -192,10 +192,10 @@ intros A pi; induction pi; intros L Hcl Hsub;
     intros Hin; apply n.
     rewrite freevars_fup in Hin; subst.
     apply multi_subs_freevars in Hin.
-    * now rewrite <- freevars_esubs_fclosed with (r:=r_h2n).
+    * now rewrite <- freevars_esubs_closed with (r:=r_h2n).
     * apply incl_Forall with (map snd L); intuition.
       clear; induction L; intuition; simpl; case_analysis; intuition.
-  + now rewrite freevars_esubs_fclosed.
+  + now rewrite freevars_esubs_closed.
 Qed.
 
 End H2N.

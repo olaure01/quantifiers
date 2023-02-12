@@ -154,7 +154,6 @@ end.
 Notation "x ∈ t" := (In x (tvars t)) (at level 30).
 Notation "x ∉ t" := (~ In x (tvars t)) (at level 30).
 Notation closed t := (tvars t = nil).
-Notation fclosed r := (forall n, closed (r n)).
 
 Lemma closed_notvars t x : closed t -> x ∉ t.
 Proof. intros Hc Hin. rewrite Hc in Hin. destruct Hin. Qed.
@@ -208,7 +207,7 @@ Variable T1 T2 : Type.
 Variable r : T1 -> term T2.
 
 Notation closed t := (tvars t = nil).
-Notation fclosed := (forall n, closed (r n)).
+Notation rclosed := (forall n, closed (r n)).
 Notation "t [ u // x ]" := (tsubs x u t) (at level 8, format "t [ u // x ]").
 
 Hint Rewrite notin_tsubs using try easy;
@@ -217,11 +216,11 @@ Hint Rewrite notin_tsubs using try easy;
 
 (** * Additional results with variable eigen type *)
 
-Lemma tvars_tesubs_fclosed t : fclosed -> tvars t⟦r⟧ = tvars t.
+Lemma tvars_tesubs_closed t : rclosed -> tvars t⟦r⟧ = tvars t.
 Proof. term_induction t. Qed.
-Hint Rewrite tvars_tesubs_fclosed using intuition; fail : term_db.
+Hint Rewrite tvars_tesubs_closed using intuition; fail : term_db.
 
-Lemma tsubs_tesubs x u t : fclosed -> t[u//x]⟦r⟧ = t⟦r⟧[u⟦r⟧//x].
+Lemma tsubs_tesubs x u t : rclosed -> t[u//x]⟦r⟧ = t⟦r⟧[u⟦r⟧//x].
 Proof. term_induction t. Qed.
 Hint Rewrite tsubs_tesubs using intuition; fail : term_db.
 
@@ -231,7 +230,7 @@ End Two_Eigen_Types.
 (* We restrict to [term nat] *)
 Section Eigen_nat.
 
-Hint Rewrite tvars_tesubs_fclosed using intuition; fail : term_db.
+Hint Rewrite tvars_tesubs_closed using intuition; fail : term_db.
 
 Notation term := (term nat).
 Notation tvar := (tvar nat).
@@ -239,17 +238,17 @@ Notation "t [ u // x ]" := (tsubs x u t) (at level 8, format "t [ u // x ]").
 Notation "x ∈ t" := (In x (tvars t)) (at level 30).
 Notation "x ∉ t" := (~ In x (tvars t)) (at level 30).
 Notation closed t := (tvars t = nil).
-Notation fclosed r := (forall n, closed (r n)).
+Notation rclosed r := (forall n, closed (r n)).
 
 Definition fup := fun n => evar (S n).
 Notation "⇑" := fup.
 Notation "t ↑" := (t⟦⇑⟧) (at level 8, format "t ↑").
 
-Lemma fclosed_fup : fclosed ⇑.
+Lemma closed_fup : rclosed ⇑.
 Proof. reflexivity. Qed.
-Hint Rewrite fclosed_fup : term_db.
+Hint Rewrite closed_fup : term_db.
 
-Lemma tvars_fup : forall t, tvars t↑ = tvars t.
+Lemma tvars_fup t : tvars t↑ = tvars t.
 Proof. rcauto. Qed.
 Hint Rewrite tvars_fup : term_db.
 
@@ -262,9 +261,9 @@ Definition fesubs k v := fun n =>
   end.
 Notation "v // ↓ k" := (fesubs k v) (at level 18, format "v // ↓ k").
 
-Lemma fclosed_fesubs : forall k v, closed v -> fclosed (v//↓k).
+Lemma closed_fesubs : forall k v, closed v -> rclosed (v//↓k).
 Proof. e_case_intuition unfolding fesubs. Qed.
-Hint Resolve fclosed_fesubs : term_db.
+Hint Resolve closed_fesubs : term_db.
 
 Lemma fesubs_fup k v : ⇑ ;; v↑//↓(S k) == v//↓k ;; ⇑.
 Proof. intros ?; unfold fesubs, fup, fecomp; e_case_intuition. Qed.
@@ -276,9 +275,9 @@ Definition fesubs v := fun n =>
   end.
 Notation "v ⇓" := (fesubs v) (at level 18, format "v ⇓").
 
-Lemma fclosed_fesubs : forall v, closed v -> fclosed (v⇓).
-Proof. intros v Hc n; now destruct n. Qed.
-Hint Resolve fclosed_fesubs : term_db.
+Lemma closed_fesubs v : closed v -> rclosed (v⇓).
+Proof. now intros Hc [|]. Qed.
+Hint Resolve closed_fesubs : term_db.
 
 Lemma fesubs_fup v : ⇑ ;; v⇓ ~ evar.
 Proof. intro. reflexivity. Qed.
@@ -295,9 +294,9 @@ Definition felift u r := fun n =>
   end.
 Notation "⇑[ u ] r" := (felift u r) (at level 25, format "⇑[ u ] r").
 
-Lemma fclosed_felift u r : closed u -> fclosed r -> fclosed (⇑[u]r).
+Lemma closed_felift u r : closed u -> rclosed r -> rclosed (⇑[u]r).
 Proof. rnow intros ? ? [|]. Qed.
-Hint Resolve fclosed_felift : term_db.
+Hint Resolve closed_felift : term_db.
 
 Lemma felift_comp u r : r ;; ⇑ ~ ⇑ ;; ⇑[u]r.
 Proof. intro. reflexivity. Qed.

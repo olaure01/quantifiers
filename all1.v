@@ -15,7 +15,7 @@ Inductive Qcon := frl_con.
 
 Notation term := (@term vatom tatom nat).
 Notation closed t := (tvars t = nil).
-Notation fclosed r := (forall n, closed (r n)).
+Notation rclosed r := (forall n, closed (r n)).
 Notation "↑ r" := (felift (evar 0) r) (at level 25, format "↑ r").
 Notation "v ⇓" := (fesubs v) (at level 18, format "v ⇓").
 Notation "A ⟦ r ⟧" := (esubs r A) (at level 8, left associativity, format "A ⟦ r ⟧").
@@ -35,16 +35,17 @@ Notation "⟙" := (fnul nat top_con).
 Infix "﹠" := (fbin wth_con) (at level 50).
 Notation "∀" := (fqtf frl_con).
 
+#[local] Hint Rewrite (@felift_esubs vatom tatom fatom Ncon Nocon Bcon Qcon) : term_db.
 #[local] Hint Rewrite (@freevars_fup vatom tatom fatom Ncon Nocon Bcon Qcon) : term_db.
 #[local] Hint Rewrite (@esubs_fup vatom tatom fatom Ncon Nocon Bcon Qcon) : term_db.
 #[local] Hint Rewrite (@nfree_subs vatom tatom fatom Ncon Nocon Bcon Qcon nat) using intuition; fail : term_db.
 
-#[local] Hint Resolve fclosed_fesubs : term_db.
-#[local] Hint Resolve fclosed_felift : term_db.
+#[local] Hint Resolve closed_fesubs : term_db.
+#[local] Hint Resolve closed_felift : term_db.
 #[local] Hint Rewrite (@subs_esubs vatom tatom fatom Ncon Nocon Bcon Qcon nat)
                         using try (intuition; fail);
-                             (try apply no_ecapture_not_egenerated); try (intuition; fail);
-                             (try apply fclosed_no_ecapture); intuition; fail : term_db.
+                              try apply no_ecapture_not_egenerated; try (intuition; fail);
+                              try apply closed_no_ecapture; intuition; fail : term_db.
 
 
 (** * Proofs *)
@@ -75,7 +76,7 @@ match pi with
 end.
 
 (** apply [r] in proof [pi] *)
-Theorem pesubs r (Hc : fclosed r) C A (pi : prove C A) :
+Theorem pesubs r (Hc : rclosed r) C A (pi : prove C A) :
   { pi' : prove C⟦r⟧ A⟦r⟧ & psize pi' = psize pi }.
 Proof.
 revert r Hc; induction pi; intros r Hc;
@@ -88,21 +89,20 @@ revert r Hc; induction pi; intros r Hc;
 - exists (wdgll _ pi') ; simpl ; auto.
 - exists (wdglr _ pi') ; simpl ; auto.
 - clear pi' Hs; destruct (IHpi (↑r)) as [pi' Hs]; intuition.
-  simpl; rewrite <- Hs; clear Hs.
-  revert pi'; rnow idtac.
-  revert pi'; rewrite <- 2 felift_esubs; intros pi'.
-  exists (frlr pi'); reflexivity.
-- simpl; rewrite <- Hs; clear Hs.
-  revert pi'; rnow idtac.
-  rewrite <- (tvars_tesubs_fclosed r _ Hc) in e.
-  exists (frll _ e pi'); reflexivity.
+  cbn. rewrite <- Hs. clear Hs.
+  rnow revert pi'.
+  exists (frlr pi'). reflexivity.
+- cbn. rewrite <- Hs. clear Hs.
+  rnow revert pi'.
+  rewrite <- (tvars_tesubs_closed r _ Hc) in e.
+  exists (frll _ e pi'). reflexivity.
 Qed.
 
 
 (** * Cut Elimination *)
 
 Theorem cutr : forall A B C, prove A B -> prove B C -> prove A C.
-Proof with try assumption.
+Proof.
 enough (IH : forall n, forall A B C (pi1 : prove A B) (pi2 : prove B C),
           n = psize pi1 + psize pi2 -> prove A C)
   by (intros A B C pi1 pi2 ; apply (IH _ _ _ _ pi1 pi2 eq_refl)).
@@ -112,31 +112,31 @@ assert (IH : forall A B C (pi1' : prove A B) (pi2' : prove B C),
   by (intros; eapply IH0; [ eassumption | reflexivity ]); clear IH0.
 destruct pi2; intuition.
 - apply wdgr.
-  + apply (IH _ _ _ pi1 pi2_1); simpl; lia.
-  + apply (IH _ _ _ pi1 pi2_2); simpl; lia.
+  + apply (IH _ _ _ pi1 pi2_1). cbn. lia.
+  + apply (IH _ _ _ pi1 pi2_2). cbn. lia.
 - enough (forall A D (pi1 : prove A D) A0 B C (pi2 : prove A0 C)
               (IH : forall A1 B0 C0 (pi1' : prove A1 B0) (pi2' : prove B0 C0),
                 psize pi1' + psize pi2' < psize pi1 + psize (wdgll B pi2) -> prove A1 C0),
          D = A0﹠B -> prove A C)
     as IH2 by (eapply IH2; [ eassumption | reflexivity ]); clear.
-  intros A D pi1 ; destruct pi1 ; intros ; inversion H ; subst ;
-    try (constructor ; apply (IH _ _ _ pi1 (wdgll _ pi2)); simpl; lia).
+  intros A D pi1; destruct pi1; intros; inversion H; subst;
+    try (constructor ; apply (IH _ _ _ pi1 (wdgll _ pi2)); cbn; lia).
   + now apply wdgll.
-  + apply (IH _ _ _ pi1_1 pi2); simpl; lia.
-  + apply (frll u)...
-    apply (IH _ _ _ pi1 (wdgll _ pi2)); simpl; lia.
+  + apply (IH _ _ _ pi1_1 pi2). cbn. lia.
+  + apply (frll u); [ assumption | ].
+    apply (IH _ _ _ pi1 (wdgll _ pi2)). cbn. lia.
 - enough (forall A D (pi1 : prove A D) A0 B C (pi2 : prove A0 C)
               (IH : forall A1 B0 C0 (pi1' : prove A1 B0) (pi2' : prove B0 C0),
                  psize pi1' + psize pi2' < psize pi1 + psize (wdglr B pi2) -> prove A1 C0),
          D = B﹠A0 -> prove A C)
-    as IH2 by (eapply IH2 ; [ eassumption | reflexivity ]) ; clear.
+    as IH2 by (eapply IH2; [ eassumption | reflexivity ]); clear.
   intros A D pi1; destruct pi1; intros; inversion H; subst;
-    try (constructor; apply (IH _ _ _ pi1 (wdglr _ pi2)); simpl; lia).
+    try (constructor; apply (IH _ _ _ pi1 (wdglr _ pi2)); cbn; lia).
   + now apply wdglr.
-  + apply (IH _ _ _ pi1_2 pi2); simpl; lia.
-  + apply (frll u)...
-    apply (IH _ _ _ pi1 (wdglr _ pi2)); simpl; lia.
-- destruct (pesubs ⇑ fclosed_fup pi1) as [pi1' Hs].
+  + apply (IH _ _ _ pi1_2 pi2). cbn. lia.
+  + apply (frll u); [ assumption | ].
+    apply (IH _ _ _ pi1 (wdglr _ pi2)). cbn. lia.
+- destruct (pesubs ⇑ closed_fup pi1) as [pi1' Hs].
   apply frlr.
   apply (IH _ _ _ pi1' pi2); simpl; lia.
 - enough (forall A D (pi1 : prove A D) x A0 C u e (pi2 : prove A0[u//x] C)
@@ -147,12 +147,12 @@ destruct pi2; intuition.
   intros A D pi1; destruct pi1; intros; inversion H; subst;
     try (constructor; apply (IH _ _ _ pi1 (frll _ e pi2)); simpl; lia).
   + now apply (frll u).
-  + destruct (pesubs (u⇓) (fclosed_fesubs _ e) pi1) as [pi1' Hs].
+  + destruct (pesubs (u⇓) (closed_fesubs _ e) pi1) as [pi1' Hs].
     simpl in IH; rewrite <- Hs in IH; clear Hs.
     revert pi1' IH; rnow idtac.
     apply (IH _ _ _ pi1' pi2); lia.
-  + apply (frll u)...
-    apply (IH _ _ _ pi1 (frll _ e0 pi2)); simpl; lia.
+  + apply (frll u); [ assumption | ].
+    apply (IH _ _ _ pi1 (frll _ e0 pi2)). cbn. lia.
 Qed.
 
 

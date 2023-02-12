@@ -27,7 +27,7 @@ Hint Rewrite (@tsubs_tsubs_eq vatom tatom) : term_db.
 Hint Rewrite (@tsubs_tsubs vatom tatom)
                         using try (intuition; fail);
                              (try apply closed_notvars); intuition; fail : term_db.
-Hint Rewrite (@tvars_tesubs_fclosed vatom tatom) using intuition; fail : term_db.
+Hint Rewrite (@tvars_tesubs_closed vatom tatom) using intuition; fail : term_db.
 Hint Rewrite (@tvars_tsubs_closed vatom tatom) using intuition; fail : term_db.
 Hint Rewrite (@notin_tsubs vatom tatom)
                          using try easy;
@@ -172,7 +172,7 @@ Lemma esubs_fup k v (A : formula nat k) : A↑⟦v⇓⟧ = A.
 Proof. rcauto. Qed.
 Hint Rewrite esubs_fup : term_db.
 
-Lemma felift_esubs k u r : forall A : formula nat k, A⟦r⟧↑ = A↑⟦⇑[u]r⟧.
+Lemma felift_esubs k u r (A : formula nat k) : A↑⟦⇑[u]r⟧ = A⟦r⟧↑.
 Proof. rcauto. Qed.
 Hint Rewrite felift_esubs : term_db.
 

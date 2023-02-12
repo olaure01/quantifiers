@@ -12,7 +12,7 @@ Notation term := (@term vatom tatom nat).
 Notation formula := (@formula vatom tatom fatom Nocon Nocon Icon FQcon nat).
 Notation frl := (fqtf frl_con).
 Notation closed t := (tvars t = nil).
-Notation fclosed r := (forall n, closed (r n)).
+Notation rclosed r := (forall n, closed (r n)).
 Notation "A ⟦ r ⟧" := (esubs r A) (at level 8, left associativity, format "A ⟦ r ⟧").
 Notation "A [ u // x ]" := (subs x u A) (at level 8, format "A [ u // x ]").
 Notation "⇑" := fup.
@@ -29,7 +29,7 @@ Lemma frli_fresh k x l A : list_max (map eigen_max (A :: l)) < k ->
 Proof.
 intros Hmax pi; apply denormalization, rfrli; apply normalization in pi.
 remember (fun n => if Nat.eqb n k then evar 0 else evar (S n) : term) as rk.
-assert (fclosed rk) as Hc by (now intros n; rewrite Heqrk; destruct (n =? k)).
+assert (rclosed rk) as Hc by (now intros n; rewrite Heqrk; destruct (n =? k)).
 assert (map (esubs rk) (A :: l) = map (fun F => F↑) (A :: l)) as Hrkfup.
 { apply map_ext_in_inf; intros a Hin.
   apply esubs_ext_max; intros n Hle.

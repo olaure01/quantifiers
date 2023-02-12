@@ -18,7 +18,7 @@ Notation hformula := (@formula vatom tatom fatom Nocon Nocon Icon Qcon Empty_set
 Notation term := (@term vatom tatom nat).
 Notation formula := (@formula vatom tatom fatom Nocon Nocon Icon Qcon nat).
 Notation closed t := (tvars t = nil).
-Notation fclosed r := (forall n, closed (r n)).
+Notation rclosed r := (forall n, closed (r n)).
 Notation "A ⟦ r ⟧" := (esubs r A) (at level 8, left associativity, format "A ⟦ r ⟧").
 Notation "A [ u // x ]" := (subs x u A) (at level 8, format "A [ u // x ]").
 Notation "A [[ L ]]" := (multi_subs L A) (at level 8, format "A [[ L ]]").
@@ -36,7 +36,7 @@ Infix "→" := (fbin imp_con) (at level 55, right associativity).
 Hint Resolve no_ecapture_not_egenerated : term_db.
 Hint Rewrite (@tsubs_tesubs_notecap vatom tatom Empty_set nat)
                           using try (intuition; fail);
-                               (try apply fclosed_no_tecapture); intuition; fail : term_db.
+                                try apply closed_no_tecapture; intuition; fail : term_db.
 
 
 Section Fixed_r.
@@ -183,7 +183,7 @@ Proof. formula_induction A.
   + apply H0, in_flat_map; exists u; intuition.
 - apply in_or_app; apply in_app_or in H1; destruct H1 as [Hin|Hin]; [left|right]; intuition.
 - apply in_remove in H1; destruct H1 as [Hin Hneq]; apply in_in_remove; intuition.
-  apply IHA; intuition.
+  apply IH; intuition.
   + apply no_ecapture_less with (lv1:= x::nil) in H; [ intuition | in_solve ].
   + apply H0, in_in_remove; intuition.
 Qed.
@@ -197,10 +197,9 @@ Proof. formula_induction A.
   destruct Hinu as [Hinu|Hinu]; [left; intuition | right].
   rewrite map_map, <- flat_map_concat_map; apply in_flat_map; exists u; intuition.
 - apply in_app_or in H; destruct H as [Hin|Hin].
-  + apply IHA1 in Hin; intuition.
-  + apply IHA2 in Hin; intuition.
-- intuition.
-  apply IHA in H0; intuition.
+  + apply IH in Hin; intuition.
+  + apply IH0 in Hin; intuition.
+- intuition. apply IH in H0; intuition.
 Qed.
 
 Lemma no_tecapture_rrename : forall r y x t lv, ~ In y (tvars t ++ lv) ->
@@ -233,11 +232,11 @@ Proof. formula_induction A.
   apply H.
   apply in_or_app; apply in_app_or in H1; destruct H1 as [H1|H1]; [left|right]; intuition.
   now apply in_flat_map; exists u.
-- apply IHA1; intuition.
+- apply IH; intuition.
   apply H; in_solve.
-- apply IHA2; intuition.
+- apply IH0; intuition.
   apply H; in_solve.
-- apply IHA; intuition.
+- apply IH; intuition.
   apply in_app_or in H1; destruct H1 as [H1|H1]; try inversion H1; intuition; in_solve.
 Qed.
 
@@ -299,8 +298,7 @@ Qed.
 
 Lemma no_ecapture_rrefresh : forall ld A r lvA lv,
   incl (fvars (n2h_formula r A) ++ lv) lvA -> (rrefresh lvA ld r) #[[lv]] A.
-Proof. formula_induction A; 
-  (try apply IHA1); (try apply IHA2); (try apply IHA); try (intros z Hz; apply H; in_solve).
+Proof. formula_induction A; try apply IH; try apply IH0; try (intros z Hz; apply H; in_solve).
 apply Forall_fold_right.
 apply Forall_forall; intros u Hu.
 apply no_tecapture_rrefresh.
@@ -330,9 +328,9 @@ Lemma birename : forall r y x A,
 Proof. formula_induction A.
 - apply bitrename; intros Hin; apply H; in_solve.
 - apply H; in_solve.
-- apply IHA1; intros Hin; apply H; in_solve.
-- apply IHA2; intros Hin; apply H; in_solve.
-- apply IHA; intros Hin; apply H; right.
+- apply IH; intros Hin; apply H; in_solve.
+- apply IH0; intros Hin; apply H; in_solve.
+- apply IH; intros Hin; apply H; right.
   apply in_or_app; apply in_app_or in Hin; destruct Hin as [Hin|Hin]; [left|right]; intuition.
   apply in_in_remove; intuition.
 Qed.
@@ -346,10 +344,10 @@ rewrite <- birename with (x:=x) (y:=y); auto.
 eapply hprove_MP; [ apply hprove_INST | apply hprove_GEN ]; auto.
 simpl; repeat constructor.
 revert Hnin Hg; clear; formula_induction A.
-- apply IHA1; intuition; apply Hnin; in_solve.
-- apply IHA2; intuition; apply Hnin; in_solve.
+- apply IH; intuition; apply Hnin; in_solve.
+- apply IH0; intuition; apply Hnin; in_solve.
 - split.
-  + apply IHA; intuition.
+  + apply IH; intuition.
     * apply H2.
       apply in_or_app; apply in_app_or in H0; destruct H0 as [Hin|Hin]; [left|right]; intuition.
       apply in_in_remove; intuition.
@@ -439,7 +437,7 @@ try rename H into Hxlv; try rename H0 into Hylv; try rename H1 into Hyl; try ren
   apply Hyl.
   rewrite flat_map_map; apply in_flat_map; exists v; intuition.
 - now apply no_ecapture_hfelift.
-- apply IHA; intuition.
+- apply IH; intuition.
   apply Hylv.
   destruct H as [Hin|Hin]; subst; intuition.
 Qed.
@@ -709,11 +707,10 @@ intros l A pi; induction pi; intros r Hg.
          eapply hprove_MP; [ apply hprove_B | apply HBD ].
 Qed.
 
-Proposition n2h_closed : forall r, fclosed r ->
-  forall A, prove nil A -> hprove (n2h_formula r A).
+Proposition n2h_closed r (Hc : rclosed r) A : prove nil A -> hprove (n2h_formula r A).
 Proof.
-intros r Hc A pi; change (n2h_formula r A) with (n2h_sequent r nil A).
-now apply n2h; [ | apply Forall_forall; intros; apply fclosed_no_ecapture ].
+intros pi; change (n2h_formula r A) with (n2h_sequent r nil A).
+now apply n2h; [ | apply Forall_forall; intros; apply closed_no_ecapture ].
 Qed.
 
 End N2H.

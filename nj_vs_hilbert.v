@@ -113,7 +113,7 @@ Proof. formula_induction A;
      with (map (fun '(x0,i) => (x0, evar i : term)) (remove_assoc x lvn))
     by (clear; induction lvn; intuition; unfold remove_assoc; simpl;
         repeat case_analysis; f_equal; intuition).
-  apply IHA.
+  apply IH.
   + intros z Hz Hinz.
     rewrite <- remove_assoc_remove in Hz; apply in_remove in Hz.
     inversion Hinz; subst; intuition.
@@ -163,7 +163,7 @@ Proof. formula_induction A;
      with (map (fun '(x0,i) => (x0, evar i : term)) (remove_assoc x lvn))
     by (clear; induction lvn; intuition; unfold remove_assoc; simpl;
         repeat case_analysis; f_equal; intuition).
-  apply IHA.
+  apply IH.
   + now apply NoDup_remove_assoc_snd.
   + intros i Hin; apply NoDup_remove_assoc_in; intuition.
     apply snd_remove_assoc in Hin; intuition.
@@ -224,9 +224,9 @@ Proof. formula_induction A.
   intros z Hz; apply H.
   apply in_or_app; apply in_app_or in Hz; destruct Hz as [Hz|Hz]; [left|right]; intuition.
   apply in_flat_map; exists t; intuition.
-- apply IHA1; intros z Hz; apply H; in_solve.
-- apply IHA2; intros z Hz; apply H; in_solve.
-- apply IHA; intros z Hz; apply H; in_solve.
+- apply IH; intros z Hz; apply H; in_solve.
+- apply IH0; intros z Hz; apply H; in_solve.
+- apply IH; intros z Hz; apply H; in_solve.
 Qed.
 
 Definition freshvars_to_nat (l : list vatom) n :=
@@ -289,10 +289,10 @@ Proof. formula_induction A; intros z Hz.
     * intros Heq.
       destruct l; inversion Htin; simpl in Heq; inversion Heq.
 - apply in_app_or in Hz; destruct Hz as [Hz|Hz].
-  + apply IHA1 with (n:= n) in Hz; [ | intros y Hy; apply H | lia ]; try in_solve.
-  + apply IHA2 with (n:= n) in Hz; [ | intros y Hy; apply H | lia ]; try in_solve.
+  + apply IH with (n:= n) in Hz; [ | intros y Hy; apply H | lia ]; try in_solve.
+  + apply IH0 with (n:= n) in Hz; [ | intros y Hy; apply H | lia ]; try in_solve.
 - apply in_remove in Hz; destruct Hz as [Hz Hneq].
-  apply IHA with (n:= n) in Hz; intuition.
+  apply IH with (n:= n) in Hz; intuition.
   + apply in_or_app; apply in_app_or in Hz; destruct Hz as [Hz|Hz]; [left| now right].
     now apply in_in_remove.
   + intros y Hy; apply H; in_solve.
@@ -341,10 +341,10 @@ Proof. formula_induction A;
       now specialize_Forall H with (teigen_max t).
     * intros Heq; destruct l; inversion Ht; simpl in Heq; inversion Heq.
   + intros z Hz; apply H0; now apply in_flat_map; exists t.
-- apply IHA1; [ lia | intros z Hz; apply H0; in_solve ].
-- apply IHA2; [ lia | intros z Hz; apply H0; in_solve ].
+- apply IH; [ lia | intros z Hz; apply H0; in_solve ].
+- apply IH0; [ lia | intros z Hz; apply H0; in_solve ].
 - enough (remove_assoc x (freshvars_to_nat lv n) = freshvars_to_nat lv n) as Heq.
-  { rewrite Heq; apply IHA; intuition.
+  { rewrite Heq; apply IH; intuition.
     intros z Hz; apply H0; in_solve. }
   assert (In x lv) as Hin by (apply H0; intuition).
   assert (0 < n) as Hn by lia.

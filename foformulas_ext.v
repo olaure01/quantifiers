@@ -31,7 +31,7 @@ Hint Rewrite (@tsubs_tsubs_eq vatom tatom) : term_db.
 Hint Rewrite (@tsubs_tsubs vatom tatom)
                         using try (intuition; fail);
                              (try apply closed_notvars); intuition; fail : term_db.
-Hint Rewrite (@tvars_tesubs_fclosed vatom tatom) using intuition; fail : term_db.
+Hint Rewrite (@tvars_tesubs_closed vatom tatom) using intuition; fail : term_db.
 Hint Rewrite (@tvars_tsubs_closed vatom tatom) using intuition; fail : term_db.
 Hint Rewrite (@notin_tsubs vatom tatom)
                          using try easy;
@@ -46,7 +46,7 @@ Hint Rewrite (@multi_tsubs_nil vatom tatom) : term_db.
 
 Hint Resolve tesubs_ext : term_db.
 Hint Resolve closed_notvars : term_db.
-Hint Resolve fclosed_no_tecapture : term_db.
+Hint Resolve closed_no_tecapture : term_db.
 
 
 Section Fixed_Eigen_Type.
@@ -60,7 +60,7 @@ Hint Rewrite (@remove_assoc_remove vatom (formula T)) : term_db.
 
 Notation "A [ u // x ]" := (subs x u A) (at level 8, format "A [ u // x ]").
 
-Lemma subs_subs_eq : forall x u v A, A[v//x][u//x] = A[tsubs x u v//x].
+Lemma subs_subs_eq x u v A : A[v//x][u//x] = A[tsubs x u v//x].
 Proof. formula_induction A. Qed.
 Hint Rewrite subs_subs_eq : term_db.
 
@@ -86,8 +86,8 @@ Lemma nfree_subs : forall x u A, x ∉ A -> A[u//x] = A.
 Proof. formula_induction A.
 - rnow apply notin_tsubs then apply H.
 - rnow apply H.
-- rcauto; rnow rewrite IHA.
-  apply H, in_in_remove; intuition.
+- rcauto; rnow rewrite IH.
+  apply H, in_in_remove; auto.
 Qed.
 Hint Rewrite nfree_subs using intuition; fail : term_db.
 
@@ -117,7 +117,7 @@ Proof. formula_induction A; try in_solve.
   + right; intuition.
     apply in_remove in H; intuition.
   + assert (Hin := proj1 (in_remove _ _ _ _ H)).
-    apply IHA in Hin; destruct Hin as [Hin|Hin]; [left|right]; intuition;
+    apply IH in Hin; destruct Hin as [Hin|Hin]; [left|right]; intuition;
       apply in_in_remove; intuition.
     subst; revert H; apply remove_In.
 Qed.
@@ -143,7 +143,7 @@ Proof. formula_induction A; try in_solve.
 - exfalso; now apply remove_In in H0.
 - apply in_in_remove; intuition.
   apply in_remove in H0; destruct H0 as [Hin Hneq].
-  apply IHA; intuition.
+  apply IH; auto.
 Qed.
 
 Lemma no_capture_subs : forall x y z t A, closed t ->
@@ -199,7 +199,7 @@ end.
 
 Lemma freevars_fvars : forall A, incl (freevars A) (fvars A).
 Proof. formula_induction A.
-eapply incl_tran; [ apply remove_incl, IHA | ].
+eapply incl_tran; [ apply remove_incl, IH | ].
 intros y Hin; apply in_remove in Hin; intuition.
 Qed.
 Hint Resolve freevars_fvars : term_db.
@@ -329,21 +329,18 @@ Implicit Type A : @formula T1.
 Notation "A ⟦ r ⟧" := (esubs r A) (at level 8, left associativity, format "A ⟦ r ⟧").
 Notation "x ∈ A" := (In x (freevars A)) (at level 30).
 Notation "x ∉ A" := (~ In x (freevars A)) (at level 30).
-Notation fclosed := (forall n, closed (r n)).
+Notation rclosed := (forall n, closed (r n)).
 Notation "A [ u // x ]" := (subs x u A) (at level 8, format "A [ u // x ]").
 Notation "A [[ L ]]" := (multi_subs L A) (at level 8, format "A [[ L ]]").
 Notation "y #[ x ] A" := (no_capture_at x y A) (at level 30, format "y  #[ x ]  A").
 
 (** * Additional results with variable eigen type *)
 
-Lemma freevars_esubs_fclosed : fclosed -> forall A, freevars A⟦r⟧ = freevars A.
-Proof. formula_induction A.
-- now rewrite IHA1, IHA2.
-- now rewrite IHA.
-Qed.
-Hint Rewrite freevars_esubs_fclosed using intuition; fail : term_db.
+Lemma freevars_esubs_closed : rclosed -> forall A, freevars A⟦r⟧ = freevars A.
+Proof. formula_induction A; rewrite ? IHA, ? IHA1, ? IHA2; reflexivity. Qed.
+Hint Rewrite freevars_esubs_closed using intuition; fail : term_db.
 
-Lemma no_capture_esubs : fclosed -> forall x y A, y #[x] A -> y #[x] A⟦r⟧.
+Lemma no_capture_esubs : rclosed -> forall x y A, y #[x] A -> y #[x] A⟦r⟧.
 Proof. formula_induction A. Qed.
 
 Lemma fvars_esubs : forall A,
@@ -354,7 +351,7 @@ Proof. formula_induction A; simpl; intros z Hin; try in_solve.
   apply in_or_app; apply in_app_or in Hin; destruct Hin as [Hin|Hin]; [left|right]; intuition.
   now eapply tvars_tesubs.
 - inversion_clear Hin; subst; intuition.
-  apply in_cons, IHA.
+  apply in_cons, IH.
   apply in_or_app; apply in_app_or in H; destruct H as [H|H]; [left|right]; auto.
   now apply in_remove in H.
 Qed.
@@ -375,18 +372,17 @@ Lemma no_ecapture_less : forall A lv1 lv2, incl lv1 lv2 ->
 Proof. formula_induction A.
 - apply Forall_fold_right in H0; apply Forall_fold_right.
   eapply Forall_impl; [ intros t; apply no_tecapture_less | ]; eassumption.
-- eapply IHA; eassumption.
-- eapply IHA1; eassumption.
-- eapply IHA2; eassumption.
-- eapply IHA; [ | eassumption ]; in_solve.
+- eapply IH; eassumption.
+- eapply IH; eassumption.
+- eapply IH0; eassumption.
+- eapply IH; [ | eassumption ]; in_solve.
 Qed.
 
-Lemma fclosed_no_ecapture : fclosed -> forall A lv, #[[lv]] A.
-Proof. formula_induction A. Qed.
-Hint Resolve fclosed_no_ecapture : term_db.
+Lemma closed_no_ecapture (Hc : rclosed) A lv : #[[lv]] A.
+Proof. revert lv. formula_induction A. Qed.
+Hint Resolve closed_no_ecapture : term_db.
 
-Lemma no_ecapture_subs_nfree : forall x y u A,
-  closed u -> #[[y::nil]] A[u//x] ->
+Lemma no_ecapture_subs_nfree x y u A : closed u -> #[[y::nil]] A[u//x] ->
   In y (tvars (tesubs r u)) -> x ∉ A.
 Proof. formula_induction A; try in_solve; intros Hinx.
 - apply Forall_fold_right in H0.
@@ -409,13 +405,13 @@ match A with
 | fqtf _ z B => x <> z -> not_egenerated x B
 end.
 
-Lemma no_ecapture_not_egenerated : forall x A, #[[x::nil]] A -> not_egenerated x A.
+Lemma no_ecapture_not_egenerated x A : #[[x::nil]] A -> not_egenerated x A.
 Proof. formula_induction A.
 apply no_ecapture_less with (lv1:= x::nil) in H; [ intuition | in_solve ].
 Qed.
 Hint Resolve no_ecapture_not_egenerated : term_db.
 
-Lemma esubs_freevars : forall x A, not_egenerated x A -> x ∈ A⟦r⟧ -> x ∈ A.
+Lemma esubs_freevars x A : not_egenerated x A -> x ∈ A⟦r⟧ -> x ∈ A.
 Proof. formula_induction A; try in_solve.
 - rewrite flat_map_map in H0; apply in_flat_map in H0; destruct H0 as [ t [Htin Hint] ].
   apply Forall_fold_right in H; specialize_Forall H with t.
@@ -430,17 +426,16 @@ Lemma subs_esubs_notegen : forall x u A, not_egenerated x A ->
 Proof. formula_induction A; simpl in H; rcauto. Qed.
 Hint Rewrite subs_esubs_notegen using try (intuition; fail);
                              (try apply no_ecapture_not_egenerated); try (intuition; fail);
-                             (try apply fclosed_no_ecapture); intuition; fail : term_db.
+                             (try apply closed_no_ecapture); intuition; fail : term_db.
 
-Lemma multi_subs_esubs : forall L A, fclosed ->
+Lemma multi_subs_esubs L A : rclosed ->
   A[[L]]⟦r⟧ = A⟦r⟧[[map (fun '(x, u) => (x, tesubs r u)) L]].
-Proof. induction L; simpl; intros A Hc; [ reflexivity | ].
+Proof. induction L in A |- *; simpl; intros Hc; [ reflexivity | ].
 destruct a; rewrite IHL, subs_esubs_notegen; intuition.
 Qed.
 Hint Rewrite multi_subs_esubs : term_db.
 
-Lemma no_ecapture_esubs_subs_closed : forall u x A,
-  closed u -> #[[nil]] A[u//x] -> not_egenerated x A ->
+Lemma no_ecapture_esubs_subs_closed u x A : closed u -> #[[nil]] A[u//x] -> not_egenerated x A ->
   Forall (fun z => z #[x] A⟦r⟧) (tvars (tesubs r u)).
 Proof. formula_induction A.
 - now apply Forall_forall.
@@ -451,7 +446,7 @@ Proof. formula_induction A.
     exfalso; now apply in_remove in Hin.
   + assert (Hx0 := H0).
     apply no_ecapture_less with (lv1:= nil) in H0; [ | in_solve ].
-    apply IHA in H0; intuition.
+    apply IH in H0; intuition.
     apply Forall_forall; intros z Hz Hin.
     specialize_Forall H0 with z; split; [ assumption | ].
     intros Heq2; subst.
@@ -462,7 +457,7 @@ Qed.
 
 End Two_Eigen_Types.
 
-Hint Rewrite freevars_esubs_fclosed using intuition; fail : term_db.
+Hint Rewrite freevars_esubs_closed using intuition; fail : term_db.
 
 Fixpoint eigen_max (A : formula nat) :=
 match A with
@@ -479,11 +474,11 @@ Notation "A ↑" := (A⟦⇑⟧) (at level 8, format "A ↑").
 Lemma esubs_ext_max T (r1 r2 : nat -> term T) A :
   (forall n, n <= (eigen_max A) -> r1 n = r2 n) -> A⟦r1⟧ = A⟦r2⟧.
 Proof.
-formula_induction A; (try apply IHA1); (try apply IHA2); try (intros; apply H; simpl; lia).
-apply tesubs_ext_max; intros; apply H; simpl; lia.
+formula_induction A; try apply IH; try apply IH0; try (intros; apply H; simpl; lia).
+apply tesubs_ext_max. intros. apply H. cbn. lia.
 Qed.
 
-Lemma freevars_fup : forall (A : formula nat), freevars A↑ = freevars A.
+Lemma freevars_fup (A : formula nat) : freevars A↑ = freevars A.
 Proof. rcauto. Qed.
 Hint Rewrite freevars_fup : term_db.
 

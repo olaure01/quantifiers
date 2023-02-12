@@ -18,7 +18,7 @@ Arguments tvar {_} {_} {_} {T} _.
 
 Notation term := (@term vatom tatom tarity nat).
 Notation closed t := (tvars t = nil).
-Notation fclosed r := (forall n, closed (r n)).
+Notation rclosed r := (forall n, closed (r n)).
 Notation "↑ r" := (felift (evar 0) r) (at level 25, format "↑ r").
 Notation "v ⇓" := (fesubs v) (at level 18, format "v ⇓").
 Notation "A ⟦ r ⟧" := (esubs r A) (at level 8, left associativity, format "A ⟦ r ⟧").
@@ -34,14 +34,14 @@ Notation formula := (@formula vatom tatom tarity fatom farity Nocon Nocon Icon F
 
 Hint Rewrite (@fsize_esubs vatom tatom tarity fatom farity Nocon Nocon Icon FQcon) : term_db.
 Hint Rewrite (@fsize_subs vatom tatom tarity fatom farity Nocon Nocon Icon FQcon nat) : term_db.
-Hint Rewrite (@tvars_tesubs_fclosed vatom tatom tarity) using intuition; fail : term_db.
+Hint Rewrite (@tvars_tesubs_closed vatom tatom tarity) using intuition; fail : term_db.
 Hint Rewrite (@subs_esubs vatom tatom tarity fatom farity Nocon Nocon Icon FQcon nat)
                          using intuition; fail : term_db.
-Hint Rewrite <- (@felift_esubs vatom tatom tarity fatom farity Nocon Nocon Icon FQcon) : term_db.
+Hint Rewrite (@felift_esubs vatom tatom tarity fatom farity Nocon Nocon Icon FQcon) : term_db.
 Hint Rewrite (@esubs_fup vatom tatom tarity fatom farity Nocon Nocon Icon FQcon) : term_db.
 
-Hint Resolve fclosed_felift : term_db.
-Hint Resolve fclosed_fesubs : term_db.
+Hint Resolve closed_felift : term_db.
+Hint Resolve closed_fesubs : term_db.
 
 
 (** Proofs *)
@@ -114,13 +114,13 @@ Proof. now apply rnprove_mutrect; intros; try (econstructor; eassumption). Qed.
 (** * Normalization *)
 
 (** apply [r] on normal form *)
-Theorem rnpesubs r (Hc : fclosed r) {l A} :
+Theorem rnpesubs r (Hc : rclosed r) {l A} :
    (nprove l A -> nprove (map (esubs r) l) A⟦r⟧)
  * (rprove l A -> rprove (map (esubs r) l) A⟦r⟧).
 Proof.
 revert l A.
-enough ((forall l A, nprove l A -> forall r, fclosed r -> nprove (map (esubs r) l) A⟦r⟧)
-      * (forall l A, rprove l A -> forall r, fclosed r -> rprove (map (esubs r) l) A⟦r⟧))
+enough ((forall l A, nprove l A -> forall r, rclosed r -> nprove (map (esubs r) l) A⟦r⟧)
+      * (forall l A, rprove l A -> forall r, rclosed r -> rprove (map (esubs r) l) A⟦r⟧))
   as He by (split; intros; apply He; assumption).
 clear r Hc; apply rnprove_mutrect; intros; (try simpl in X);
   (try assert (IH1 := X r H)); (try assert (IH2 := X0 r H));
@@ -129,11 +129,10 @@ clear r Hc; apply rnprove_mutrect; intros; (try simpl in X);
 - rcauto; rnow apply nfrle.
 - specialize X with (↑r0).
   revert X; rcauto.
-  rewrite map_map, <- (map_ext _ _ (felift_esubs (evar 0) _)), <- map_map in X; intuition.
+  rewrite map_map, (map_ext _ _ (felift_esubs (evar 0) _)), <- map_map in X. intuition.
 Qed.
 
-Lemma rpsubsz {l A x u} : closed u ->
-  rprove l⇈ A↑[evar 0//x] -> rprove l (subs x u A).
+Lemma rpsubsz {l A x u} : closed u -> rprove l⇈ A↑[evar 0//x] -> rprove l (subs x u A).
 Proof.
 intros Hc pi.
 apply (rnpesubs (u⇓)) in pi; [ | intuition ].
@@ -152,7 +151,7 @@ destruct (dichot_elt_app_inf _ _ _ _ _ H) as [ [? [? ?]] | [? [? ?]] ]; subst;
   intuition.
 Qed.
 
-Lemma substitution : forall l A B, rprove l A -> rprove (A :: l) B -> rprove l B.
+Lemma substitution l A B : rprove l A -> rprove (A :: l) B -> rprove l B.
 Proof.
 pose (IH := (fun n m =>
  forall A, fsize A = n ->
@@ -163,9 +162,10 @@ pose (IH := (fun n m =>
  * (forall B l1 l2 (pi : rprove (l1 ++ A :: l2) B),
       rsize pi < m -> rprove (l1 ++ l2) A -> rprove (l1 ++ l2) B))).
 enough (forall n m, IH n m) as Hsub.
-{ intros l A B pi1 pi2.
+{ intros pi1 pi2.
   rewrite <- (app_nil_l (A :: l)) in pi2; rewrite <- (app_nil_l l).
   refine (snd (Hsub _ (S (rsize pi2)) _ _) _ _ _ _ _ _); intuition. }
+clear l A B.
 apply lt_wf_double_rect; unfold IH; clear IH; simpl;
  intros n m IHn IHm A HA; (split; [ split | ] ); subst;
  intros B l1 l2 pi2 Hpi; [ intros HF | | ]; intros pi1;

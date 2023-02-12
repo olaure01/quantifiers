@@ -25,7 +25,7 @@ Hint Rewrite (@tsubs_tsubs_eq vatom tatom) : term_db.
 Hint Rewrite (@tsubs_tsubs vatom tatom)
                         using try (intuition; fail);
                              (try apply closed_notvars); intuition; fail : term_db.
-Hint Rewrite (@tvars_tesubs_fclosed vatom tatom) using intuition; fail : term_db.
+Hint Rewrite (@tvars_tesubs_closed vatom tatom) using intuition; fail : term_db.
 Hint Rewrite (@tvars_tsubs_closed vatom tatom) using intuition; fail : term_db.
 Hint Rewrite (@notin_tsubs vatom tatom)
                          using try easy;
@@ -72,7 +72,9 @@ Ltac formula_induction A :=
   let lll := fresh "l" in
   let tt := fresh "t" in
   let IHll := fresh "IHl" in
-  induction A as [ XX ll | ncon | ucon A ? | bcon A1 ? A2 ? | qcon xx A ]; simpl; intros;
+  let IH := fresh "IH" in
+  let IH2 := fresh "IH" in
+  induction A as [ XX ll | ncon | ucon A IH | bcon A1 IH A2 IH2 | qcon xx A IH ]; simpl; intros;
   [ rewrite ? flat_map_concat_map;
     try (apply (f_equal (fvar _)));
     try (induction ll as [ | tt lll IHll ]; simpl; intuition;
@@ -82,6 +84,7 @@ Ltac formula_induction A :=
   | try (apply (f_equal2 (fbin _))); intuition
   | (try apply (f_equal (fqtf _ _))); repeat case_analysis; try (intuition; fail);
      try (now rcauto) ];
+  try (rewrite ? IH, ? IH2; reflexivity);
   try (now rcauto).
 
 
@@ -152,7 +155,7 @@ Hint Rewrite fsize_subs : term_db.
 
 Lemma subs_esubs T1 T2 (r : T1 -> term T2): forall x u A, (forall n, closed (r n)) ->
   A[u//x]⟦r⟧ = A⟦r⟧[tesubs r u//x].
-Proof. formula_induction A; simpl in H; rcauto. Qed.
+Proof. formula_induction A. Qed.
 Hint Rewrite subs_esubs using intuition; fail : term_db.
 
 
@@ -166,7 +169,7 @@ Lemma esubs_fup v A : A↑⟦v⇓⟧ = A.
 Proof. rcauto. Qed.
 Hint Rewrite esubs_fup : term_db.
 
-Lemma felift_esubs u r : forall A, A⟦r⟧↑ = A↑⟦⇑[u]r⟧.
+Lemma felift_esubs u r A : A↑⟦⇑[u]r⟧ = A⟦r⟧↑.
 Proof. rcauto. Qed.
 Hint Rewrite felift_esubs : term_db.
 
@@ -197,7 +200,9 @@ Ltac formula_induction A :=
   let lll := fresh "l" in
   let tt := fresh "t" in
   let IHll := fresh "IHl" in
-  induction A as [ XX ll | ncon | ucon A ? | bcon A1 ? A2 ? | qcon xx A ]; simpl; intros;
+  let IH := fresh "IH" in
+  let IH2 := fresh "IH" in
+  induction A as [ XX ll | ncon | ucon A IH | bcon A1 IH A2 IH2 | qcon xx A IH ]; simpl; intros;
   [ rewrite ? flat_map_concat_map;
     try (apply (f_equal (fvar _)));
     try (induction ll as [ | tt lll IHll ]; simpl; intuition;
@@ -207,4 +212,5 @@ Ltac formula_induction A :=
   | try (apply (f_equal2 (fbin _))); intuition
   | (try apply (f_equal (fqtf _ _))); repeat case_analysis; try (intuition; fail);
      try (now rcauto) ];
+  try (rewrite ? IH, ? IH2; reflexivity);
   try (now rcauto).
