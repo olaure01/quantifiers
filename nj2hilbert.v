@@ -257,8 +257,8 @@ Proof.
 induction l; intros ld r z Hinz Hin; simpl in Hin; auto.
 apply IHl in Hin; intuition; try in_solve.
 apply tvars_rrename in Hin; destruct Hin as [Hin|Hin]; intuition.
-exfalso; subst.
-apply fresh_prop with (a :: l ++ ld); in_solve.
+exfalso. subst.
+apply fresh_spec with (a :: l ++ ld). in_solve.
 Qed.
 
 Lemma rrefresh_notin : forall n z lvA lv r,
@@ -267,7 +267,7 @@ Proof.
 induction lvA; simpl; intros lv r Hinf Hin; inversion Hin; subst; simpl in Hin.
 - apply tvars_rrefresh in Hinf; try in_solve.
   apply tvars_rrename in Hinf; destruct Hinf as [ [Hinf _] | Hinf ]; [ | intuition ].
-  apply fresh_prop with (z :: lvA ++ lv); rewrite <- Hinf; now constructor.
+  apply fresh_spec with (z :: lvA ++ lv). rewrite <- Hinf. left. reflexivity.
 - now apply IHlvA in Hinf.
 Qed.
 
@@ -277,8 +277,8 @@ Proof.
 induction l; intros r ld lv A Hld Hg; simpl; auto.
 apply IHl; try (intros; in_solve).
 apply no_ecapture_rrename; auto; intros Hin.
-apply fresh_prop with (a :: l ++ ld).
-apply Hld in Hin; in_solve.
+apply fresh_spec with (a :: l ++ ld).
+apply Hld in Hin. in_solve.
 Qed.
 
 Lemma no_tecapture_rrefresh : forall ld t r lvt lv, incl (tvars (n2h_term r t) ++ lv) lvt ->
@@ -369,14 +369,14 @@ induction l; intros r ld A HA Hg pi; simpl; auto.
 apply IHl in pi.
 - apply hrrename in pi; auto.
   intros Hin.
-  apply fresh_prop with (a :: l ++ ld).
+  apply fresh_spec with (a :: l ++ ld).
   assert (Hincl := fvars_esubs r A).
   apply Hincl, HA in Hin; in_solve.
 - intros z Hz.
   apply fvars_n2h_rrename in Hz; intuition; subst; intuition.
 - apply no_ecapture_rrename; auto.
   rewrite app_nil_r; intros Hin.
-  apply fresh_prop with (a :: l ++ ld).
+  apply fresh_spec with (a :: l ++ ld).
   assert (Ha := fvars_esubs r A).
   eapply or_introl in Hin; apply in_or_app, Ha, HA in Hin; in_solve.
 Qed.
@@ -500,8 +500,8 @@ intros l A pi; induction pi; intros r Hg.
     - simpl in Hgf; apply no_ecapture_hfeliftz with (x:= x) (y:= y) in Hgf; intuition.
       + apply no_ecapture_less with (lv1:=nil) in Hgf; now subst.
       + simpl in H; destruct H; intuition; subst x.
-        apply fresh_prop with lv; subst lv; in_solve.
-      + apply fresh_prop with lv; rewrite <- Heqy; subst lv; in_solve.
+        apply fresh_spec with lv. subst lv. in_solve.
+      + apply fresh_spec with lv. rewrite <- Heqy. subst lv. in_solve.
     - apply Forall_forall; intros B HB.
       apply in_map_iff in HB; destruct HB as [ C [Heq HC] ]; subst B.
       specialize_Forall Hgl with C.
@@ -511,7 +511,7 @@ intros l A pi; induction pi; intros r Hg.
   assert (hprove (n2h_sequent r1 (map (esubs ⇑) l) (frl y (A↑[tvar y//x])))) as pi''.
   { eapply hprove_MP; [ apply hprove_FRLsequent | ].
     - intros Hin.
-      apply fresh_prop with lv; rewrite <- Heqy; subst lv.
+      apply fresh_spec with lv. rewrite <- Heqy. subst lv.
       rewrite flat_map_map in Hin; apply in_flat_map in Hin; destruct Hin as [ C [HCin HinC] ].
       apply freevars_fvars in HinC.
       rewrite Heqr1, n2h_hfelift_fup in HinC.
@@ -538,7 +538,7 @@ intros l A pi; induction pi; intros r Hg.
       apply freevars_subs in Hin; simpl in Hin; intuition.
     - assert (~ In y (fvars (n2h_formula r1 A↑))) as HA.
       { intros Hin; rewrite Heqr1, n2h_hfelift_fup in Hin.
-        apply fresh_prop with lv; rewrite Heqlv at 2; rewrite <- Heqy; in_solve. }
+        apply fresh_spec with lv. rewrite Heqlv at 2. rewrite <- Heqy. in_solve. }
       apply hprove_GEN.
       eapply hprove_CUT; [ apply hprove_INST with (t:=tvar x) | ]; simpl.
       + repeat constructor.
@@ -646,7 +646,7 @@ intros l A pi; induction pi; intros r Hg.
       as pi'.
     { remember (n2h_formula r1 A) as B; clear - HeqB Heqy Heqlv.
       assert (~ In y (fvars B)) as Hf
-        by (intros Hin; subst B; apply fresh_prop with lv; rewrite Heqlv at 2; rewrite <- Heqy;
+        by (intros Hin; subst B; apply fresh_spec with lv; rewrite Heqlv at 2; rewrite <- Heqy;
             in_solve).
       clear - Hf; eapply hprove_MP; [ apply hprove_EXS | ].
       - simpl; intros Hin; apply Hf.
@@ -669,7 +669,7 @@ intros l A pi; induction pi; intros r Hg.
     simpl; eapply hprove_CUT; [ apply pi' | ].
     eapply hprove_MP; [ apply hprove_EXS | ].
     * intros Hin.
-      apply fresh_prop with lv; rewrite Heqlv at 2; rewrite <- Heqy.
+      apply fresh_spec with lv. rewrite Heqlv at 2. rewrite <- Heqy.
       simpl; right; apply in_or_app; right.
       apply n2h_sequent_fvars, fvars_esubs; in_solve.
     * apply hprove_GEN.
@@ -683,8 +683,8 @@ intros l A pi; induction pi; intros r Hg.
         - simpl in HgA1; apply no_ecapture_hfeliftz with (x:=x) (y:=y) in HgA1; intuition.
           + now apply no_ecapture_less with (lv1:=nil) in HgA1.
           + simpl in H; destruct H; intuition; subst x.
-            apply fresh_prop with lv; rewrite Heqlv at 2; rewrite <- Heqy; now left.
-          + apply fresh_prop with lv; rewrite Heqlv at 2; rewrite <- Heqy; in_solve.
+            apply fresh_spec with lv. rewrite Heqlv at 2. rewrite <- Heqy. left. reflexivity.
+          + apply fresh_spec with lv. rewrite Heqlv at 2. rewrite <- Heqy. in_solve.
         - apply Forall_forall; intros E HE.
           apply in_map_iff in HE; destruct HE as [ E' [Heq HE] ]; subst E.
           specialize_Forall Hgl1 with E'.
