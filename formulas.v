@@ -11,7 +11,7 @@ Set Implicit Arguments.
 
 Section Formulas.
 
-Context { vatom : DecType } { tatom : Type }.
+Context {vatom : DecType} {tatom : Type}.
 Notation term := (@term vatom tatom).
 Arguments evar _ _ {T}.
 Notation evar := (evar vatom tatom).
@@ -277,7 +277,7 @@ match A with
 | fnul ncon => fnul ncon
 | funa ucon B => funa ucon (subs x u B)
 | fbin bcon B C => fbin bcon (subs x u B) (subs x u C)
-| fqtf qcon y B => fqtf qcon y (if (eqb y x) then B else subs x u B)
+| fqtf qcon y B => fqtf qcon y (if eq_dt_dec y x then B else subs x u B)
 | sqtf qcon X B => sqtf qcon X (subs x u B)
 end.
 Notation "A [ u // x ]" := (subs x u A) (at level 8, format "A [ u // x ]").
@@ -304,13 +304,13 @@ Qed.
 Fixpoint ssubs U T X F (A : formula U T) :=
 match A with
 | sevar n => sevar n
-| svar Y => if (eqb Y X) then F else (svar Y)
+| svar Y => if eq_dt_dec Y X then F else (svar Y)
 | fvar R l => fvar R l
 | fnul ncon => fnul ncon
 | funa ucon B => funa ucon (ssubs X F B)
 | fbin bcon B C => fbin bcon (ssubs X F B) (ssubs X F C)
 | fqtf qcon y B => fqtf qcon y (ssubs X F B)
-| sqtf qcon Y B => sqtf qcon Y (if (eqb Y X) then B else ssubs X F B)
+| sqtf qcon Y B => sqtf qcon Y (if eq_dt_dec Y X then B else ssubs X F B)
 end.
 Notation "A [ F // X ]2" := (ssubs X F A) (at level 8, format "A [ F // X ]2").
 

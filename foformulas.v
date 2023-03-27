@@ -9,7 +9,7 @@ Set Implicit Arguments.
 
 Section Formulas.
 
-Context { vatom : DecType } { tatom : Type }.
+Context {vatom : DecType} {tatom : Type}.
 Notation term := (@term vatom tatom).
 Arguments evar _ _ {T}.
 Notation evar := (evar vatom tatom).
@@ -40,12 +40,12 @@ Hint Rewrite (@tsubs_tesubs vatom tatom) using try (intuition; fail) : term_db.
 Hint Resolve tesubs_ext : term_db.
 Hint Resolve closed_notvars : term_db.
 
-Context { fatom : Type }.  (* relation symbols for [formula] *)
+Context {fatom : Type}.  (* relation symbols for [formula] *)
 (* Generic sets of connectives *)
-Context { NCon : Type }. (* nullary connectives *)
-Context { UCon : Type }. (* unary connectives *)
-Context { BCon : Type }. (* binary connectives *)
-Context { QCon : Type }. (* quantifiers *)
+Context {NCon : Type}. (* nullary connectives *)
+Context {UCon : Type}. (* unary connectives *)
+Context {BCon : Type}. (* binary connectives *)
+Context {QCon : Type}. (* quantifiers *)
 
 (** formulas *)
 (** first-order formulas *)
@@ -142,7 +142,7 @@ match A with
 | fnul ncon => fnul ncon
 | funa ucon B => funa ucon (subs x u B)
 | fbin bcon B C => fbin bcon (subs x u B) (subs x u C)
-| fqtf qcon y B => fqtf qcon y (if (eqb y x) then B else subs x u B)
+| fqtf qcon y B => fqtf qcon y (if eq_dt_dec y x then B else subs x u B)
 end.
 Notation "A [ u // x ]" := (subs x u A) (at level 8, format "A [ u // x ]").
 

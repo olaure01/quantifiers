@@ -73,11 +73,11 @@ Proof. formula_induction A. Qed.
 Fixpoint subs X F A :=
 match A with
 | dvar k => dvar k
-| var Y => if (eqb Y X) then F else var Y
+| var Y => if eq_dt_dec Y X then F else var Y
 | cst R => cst R
 | top => top
 | wdg B C => wdg (subs X F B) (subs X F C)
-| frl Y B => frl Y (if (eqb Y X) then B else subs X F B)
+| frl Y B => frl Y (if eq_dt_dec Y X then B else subs X F B)
 end.
 
 Lemma fsize_subs_dvar : forall k X A, fsize (subs X (dvar k) A) = fsize A.

@@ -8,8 +8,7 @@ Set Implicit Arguments.
 
 Section N2H.
 
-Context { vatom : InfDecType } { tatom fatom : Type }.
-
+Context {vatom : InfDecType} {tatom fatom : Type}.
 Arguments tvar {_} {_} {T} _.
 
 Notation hterm := (@term vatom tatom Empty_set).
@@ -542,11 +541,9 @@ intros l A pi; induction pi; intros r Hg.
       apply hprove_GEN.
       eapply hprove_CUT; [ apply hprove_INST with (t:=tvar x) | ]; simpl.
       + repeat constructor.
-        revert HA; clear; formula_induction A.
-        revert H; case_analysis; intros Hin.
-        exfalso; apply HA.
-        apply in_remove in Hin; destruct Hin as [Hin _];
-          apply freevars_fvars in Hin; intuition.
+        revert HA. clear. formula_induction A.
+        exfalso. apply HA. right.
+        apply in_remove in H as [Hin%freevars_fvars _]. assumption.
       + enough ((n2h_formula r1 (esubs ⇑ A)[tvar y//x])[tvar x//y] = n2h_formula r A)
           as Heq by (rewrite Heq; apply hprove_I).
         rewrite subs_esubs_notegen; simpl; intuition; subst r1.
@@ -659,13 +656,11 @@ intros l A pi; induction pi; intros r Hg.
            with (B[tvar y//x][tvar x//y] → exs y B[tvar y//x])
           by now rewrite notin_subs_bivar.
         apply hprove_EINST.
-        simpl; repeat constructor.
-        revert Hf; formula_induction B.
-        revert H; case_analysis; intros Hin; apply in_remove in Hin; intuition.
-        * exfalso; apply H2.
-          now apply freevars_fvars.
-        * apply H2.
-          now apply freevars_fvars. }
+        simpl. repeat constructor.
+        revert Hf. formula_induction B.
+        exfalso.
+        apply in_remove in H as [Hin%freevars_fvars _].
+        apply Hf. right. assumption. }
     simpl; eapply hprove_CUT; [ apply pi' | ].
     eapply hprove_MP; [ apply hprove_EXS | ].
     * intros Hin.

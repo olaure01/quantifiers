@@ -11,9 +11,8 @@ Set Implicit Arguments.
 
 Section Proofs.
 
-Context { vatom : DecType } { tatom fatom : Type }.
-Context { tarity : tatom -> nat } { farity : fatom -> nat }.
-
+Context {vatom : DecType} {tatom fatom : Type}.
+Context {tarity : tatom -> nat} {farity : fatom -> nat}.
 Arguments tvar {_} {_} {_} {T} _.
 
 Notation term := (@term vatom tatom tarity nat).
@@ -46,19 +45,19 @@ Hint Resolve closed_fesubs : term_db.
 
 (** Proofs *)
 Inductive prove : list formula -> formula -> Type :=
-| ax : forall l1 l2 A, prove (l1 ++ A :: l2) A
+| ax l1 l2 A : prove (l1 ++ A :: l2) A
 | impi l A B : prove (A :: l) B -> prove l (imp A B)
-| impe l B : forall A, prove l (imp A B) -> prove l A -> prove l B
+| impe l B A : prove l (imp A B) -> prove l A -> prove l B
 | frli x l A : prove l⇈ A↑[evar 0//x] -> prove l (frl x A)
-| frle x l A : forall u, closed u -> prove l (frl x A) -> prove l (subs x u A).
+| frle x l A u : closed u -> prove l (frl x A) -> prove l (subs x u A).
 Hint Constructors prove : term_db.
 Global Arguments impe { l B }.
 
 (* This [weakening] lemma is not required in the development, see rather [rweakening] below *)
 (* It is given here for comparison with alternative formalizations of Natural Deduction *)
-Lemma weakening : forall l A, prove l A -> forall l0, prove (l ++ l0) A.
+Lemma weakening l A : prove l A -> forall l0, prove (l ++ l0) A.
 Proof.
-intros l A pi; induction pi; intros; subst;
+intros pi; induction pi; intros; subst;
   try (econstructor; rewrite_all map_app; rewrite ? app_comm_cons; intuition; fail).
 rewrite <- app_assoc, <- app_comm_cons; intuition.
 Qed.
@@ -77,9 +76,9 @@ Qed.
 
 (** Normal Forms *)
 Inductive nprove : list formula -> formula -> Type := (* neutral terms *)
-| nax : forall l1 l2 A, nprove (l1 ++ A :: l2) A
-| nimpe l B : forall A, nprove l (imp A B) -> rprove l A -> nprove l B
-| nfrle x l A : forall u, closed u -> nprove l (frl x A) -> nprove l (subs x u A)
+| nax l1 l2 A : nprove (l1 ++ A :: l2) A
+| nimpe l B A : nprove l (imp A B) -> rprove l A -> nprove l B
+| nfrle x l A u : closed u -> nprove l (frl x A) -> nprove l (subs x u A)
 with rprove : list formula -> formula -> Type := (* normal forms *)
 | rninj l A : nprove l A -> rprove l A
 | rimpi l A B : rprove (A :: l) B -> rprove l (imp A B)
@@ -250,8 +249,6 @@ Definition farity : fatom -> nat := fun _ => 1.
 Notation frl := (fqtf frl_con).
 Notation formula := (@formula vatom tatom tarity fatom farity Nocon Nocon Icon FQcon nat).
 
-Hint Rewrite (@eqb_refl vatom): term_db.
-
 (* Apply all (reversible) introduction rules *)
 Ltac rev_intros := repeat (repeat apply rimpi; repeat (apply rfrli; simpl)); apply rninj.
 
@@ -261,6 +258,7 @@ Goal rprove nil
                                                   (tfun _ f)) (frel _ P)))).
 Proof.
 rnow rev_intros.
+rewrite if_eq_dt_dec_refl.
 replace (fconstr (k:=0) (tconstr (tconstr (evar 0) (tfun nat f)) (tfun nat f)) (frel nat P))
    with (subs x (tconstr (evar 0) (tfun nat f))
         (fconstr (tconstr (tvar _ x) (tfun nat f)) (frel nat P : formula 1)))

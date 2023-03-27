@@ -12,8 +12,8 @@ Set Implicit Arguments.
 
 Section Formulas.
 
-Context { vatom : DecType } { tatom fatom : Type }.
-Context { NCon UCon BCon QCon : Type }.
+Context {vatom : DecType} {tatom fatom : Type}.
+Context {NCon UCon BCon QCon : Type}.
 
 Notation term := (@term vatom tatom).
 Arguments evar _ _ {T}.
@@ -148,9 +148,9 @@ Qed.
 
 Lemma no_capture_subs : forall x y z t A, closed t ->
   y #[x] A -> y #[x] A[t//z].
-Proof. formula_induction A; revert H1; case_analysis; try (intuition; fail); intros Hin.
+Proof. formula_induction A. rename H1 into Hin.
 apply (remove_incl eq_dt_dec) with (l2:= freevars A) in Hin; intuition.
-intros z' Hz'; apply freevars_subs in Hz'; intuition.
+intros z' Hz'. apply freevars_subs in Hz'. intuition.
 now exfalso; revert H3; apply closed_notvars. (* TODO automatize? *)
 Qed.
 
@@ -238,8 +238,8 @@ Hint Rewrite multi_subs_fbin : term_db.
 Lemma multi_subs_fqtf : forall qcon L x A,
   (fqtf qcon x A)[[L]] = fqtf qcon x A[[remove_assoc x L]].
 Proof.
-induction L; intros x A; simpl; [ reflexivity | destruct a; simpl ].
-case_analysis; rewrite IHL; f_equal.
+induction L; intros x A; [ reflexivity | ].
+simpl. destruct a. case_analysis; case_analysis; rewrite IHL; f_equal.
 Qed.
 Hint Rewrite multi_subs_fqtf : term_db.
 

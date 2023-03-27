@@ -6,7 +6,7 @@ Set Implicit Arguments.
 
 Section Proofs.
 
-Context { vatom : DecType } { tatom fatom : Type }.
+Context {vatom : DecType} {tatom fatom : Type}.
 
 Notation term := (@term vatom tatom nat).
 Notation formula := (@formula vatom tatom fatom Nocon Nocon Icon FQcon nat).

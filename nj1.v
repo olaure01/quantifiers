@@ -11,8 +11,7 @@ Set Implicit Arguments.
 
 Section Proofs.
 
-Context { vatom : DecType } { tatom fatom : Type }.
-
+Context {vatom : DecType} {tatom fatom : Type}.
 Arguments tvar {_} {_} {T} _.
 
 Notation term := (@term vatom tatom nat).
@@ -63,15 +62,15 @@ Proof (ax nil l A).
 
 (** Normal Forms *)
 Inductive nprove : list formula -> formula -> Type := (* neutral terms *)
-| nax : forall l1 l2 A, nprove (l1 ++ A :: l2) A
-| nimpe l B : forall A, nprove l (imp A B) -> rprove l A -> nprove l B
-| nfrle x l A : forall u, closed u -> nprove l (frl x A) -> nprove l (subs x u A)
+| nax l1 l2 A : nprove (l1 ++ A :: l2) A
+| nimpe l B A : nprove l (imp A B) -> rprove l A -> nprove l B
+| nfrle x l A u : closed u -> nprove l (frl x A) -> nprove l (subs x u A)
 with rprove : list formula -> formula -> Type := (* normal forms *)
 | rninj l A : nprove l A -> rprove l A
 | rimpi l A B : rprove (A :: l) B -> rprove l (imp A B)
 | rfrli x l A : rprove l⇈ A↑[evar 0//x] -> rprove l (frl x A)
-| rexsi x l A : forall u, closed u -> rprove l (subs x u A) -> rprove l (exs x A)
-| rexse l C : forall x A, nprove l (exs x A) -> rprove (A↑[evar 0//x] :: l⇈) C↑ -> rprove l C.
+| rexsi x l A u : closed u -> rprove l (subs x u A) -> rprove l (exs x A)
+| rexse l C x A : nprove l (exs x A) -> rprove (A↑[evar 0//x] :: l⇈) C↑ -> rprove l C.
 Hint Constructors nprove rprove : term_db.
 Global Arguments rfrli { x l A }.
 Global Arguments rexsi { x l A }.
@@ -608,10 +607,10 @@ rev_intros; case_analysis.
      with (subs y (evar 0) (frl y A↑↑))
     by rcauto.
   rnow apply nfrle then subst; rcauto.
-- rcauto; rewrite subs_subs_closed; intuition.
+- rcauto. rewrite subs_subs_closed; intuition.
   apply nfrle; intuition.
   replace (frl y A↑↑[evar 0//x]) with ((frl y A↑↑)[evar 0//x])
-    by (simpl; case_analysis; intuition).
+    by (simpl; case_analysis; [ contradiction n; reflexivity | intuition ]).
   apply nfrle; intuition.
 Qed.
 

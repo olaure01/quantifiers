@@ -14,7 +14,7 @@ Notation vec := Vector.t.
 
 Section Formulas.
 
-Context { vatom : DecType } { tatom : Type } { tarity : tatom -> nat }.
+Context {vatom : DecType} {tatom : Type} {tarity : tatom -> nat}.
 Notation term := (@term vatom tatom tarity).
 Arguments evar _ _ _ {T}.
 Notation evar := (evar vatom tatom tarity).
@@ -45,18 +45,18 @@ Hint Rewrite (@tsubs_tesubs vatom tatom) using try (intuition; fail) : term_db.
 Hint Resolve tesubs_ext : term_db.
 Hint Resolve closed_notvars : term_db.
 
-Context { fatom : Type }.  (* relation symbols for [formula] *)
-Context { farity : fatom -> nat }.  (* arity of relation symbols *)
+Context {fatom : Type}.  (* relation symbols for [formula] *)
+Context {farity : fatom -> nat}.  (* arity of relation symbols *)
 (* Generic sets of connectives *)
-Context { NCon : Type }. (* nullary connectives *)
-Context { UCon : Type }. (* unary connectives *)
-Context { BCon : Type }. (* binary connectives *)
-Context { QCon : Type }. (* quantifiers *)
+Context {NCon : Type}. (* nullary connectives *)
+Context {UCon : Type}. (* unary connectives *)
+Context {BCon : Type}. (* binary connectives *)
+Context {QCon : Type}. (* quantifiers *)
 
 (** formulas *)
 (** first-order formulas *)
 Inductive formula T :=
-| fvar : forall R, vec (term T) (farity R) -> formula T
+| fvar R : vec (term T) (farity R) -> formula T
 | fnul : NCon -> formula T
 | funa : UCon -> formula T -> formula T
 | fbin : BCon -> formula T -> formula T -> formula T
@@ -148,7 +148,7 @@ match A with
 | fnul ncon => fnul ncon
 | funa ucon B => funa ucon (subs x u B)
 | fbin bcon B C => fbin bcon (subs x u B) (subs x u C)
-| fqtf qcon y B => fqtf qcon y (if (eqb y x) then B else subs x u B)
+| fqtf qcon y B => fqtf qcon y (if eq_dt_dec y x then B else subs x u B)
 end.
 Notation "A [ u // x ]" := (subs x u A) (at level 8, format "A [ u // x ]").
 

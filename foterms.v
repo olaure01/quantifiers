@@ -9,7 +9,7 @@ From Quantifiers Require Export term_tactics.
 Set Implicit Arguments.
 
 (* Extensional equality of functions *)
-Definition ext_eq {A B} (f g : A -> B) := (forall a, f a = g a).
+Definition ext_eq {A B} (f g : A -> B) := forall a, f a = g a.
 Notation " f ~ g " := (ext_eq f g) (at level 60).
 
 
@@ -17,7 +17,7 @@ Notation " f ~ g " := (ext_eq f g) (at level 60).
 
 Section Terms.
 
-Context { vatom : DecType } { tatom : Type }.
+Context {vatom : DecType} {tatom : Type}.
 
 (** terms with quantifiable variables
 
@@ -124,7 +124,7 @@ Arguments tvar {T} _.
 (** substitutes [term] [u] for variable [x] in [term] [t] *)
 Fixpoint tsubs x u t :=
 match t with
-| tvar y => if (eqb y x) then u else tvar y
+| tvar y => if eq_dt_dec y x then u else tvar y
 | evar k => evar k
 | tconstr c l => tconstr c (map (tsubs x u) l)
 end.

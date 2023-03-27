@@ -9,8 +9,7 @@ Set Implicit Arguments.
 
 Section NJvsH.
 
-Context { vatom : InfDecType } { tatom fatom : Type }.
-
+Context {vatom : InfDecType} {tatom fatom : Type}.
 Arguments tvar {_} {_} {T} _.
 
 Notation hterm := (@term vatom tatom Empty_set).
@@ -78,13 +77,12 @@ Proof. term_induction t.
   revert Hnd Hincl Hlv; induction lvn;
     [ intros; reflexivity | destruct a; simpl; intros Hnd Hincl Hlv ].
   rnow case_analysis.
-  + apply Forall_forall; intros z Hz Heq; destruct Heq; intuition; subst.
-    assert (Heq:= eq_refl n); eapply or_introl in Heq; apply Hincl in Heq.
-    destruct Heq as [Heq|Hin].
-    * inversion Heq; subst.
-      apply Hlv with (r n); intuition.
-    * apply in_map with (f:= fst) in Hin; simpl in Hin.
-      apply Hlv with (r n); intuition.
+  + apply Forall_forall; intros z Hz [<- | []]. clear Heq.
+    assert (Heq := eq_refl n). eapply or_introl in Heq. apply Hincl in Heq as [Heq|Hin].
+    * injection Heq as [= ->].
+      apply Hlv with (r n); auto.
+    * apply in_map with (f:= fst) in Hin. simpl in Hin.
+      apply Hlv with (r n); auto.
   + inversion_clear Hnd.
     apply IHlvn; intuition.
     * assert (Hin := H2).
@@ -115,12 +113,12 @@ Proof. formula_induction A;
         repeat case_analysis; f_equal; intuition).
   apply IH.
   + intros z Hz Hinz.
-    rewrite <- remove_assoc_remove in Hz; apply in_remove in Hz.
-    inversion Hinz; subst; intuition.
+    rewrite <- remove_assoc_remove in Hz. apply in_remove in Hz.
+    inversion Hinz. subst. intuition.
     apply H with z; intuition.
   + now apply NoDup_remove_assoc_snd.
-  + intros i Hin; apply NoDup_remove_assoc_in; intuition.
-    apply snd_remove_assoc in Hin; intuition.
+  + intros i Hin. apply NoDup_remove_assoc_in; intuition.
+    apply snd_remove_assoc in Hin. intuition.
 Qed.
 
 Lemma hilbert_vs_nj_term : forall t r lvn,
@@ -132,9 +130,8 @@ Proof. term_induction t.
 - intros r lvn Hnd Hincl.
   revert Hnd Hincl; induction lvn; [ intros; reflexivity | destruct a; simpl; intros Hnd Hincl ].
   rnow case_analysis.
-  + specialize Hincl with n.
-    assert (Heq := eq_refl n); eapply or_introl in Heq;
-      apply Hincl in Heq; destruct Heq as [Heq|Heq].
+  + clear Heq. specialize Hincl with n.
+    assert (Heq := eq_refl n). eapply or_introl in Heq. apply Hincl in Heq as [Heq|Heq].
     * now inversion Heq; subst.
     * exfalso.
       inversion_clear Hnd; apply H.
@@ -302,18 +299,18 @@ Lemma nj_vs_hilbert_term : forall n lv t,
   teigen_max t < n -> incl (tvars t) lv ->
   multi_tsubs (freshvars_to_nat lv n) (h2n_term (n2h_term (freshterms lv) t)) = t.
 Proof. term_induction t.
-- intros Hmax _; revert Hmax; clear; induction n; simpl; intros Hmax; try lia.
-  rewrite freshvars_to_nat_S; simpl.
-  destruct (Nat.eq_dec n0 n); subst.
-  + rewrite eqb_refl; clear.
+- intros Hmax _. revert Hmax. clear. induction n; simpl; intros Hmax; try lia.
+  rewrite freshvars_to_nat_S. simpl.
+  destruct (Nat.eq_dec n0 n). subst.
+  + case_analysis. clear.
     enough (forall k, n <= k -> multi_tsubs (freshvars_to_nat lv n) (evar k) = evar k)
       as HI by (apply HI; lia).
     induction n; simpl; intros k Hlt; intuition.
-    rewrite freshvars_to_nat_S; simpl; apply IHn; lia.
+    rewrite freshvars_to_nat_S. simpl. apply IHn. lia.
   + case_analysis.
     * exfalso.
-      apply n1; now apply freshlist_inj with (l:= lv).
-    * apply IHn; lia.
+      apply n1. now apply freshlist_inj with (l:= lv).
+    * apply IHn. lia.
 - intros Hmax Hlv.
   assert (In x lv) as Hlv2 by (now apply Hlv; left).
   revert Hlv2; clear; induction n; simpl; intros Hlv; intuition.
@@ -326,7 +323,7 @@ Proof. term_induction t.
     * apply in_map with (f:= teigen_max) in Hu.
       now specialize_Forall H with (teigen_max u).
     * intros Heq; destruct l; inversion Hu; simpl in Heq; inversion Heq.
-  + intros z Hz; apply H0; now apply in_flat_map; exists u.
+  + intros z Hz. apply H0. now apply in_flat_map; exists u.
 Qed.
 
 Lemma nj_vs_hilbert_formula : forall n lv A,

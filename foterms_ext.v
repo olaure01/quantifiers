@@ -10,7 +10,7 @@ Set Implicit Arguments.
 
 Section Terms.
 
-Context { vatom : DecType } { tatom : Type }.
+Context {vatom : DecType} {tatom : Type}.
 
 Notation "t [ u // x ]" := (tsubs x u t) (at level 8, format "t [ u // x ]").
 Notation "x ∈ t" := (In x (tvars t)) (at level 30).
@@ -197,7 +197,7 @@ Lemma no_tecapture_subs_notin : forall x u y t,
   closed u -> #[[y::nil]] t[u//x] -> y ∈ u⟦r⟧ -> x ∉ t.
 Proof. term_induction t.
 - intros Hc Hnc Hinu Hint.
-  destruct Hint; subst; intuition.
+  destruct Hint as [ -> | [] ].
   revert Hnc; case_analysis; intros Hnc.
   apply tesubs_tvars in Hnc; [ | assumption ].
   now revert Hnc; apply closed_notvars.

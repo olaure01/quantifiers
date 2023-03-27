@@ -21,8 +21,8 @@ Notation " f ~ g " := (ext_eq f g) (at level 60).
 
 Section Terms.
 
-Context { vatom : DecType } { tatom : Type }.
-Context { tarity : tatom -> nat }. (* arity of function symbols *)
+Context {vatom : DecType} { tatom : Type}.
+Context {tarity : tatom -> nat}. (* arity of function symbols *)
 
 (** terms with quantifiable variables
 
@@ -132,7 +132,7 @@ Arguments tvar {T} _.
 (** substitutes [term] [u] for variable [x] in [term] [t] *)
 Fixpoint tsubs x u t :=
 match t with
-| tvar y => if (eqb y x) then u else tvar y
+| tvar y => if eq_dt_dec y x then u else tvar y
 | evar k => evar k
 | tconstr c l => tconstr c (Vector.map (tsubs x u) l)
 end.
