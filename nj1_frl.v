@@ -145,9 +145,8 @@ Lemma rweakening :
 Proof.
 apply rnprove_mutrect; intros; subst;
   try (econstructor; rewrite_all map_app; rewrite ? app_comm_cons; intuition; fail).
-destruct (dichot_elt_app_inf _ _ _ _ _ H) as [ [? [? ?]] | [? [? ?]] ]; subst;
-  rewrite ? (app_assoc _ _ (A::_)), <- ? (app_assoc _ (A::_)), <- ? app_comm_cons;
-  intuition.
+dichot_elt_app_inf_exec H; subst;
+  rewrite ? (app_assoc _ _ (A::_)), <- ? (app_assoc _ (A::_)), <- ? app_comm_cons; apply nax.
 Qed.
 
 Lemma substitution : forall l A B, rprove l A -> rprove (A :: l) B -> rprove l B.
@@ -169,12 +168,11 @@ apply lt_wf_double_rect; unfold IH; clear IH; simpl;
  intros B l1 l2 pi2 Hpi; [ intros HF | | ]; intros pi1;
  remember (l1 ++ A :: l2) as ll; destruct pi2; subst; simpl in Hpi.
 (* first statement *)
-- destruct (dichot_elt_app_inf _ _ _ _ _ Heqll)
-    as [ (l' & Heq0 & Heq) | (l' & Heq0 & Heq) ]; subst.
-  + rewrite <- app_assoc; apply nax.
-  + destruct l'; inversion Heq; subst.
-    * exfalso; lia.
-    * rewrite app_assoc; apply nax.
+- dichot_elt_app_inf_exec Heqll; subst.
+  + rewrite <- app_assoc. apply nax.
+  + destruct l4; inversion Heqll1; subst.
+    * exfalso. lia.
+    * rewrite app_assoc. apply nax.
 - assert (nsize pi2 < S (nsize pi2 + rsize r)) as IH1 by lia.
   assert (rsize r < S (nsize pi2 + rsize r)) as IH2 by lia.
   eapply nimpe; eapply (IHm (S (nsize pi2 + rsize r))); simpl; eauto; lia.
