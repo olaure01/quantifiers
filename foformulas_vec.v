@@ -2,6 +2,7 @@
 
 (* arity check based on vectors *)
 
+#[local] Set Warnings "-stdlib-vector".
 From Coq Require Vector.
 From Quantifiers Require Export foterms_vec.
 

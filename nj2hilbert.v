@@ -386,7 +386,7 @@ Definition hfelift (u : hterm) r := fun n =>
   | 0 => u
   | S k => r k
   end.
-Notation "⇑ [ u ] r" := (hfelift u r) (at level 25, format "⇑ [ u ] r").
+Notation "⇑ [ u ] r" := (hfelift u r) (at level 0, format "⇑ [ u ] r").
 
 Lemma no_tecapture_hfelift : forall u r t lv,
   no_tecapture_at r lv t -> no_tecapture_at (⇑[u]r) lv (tesubs ⇑ t).
