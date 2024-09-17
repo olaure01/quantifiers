@@ -170,7 +170,7 @@ apply lt_wf_double_rect; unfold IH; clear IH; simpl;
 (* first statement *)
 - dichot_elt_app_inf_exec Heqll; subst.
   + rewrite <- app_assoc. apply nax.
-  + destruct l4; inversion Heqll1; subst.
+  + destruct l; inversion Heqll1; subst.
     * exfalso. lia.
     * rewrite app_assoc. apply nax.
 - assert (nsize pi2 < S (nsize pi2 + rsize r)) as IH1 by lia.

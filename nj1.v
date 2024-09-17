@@ -245,7 +245,7 @@ apply (lt_wf_double_rect (fun n m =>
 (* first statement *)
 - dichot_elt_app_inf_exec Heqll; subst.
   + rewrite <- app_assoc. apply nax.
-  + destruct l4; inversion Heqll1; subst; [ lia | auto_nax ].
+  + destruct l; inversion Heqll1; subst; [ lia | auto_nax ].
 - assert (nsize pi2 < S (nsize pi2 + rsize r)) as IH1 by lia.
   assert (rsize r < S (nsize pi2 + rsize r)) as IH2 by lia.
   eapply nimpe; eapply (IHm (S (nsize pi2 + rsize r))); simpl; eauto; lia.
