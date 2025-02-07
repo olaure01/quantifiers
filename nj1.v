@@ -166,7 +166,7 @@ Lemma rweakening :
 Proof.
 apply rnprove_mutrect; intros; subst;
   try (econstructor; rewrite_all map_app; rewrite ? app_comm_cons; intuition; intuition; fail).
-dichot_elt_app_inf_exec H; subst;
+decomp_elt_eq_app H; subst;
   rewrite ? (app_assoc _ _ (A::_)), <- ? (app_assoc _ (A::_)), <- ? app_comm_cons; apply nax.
 Qed.
 
@@ -243,7 +243,7 @@ apply (lt_wf_double_rect (fun n m =>
   intros B l1 l2 pi2 Hpi; [ intros HF | | ]; intros pi1;
   remember (l1 ++ A :: l2) as ll eqn:Heqll; destruct pi2; subst; simpl in Hpi.
 (* first statement *)
-- dichot_elt_app_inf_exec Heqll; subst.
+- decomp_elt_eq_app Heqll; subst.
   + rewrite <- app_assoc. apply nax.
   + destruct l; inversion Heqll1; subst; [ lia | auto_nax ].
 - assert (nsize pi2 < S (nsize pi2 + rsize r)) as IH1 by lia.

@@ -3,14 +3,10 @@
 
 From Coq Require Export PeanoNat List.
 From OLlibs Require Import List_more.
-From OLlibs Require Export dectype.
+From OLlibs Require Export funtheory dectype.
 From Quantifiers Require Export term_tactics.
 
 Set Implicit Arguments.
-
-(* Extensional equality of functions *)
-Definition ext_eq {A B} (f g : A -> B) := forall a, f a = g a.
-Notation " f ~ g " := (ext_eq f g) (at level 60).
 
 
 (** * First-Order Terms *)
