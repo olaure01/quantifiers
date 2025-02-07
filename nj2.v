@@ -1,7 +1,7 @@
 (* Natural Deduction for Second-Order Propositional Intuitionistic Logic *)
 (*   with universal and existential second-order quantifications *)
 
-From Coq Require Import PeanoNat Lia List.
+From Stdlib Require Import PeanoNat Lia List.
 From OLlibs Require Import dectype.
 From Quantifiers Require Import term_tactics.
 

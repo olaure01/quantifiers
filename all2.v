@@ -1,6 +1,6 @@
 (* Sequent Calculus for Second-Order Propositional Additive Linear Logic *)
 
-From Coq Require Import PeanoNat Wf_nat Lia List.
+From Stdlib Require Import PeanoNat Wf_nat Lia List.
 From OLlibs Require Import dectype.
 From Quantifiers Require Import term_tactics.
 

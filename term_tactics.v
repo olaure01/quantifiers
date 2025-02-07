@@ -1,6 +1,6 @@
 (* Some tactics for term manipulations *)
 
-From Coq Require Import PeanoNat List.
+From Stdlib Require Import PeanoNat List.
 From OLlibs Require Import dectype.
 
 Create HintDb term_db.

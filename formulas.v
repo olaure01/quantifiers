@@ -1,6 +1,6 @@
 (* Formulas with separated first- and second-order quantifiers *)
 
-From Coq Require Import Lia.
+From Stdlib Require Import Lia.
 From OLlibs Require Import List_more.
 From Quantifiers Require Export foterms_ext.
 

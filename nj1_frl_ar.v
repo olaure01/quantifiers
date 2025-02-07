@@ -1,6 +1,6 @@
 (* Natural Deduction for First-Order Intuitionistic Logic *)
 
-From Coq Require Import Wf_nat Lia.
+From Stdlib Require Import Wf_nat Lia.
 From OLlibs Require Import List_more.
 From Quantifiers Require Export foformulas_ar.
 

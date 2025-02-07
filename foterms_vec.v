@@ -3,9 +3,9 @@
 
 (* arity check based on vectors *)
 
-From Coq Require Export PeanoNat.
+From Stdlib Require Export PeanoNat.
 #[local] Set Warnings "-stdlib-vector".
-From Coq Require Vector.
+From Stdlib Require Vector.
 From OLlibs Require Export dectype List_more.
 From Quantifiers Require Export term_tactics.
 

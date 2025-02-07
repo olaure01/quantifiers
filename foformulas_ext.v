@@ -1,6 +1,6 @@
 (* More about First-Order Formulas *)
 
-From Coq Require Import Lia.
+From Stdlib Require Import Lia.
 From OLlibs Require Import List_more List_assoc.
 From Quantifiers Require Export foterms_ext foformulas.
 

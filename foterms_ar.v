@@ -3,7 +3,7 @@
 
 (* with arity checks *)
 
-From Coq Require Export PeanoNat List.
+From Stdlib Require Export PeanoNat List.
 From OLlibs Require Import List_more.
 From OLlibs Require Export dectype.
 From Quantifiers Require Export term_tactics.

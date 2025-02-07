@@ -1,6 +1,6 @@
 (* More Properties of First-Order Terms *)
 
-From Coq Require Import Lia.
+From Stdlib Require Import Lia.
 From OLlibs Require Import List_more.
 From OLlibs Require Export dectype.
 From Quantifiers Require Export term_tactics foterms.

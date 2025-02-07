@@ -1,7 +1,7 @@
 (* Definitions and Properties of First-Order Terms *)
 (*   with holes in [nat] for de Bruijn indices *)
 
-From Coq Require Export PeanoNat List.
+From Stdlib Require Export PeanoNat List.
 From OLlibs Require Import List_more.
 From OLlibs Require Export funtheory dectype.
 From Quantifiers Require Export term_tactics.

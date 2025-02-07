@@ -1,4 +1,4 @@
-From Coq Require Import Lia.
+From Stdlib Require Import Lia.
 From OLlibs Require Import List_Type.
 From Quantifiers Require Import foformulas_ext nj1_frl.
 

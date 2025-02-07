@@ -1,6 +1,6 @@
 (* Hilbert system for Intuitionistic Logic with implication and quantifiers *)
 
-From Coq Require Import List.
+From Stdlib Require Import List.
 From Quantifiers Require Import foformulas_ext.
 
 Set Implicit Arguments.
