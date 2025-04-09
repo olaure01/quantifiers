@@ -1,5 +1,5 @@
 From Stdlib Require Import Lia.
-From OLlibs Require Import List_Type.
+From OLlibs Require Import ListT.
 From Quantifiers Require Import foformulas_ext nj1_frl.
 
 Set Implicit Arguments.
@@ -31,10 +31,10 @@ intros Hmax pi; apply denormalization, rfrli; apply normalization in pi.
 remember (fun n => if Nat.eqb n k then evar 0 else evar (S n) : term) as rk.
 assert (rclosed rk) as Hc by (now intros n; rewrite Heqrk; destruct (n =? k)).
 assert (map (esubs rk) (A :: l) = map (fun F => F↑) (A :: l)) as Hrkfup.
-{ apply map_ext_in_inf; intros a Hin.
+{ apply map_ext_inT; intros a Hin.
   apply esubs_ext_max; intros n Hle.
-  apply list_max_lt_inf in Hmax; [ | intros Hl; inversion Hl ].
-  apply (in_inf_map eigen_max), (Forall_inf_forall Hmax) in Hin.
+  apply list_max_ltT in Hmax; [ | intros Hl; inversion Hl ].
+  apply (inT_map eigen_max), (ForallT_forall Hmax) in Hin.
   assert (n <> k) as Hneq by lia.
   now subst rk; apply Nat.eqb_neq in Hneq; rewrite_all Hneq. }
 apply (rnpesubs rk) in pi; auto.

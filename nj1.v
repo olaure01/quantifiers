@@ -136,11 +136,11 @@ clear r Hc; apply rnprove_mutrect; intros; (try simpl in X);
 - rcauto; rnow apply nfrle.
 - specialize X with (↑r0).
   revert X; rcauto.
-  rewrite map_map, (map_ext _ _ (felift_esubs (evar 0) _)), <- map_map in X. intuition.
+  rewrite map_map, (map_ext (felift_esubs (evar 0) _)), <- map_map in X. intuition.
 - specialize X with r0.
   rnow apply (rexsi (tesubs r0 u)).
 - specialize X0 with (↑r0); simpl in X0.
-  rewrite map_map, (map_ext _ _ (felift_esubs (evar 0) _)), <- map_map in X0.
+  rewrite map_map, (map_ext (felift_esubs (evar 0) _)), <- map_map in X0.
   rnow eapply rexse.
 Qed.
 
@@ -149,7 +149,7 @@ Proof.
 intros Hc pi.
 apply (rnpesubs (u⇓)) in pi; [ | intuition ].
 rnow simpl in pi then simpl in pi.
-now rewrite map_map, (map_ext _ _ (esubs_fup _)), map_id in pi.
+now rewrite map_map, (map_ext (esubs_fup _)), map_id in pi.
 Qed.
 
 Lemma rpsubsz_l {l A x u C} : closed u -> rprove (A↑[evar 0//x] :: l⇈) C↑ -> rprove (subs x u A :: l) C.
@@ -157,7 +157,7 @@ Proof.
 intros Hc pi.
 apply (rnpesubs (u⇓)) in pi; [ | intuition ].
 rnow simpl in pi then simpl in pi.
-now rewrite map_map, (map_ext _ _ (esubs_fup _)), map_id in pi.
+now rewrite map_map, (map_ext (esubs_fup _)), map_id in pi.
 Qed.
 
 Lemma rweakening :
@@ -220,7 +220,7 @@ remember (exs x A) as A'; revert A x HeqA'; induction pi;
     eapply rweakening; [ | reflexivity ].
     apply (rnpesubs (↑⇑)) in pi2; intuition.
     rnow simpl in pi2 then simpl in pi2.
-    now rewrite map_map, (map_ext _ _ (felift_esubs (evar 0) _)), <- map_map in pi2.
+    now rewrite map_map, (map_ext (felift_esubs (evar 0) _)), <- map_map in pi2.
 Qed.
 
 Lemma substitution : forall n m A, fsize A = n ->

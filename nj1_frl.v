@@ -128,7 +128,7 @@ clear r Hc; apply rnprove_mutrect; intros; (try simpl in X);
 - rcauto. rnow apply nfrle.
 - specialize X with (↑r0).
   revert X. rcauto.
-  rewrite map_map, (map_ext _ _ (felift_esubs (evar 0) _)), <- map_map in X. intuition.
+  rewrite map_map, (map_ext (felift_esubs (evar 0) _)), <- map_map in X. intuition.
 Qed.
 
 Lemma rpsubsz {l A x u} : closed u -> rprove l⇈ A↑[evar 0//x] -> rprove l (subs x u A).
@@ -136,7 +136,7 @@ Proof.
 intros Hc pi.
 apply (rnpesubs (u⇓)) in pi; [ | intuition ].
 rnow simpl in pi then simpl in pi.
-now rewrite map_map, (map_ext _ _ (esubs_fup _)), map_id in pi.
+now rewrite map_map, (map_ext (esubs_fup _)), map_id in pi.
 Qed.
 
 Lemma rweakening :

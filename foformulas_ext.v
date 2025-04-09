@@ -157,7 +157,7 @@ Qed.
 Lemma subs_subs : forall x u y v, x <> y -> closed v -> forall A,
   Forall (fun y => y #[x] A) (tvars u) -> A[u//x][v//y] = A[v//y][tsubs y v u//x].
 Proof. induction A; simpl; intros Hnc; f_equal.
-- rnow rewrite 2 map_map; apply map_ext; rcauto.
+- rnow rewrite 2 map_map; apply map_ext; intro.
 - apply IHA; eapply Forall_impl; [ | eassumption ]; simpl; intuition.
 - apply IHA1; eapply Forall_impl; [ | eassumption ]; simpl; intuition.
 - apply IHA2; eapply Forall_impl; [ | eassumption ]; simpl; intuition.
