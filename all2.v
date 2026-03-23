@@ -59,12 +59,11 @@ match A with
 end.
 Notation fupz := (fup 0).
 
-Lemma fsize_fup : forall k A, fsize (fup k A) = fsize A.
+Lemma fsize_fup k A : fsize (fup k A) = fsize A.
 Proof. formula_induction A. Qed.
 #[local] Hint Rewrite fsize_fup : term_db.
 
-Lemma fup_fup_com : forall k A,
-  fup (S k) (fupz A) = fupz (fup k A).
+Lemma fup_fup_com k A : fup (S k) (fupz A) = fupz (fup k A).
 Proof. formula_induction A. Qed.
 #[local] Hint Rewrite fup_fup_com : term_db.
 
@@ -80,12 +79,11 @@ match A with
 | frl Y B => frl Y (if eq_dt_dec Y X then B else subs X F B)
 end.
 
-Lemma fsize_subs_dvar : forall k X A, fsize (subs X (dvar k) A) = fsize A.
+Lemma fsize_subs_dvar k X A : fsize (subs X (dvar k) A) = fsize A.
 Proof. formula_induction A. Qed.
 #[local] Hint Rewrite fsize_subs_dvar : term_db.
 
-Lemma fup_subs_com : forall k X F A,
-  fup k (subs X F A) = subs X (fup k F) (fup k A).
+Lemma fup_subs_com k X F A : fup k (subs X F A) = subs X (fup k F) (fup k A).
 Proof. now formula_induction A ; rcauto ; f_equal. Qed.
 #[local] Hint Rewrite fup_subs_com : term_db.
 
@@ -106,8 +104,7 @@ match A with
 | frl X B => frl X (nsubs n F B)
 end.
 
-Lemma nsubs_fup_com : forall k F A,
-  nsubs (S k) (fupz F) (fupz A) = fupz (nsubs k F A).
+Lemma nsubs_fup_com k F A : nsubs (S k) (fupz F) (fupz A) = fupz (nsubs k F A).
 Proof. formula_induction A ; rcauto.
 now destruct k0; destruct k; inversion Heq.
 Qed.
@@ -180,7 +177,7 @@ match pi with
 | frll _ _ pi1 => S (psize pi1)
 end.
 
-(** substitutes [cterm] [u] for index [n] in proof [pi] and decreases indexes above [n] *)
+(** substitutes [formula] [F] for index [k] in proof [pi] and decreases indexes above [k] *)
 Theorem psubs k F (Hc : closed F) {C A} (pi : prove C A) :
   { pi' : prove (nsubs k F C) (nsubs k F A) | psize pi' = psize pi }.
 Proof.
@@ -287,40 +284,29 @@ Qed.
 
 (** * Hilbert style properties *)
 
-Lemma frl_elim : forall A F X, closed F -> prove (frl X A) (subs X F A).
-Proof.
-intros A F X Hc.
-rnow apply (frll F).
-Qed.
+Lemma frl_elim A F X : closed F -> prove (frl X A) (subs X F A).
+Proof. intro Hc. rnow apply (frll F). Qed.
 
-Lemma frl_wdg : forall A B X, prove (frl X (wdg A B)) (wdg (frl X A) (frl X B)).
-Proof.
-intros A B X.
-repeat constructor; simpl;
-  apply (frll (dvar 0)); simpl; do 2 constructor.
-Qed.
+Lemma frl_wdg A B X : prove (frl X (wdg A B)) (wdg (frl X A) (frl X B)).
+Proof. repeat constructor; cbn; apply (frll (dvar 0)); cbn; do 2 constructor. Qed.
 
-Lemma frl_nfree : forall A X, ~ In X (freevars A) -> prove A (frl X A).
-Proof.
-intros A X Hnf.
-rewrite <- (freevars_fup 0) in Hnf.
-rnow apply frlr.
-Qed.
+Lemma frl_nfree A X : ~ In X (freevars A) -> prove A (frl X A).
+Proof. intro Hnf. rewrite <- (freevars_fup 0) in Hnf. rnow apply frlr. Qed.
 
 
 (** * Other properties *)
 
 (** Axiom expansion *)
-Lemma ax_exp : forall A, prove A A.
+Lemma ax_exp A : prove A A.
 Proof.
-enough (Hn : forall n A, fsize A = n -> prove A A) by (intros A; refine (Hn _ _ eq_refl)).
-induction n as [n IH] using (well_founded_induction_type lt_wf); intros; subst.
-destruct A.
+enough (forall n, fsize A = n -> prove A A) as Hn by (refine (Hn _ eq_refl)).
+induction n as [n IH] in A |- * using (well_founded_induction_type lt_wf); intros; subst. destruct A.
 - apply ax.
 - apply ax.
 - apply ax.
 - apply topr.
 - apply wdgr; [ apply wdgll | apply wdglr ]; refine (IH _ _ _ eq_refl); cbn; lia.
 - apply frlr.
-  cbn. apply (frll (dvar 0) eq_refl). constructor.
+  cbn. apply (frll (dvar 0) eq_refl).
+  refine (IH _ _ _ eq_refl). cbn. rewrite fsize_subs_dvar, fsize_fup. lia.
 Qed.
