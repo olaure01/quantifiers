@@ -12,21 +12,21 @@ Context { vatom : DecType } { tatom fatom : Type }.
 
 Arguments tvar {_} {_} {T} _.
 
-Notation hterm := (@term vatom tatom Empty_set).
-Notation hformula := (@formula vatom tatom fatom Nocon Nocon Icon Qcon Empty_set).
+Abbreviation hterm := (@term vatom tatom Empty_set).
+Abbreviation hformula := (@formula vatom tatom fatom Nocon Nocon Icon Qcon Empty_set).
 
-Notation term := (@term vatom tatom nat).
-Notation formula := (@formula vatom tatom fatom Nocon Nocon Icon Qcon nat).
-Notation r_h2n := (@r_empty vatom tatom nat).
-Notation closed t := (tvars t = nil).
-Notation rclosed r := (forall n, closed (r n)).
-Notation "A ⟦ r ⟧" := (esubs r A) (at level 8, left associativity, format "A ⟦ r ⟧").
-Notation "A [ u // x ]" := (subs x u A) (at level 8, format "A [ u // x ]").
-Notation "A [[ L ]]" := (multi_subs L A) (at level 8, format "A [[ L ]]").
+Abbreviation term := (@term vatom tatom nat).
+Abbreviation formula := (@formula vatom tatom fatom Nocon Nocon Icon Qcon nat).
+Abbreviation r_h2n := (@r_empty vatom tatom nat).
+Abbreviation closed t := (tvars t = nil).
+Abbreviation rclosed r := (forall n, closed (r n)).
+Notation "A ⟦ r ⟧" := (esubs r A) (left associativity, format "A ⟦ r ⟧").
+Notation "A [ u // x ]" := (subs x u A) (format "A [ u // x ]").
+Notation "A [[ L ]]" := (multi_subs L A) (format "A [[ L ]]").
 Notation "L ∖ x" := (remove_assoc x L) (at level 18).
 Notation "⇑" := fup.
-Notation "A ↑" := (A⟦⇑⟧) (at level 8, format "A ↑").
-Notation "l ⇈" := (map (fun F => F↑) l) (at level 8, format "l ⇈").
+Notation "A ↑" := (A⟦⇑⟧) (format "A ↑").
+Notation "l ⇈" := (map (fun F => F↑) l) (format "l ⇈").
 Notation "x ∈ A" := (In x (freevars A)) (at level 30).
 Notation "x ∉ A" := (~ In x (freevars A)) (at level 30).
 Notation "y #[ x ] A" := (no_capture_at x y A) (at level 30, format "y  #[ x ]  A").
@@ -53,8 +53,8 @@ Ltac auto_ax := rewrite <- (app_nil_l _); run_ax.
 
 
 (* Translation of terms and formulas: trivial embedding *)
-Notation h2n_term := (@tesubs vatom tatom Empty_set nat r_h2n).
-Notation h2n_formula := (@esubs vatom tatom fatom Nocon Nocon Icon Qcon Empty_set nat r_h2n).
+Abbreviation h2n_term := (@tesubs vatom tatom Empty_set nat r_h2n).
+Abbreviation h2n_formula := (@esubs vatom tatom fatom Nocon Nocon Icon Qcon Empty_set nat r_h2n).
 
 Lemma h2n : forall A, hprove A ->
   forall L, Forall (fun z => closed z) (map snd L) -> incl (freevars A) (map fst L) ->

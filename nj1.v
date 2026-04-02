@@ -14,18 +14,18 @@ Section Proofs.
 Context {vatom : DecType} {tatom fatom : Type}.
 Arguments tvar {_} {_} {T} _.
 
-Notation term := (@term vatom tatom nat).
-Notation closed t := (tvars t = nil).
-Notation rclosed r := (forall n, closed (r n)).
+Abbreviation term := (@term vatom tatom nat).
+Abbreviation closed t := (tvars t = nil).
+Abbreviation rclosed r := (forall n, closed (r n)).
 Notation "↑ r" := (felift (evar 0) r) (at level 25, format "↑ r").
-Notation "v ⇓" := (fesubs v) (at level 18, format "v ⇓").
-Notation "A ⟦ r ⟧" := (esubs r A) (at level 8, left associativity, format "A ⟦ r ⟧").
-Notation "A [ u // x ]" := (subs x u A) (at level 8, format "A [ u // x ]").
+Notation "v ⇓" := (fesubs v) (format "v ⇓").
+Notation "A ⟦ r ⟧" := (esubs r A) (left associativity, format "A ⟦ r ⟧").
+Notation "A [ u // x ]" := (subs x u A) (format "A [ u // x ]").
 Notation "⇑" := fup.
-Notation "A ↑" := (A⟦⇑⟧) (at level 8, format "A ↑").
-Notation "l ⇈" := (map (fun F => F↑) l) (at level 8, format "l ⇈").
+Notation "A ↑" := (A⟦⇑⟧) (format "A ↑").
+Notation "l ⇈" := (map (fun F => F↑) l) (format "l ⇈").
 
-Notation formula := (@formula vatom tatom fatom Nocon Nocon Icon Qcon nat).
+Abbreviation formula := (@formula vatom tatom fatom Nocon Nocon Icon Qcon nat).
 
 Hint Rewrite (@fsize_esubs vatom tatom fatom Nocon Nocon Icon Qcon) : term_db.
 Hint Rewrite (@fsize_subs vatom tatom fatom Nocon Nocon Icon Qcon nat) : term_db.
@@ -57,7 +57,7 @@ Global Arguments impe { l B }.
 Global Arguments exse { l C }.
 
 Lemma ax_hd {l A} : prove (A :: l) A.
-Proof (ax nil l A).
+Proof. exact (ax nil l A). Qed.
 
 
 (** Normal Forms *)
@@ -82,7 +82,7 @@ Scheme nrprove_rect := Induction for nprove Sort Type
 Combined Scheme rnprove_mutrect from nrprove_rect, rnprove_rect.
 
 Lemma nax_hd {l A} : nprove (A :: l) A.
-Proof (nax nil l A).
+Proof. exact (nax nil l A). Qed.
 Hint Resolve nax_hd : term_db.
 
 (* automatic tactic for application of the [nax] constructor *)
@@ -593,7 +593,7 @@ Qed.
 (** * Examples *)
 Section Examples.
 
-Notation fvar := (@fvar vatom tatom fatom Nocon Nocon Icon Qcon nat).
+Abbreviation fvar := (@fvar vatom tatom fatom Nocon Nocon Icon Qcon nat).
 
 Variable x y : vatom.
 

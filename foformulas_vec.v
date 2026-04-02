@@ -8,7 +8,7 @@ From Quantifiers Require Export foterms_vec.
 
 Set Implicit Arguments.
 
-Notation vec := Vector.t.
+Abbreviation vec := Vector.t.
 
 
 (** * First-Order Formulas *)
@@ -16,14 +16,14 @@ Notation vec := Vector.t.
 Section Formulas.
 
 Context {vatom : DecType} {tatom : Type} {tarity : tatom -> nat}.
-Notation term := (@term vatom tatom tarity).
+Abbreviation term := (@term vatom tatom tarity).
 Arguments evar _ _ _ {T}.
-Notation evar := (evar vatom tatom tarity).
+Abbreviation evar := (evar vatom tatom tarity).
 
-Notation "r ;; s" := (fecomp r s) (at level 20, format "r  ;;  s").
-Notation closed t := (tvars t = nil).
+Infix ";;" := fecomp (at level 20).
+Abbreviation closed t := (tvars t = nil).
 Notation "⇑" := fup.
-Notation "⇑[ u ] r" := (felift u r) (at level 25, format "⇑[ u ] r").
+Notation "⇑[ u ] r" := (felift u r) (at level 19, format "⇑[ u ] r").
 
 Hint Rewrite (@tesubs_evar vatom tatom) : term_db.
 Hint Rewrite (@tesubs_comp vatom tatom) : term_db.
@@ -118,7 +118,7 @@ match A with
 | fbin bcon B C => fbin bcon (esubs r B) (esubs r C)
 | fqtf qcon x B => fqtf qcon x (esubs r B)
 end.
-Notation "A ⟦ r ⟧" := (esubs r A) (at level 8, left associativity, format "A ⟦ r ⟧").
+Notation "A ⟦ r ⟧" := (esubs r A) (left associativity, format "A ⟦ r ⟧").
 
 Lemma fsize_esubs T1 T2 : forall (r : T1 -> term T2) A, fsize A⟦r⟧ = fsize A.
 Proof. formula_induction A. Qed.
@@ -151,7 +151,7 @@ match A with
 | fbin bcon B C => fbin bcon (subs x u B) (subs x u C)
 | fqtf qcon y B => fqtf qcon y (if eq_dt_dec y x then B else subs x u B)
 end.
-Notation "A [ u // x ]" := (subs x u A) (at level 8, format "A [ u // x ]").
+Notation "A [ u // x ]" := (subs x u A) (format "A [ u // x ]").
 
 Lemma fsize_subs T : forall u x (A : formula T), fsize A[u//x] = fsize A.
 Proof. formula_induction A. Qed.
@@ -169,8 +169,8 @@ Hint Rewrite subs_esubs using intuition; fail : term_db.
 (* We restrict to [formula nat] *)
 (** * Eigen variables *)
 
-Notation "A ↑" := (A⟦⇑⟧) (at level 8, format "A ↑").
-Notation "v ⇓" := (fesubs v) (at level 18, format "v ⇓").
+Notation "A ↑" := (A⟦⇑⟧) (format "A ↑").
+Notation "v ⇓" := (fesubs v) (format "v ⇓").
 
 Lemma esubs_fup v A : A↑⟦v⇓⟧ = A.
 Proof. rcauto. Qed.
@@ -184,13 +184,13 @@ End Formulas.
 
 
 (* Some sets of connectives *)
-Inductive Nocon := .
-Inductive Icon := imp_con.
-Inductive Qcon := frl_con | exs_con.
+Variant Nocon := .
+Variant Icon := imp_con.
+Variant Qcon := frl_con | exs_con.
 
-Notation imp := (fbin imp_con).
-Notation frl := (fqtf frl_con).
-Notation exs := (fqtf exs_con).
+Abbreviation imp := (fbin imp_con).
+Abbreviation frl := (fqtf frl_con).
+Abbreviation exs := (fqtf exs_con).
 
 
 Ltac formula_induction A :=

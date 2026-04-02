@@ -9,9 +9,9 @@ Section Terms.
 
 Context { vatom : DecType } { tatom : Type }.
 
-Notation "r ;; s" := (fecomp r s) (at level 20, format "r  ;;  s").
-Notation closed t := (tvars t = nil).
-Notation rclosed r := (forall n, closed (r n)).
+Infix ";;" := fecomp (at level 20).
+Abbreviation closed t := (tvars t = nil).
+Abbreviation rclosed r := (forall n, closed (r n)).
 
 (* Function allowing to embed [term Empty_set] into any [term T]
      through identity embedding by using [tesubs (r_empty T)] *)

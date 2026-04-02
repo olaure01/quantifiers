@@ -12,7 +12,7 @@ Set Implicit Arguments.
 
 (* Extensional equality of functions *)
 Definition ext_eq {A B} (f g : A -> B) := (forall a, f a = g a).
-Notation " f ~ g " := (ext_eq f g) (at level 60).
+Infix "~" := ext_eq (at level 60).
 
 
 (** * First-Order Terms *)
@@ -63,7 +63,7 @@ match t with
 | tfun f => tfun f
 | tconstr u v => tconstr (tesubs r u) (tesubs r v)
 end.
-Notation "t ⟦ r ⟧" := (tesubs r t) (at level 8, left associativity, format "t ⟦ r ⟧").
+Notation "t ⟦ r ⟧" := (tesubs r t) (left associativity, format "t ⟦ r ⟧").
 
 (** monad structure induced on [term] *)
 Lemma evar_tesubs T1 T2 (r : T1 -> term T2 0) :
@@ -77,7 +77,7 @@ Proof. term_induction t. Qed.
 Hint Rewrite tesubs_evar : term_db.
 
 Definition fecomp T1 T2 T3 (r : T1 -> term T2 0) (s : T2 -> term T3 0) := fun x => (r x)⟦s⟧.
-Notation "r ;; s" := (fecomp r s) (at level 20, format "r  ;;  s").
+Infix ";;" := fecomp (at level 20).
 
 Lemma tesubs_comp T1 T2 T3 k (r : T1 -> term T2 0) (s : T2 -> term T3 0) :
   forall t : term T1 k, t⟦r⟧⟦s⟧ = t⟦r ;; s⟧.
@@ -107,7 +107,7 @@ match t with
 | tfun f => tfun f
 | tconstr v l => tconstr (tsubs x u v) (tsubs x u l)
 end.
-Notation "t [ u // x ]" := (tsubs x u t) (at level 8, format "t [ u // x ]").
+Notation "t [ u // x ]" := (tsubs x u t) (format "t [ u // x ]").
 
 Lemma tsubs_tsubs_eq x u v t : t[v//x][u//x] = t[v[u//x]//x].
 Proof. term_induction t. Qed.
@@ -125,7 +125,7 @@ match t with
 end.
 Notation "x ∈ t" := (In x (tvars t)) (at level 30).
 Notation "x ∉ t" := (~ In x (tvars t)) (at level 30).
-Notation closed t := (tvars t = nil).
+Abbreviation closed t := (tvars t = nil).
 
 Lemma closed_notvars t x : closed t -> x ∉ t.
 Proof. intros Hc Hin. rewrite Hc in Hin. destruct Hin. Qed.
@@ -162,9 +162,9 @@ Section Two_Eigen_Types.
 Variable T1 T2 : Type.
 Variable r : T1 -> term T2 0.
 
-Notation closed t := (tvars t = nil).
-Notation rclosed := (forall n, closed (r n)).
-Notation "t [ u // x ]" := (tsubs x u t) (at level 8, format "t [ u // x ]").
+Abbreviation closed t := (tvars t = nil).
+Abbreviation rclosed := (forall n, closed (r n)).
+Notation "t [ u // x ]" := (tsubs x u t) (format "t [ u // x ]").
 
 Hint Rewrite notin_tsubs using try easy;
                               (try (intuition; fail));
@@ -188,17 +188,17 @@ Section Eigen_nat.
 
 Hint Rewrite tvars_tesubs_closed using intuition; fail : term_db.
 
-Notation term := (term nat).
-Notation tvar := (tvar nat).
-Notation "t [ u // x ]" := (tsubs x u t) (at level 8, format "t [ u // x ]").
+Abbreviation term := (term nat).
+Abbreviation tvar := (tvar nat).
+Notation "t [ u // x ]" := (tsubs x u t) (format "t [ u // x ]").
 Notation "x ∈ t" := (In x (tvars t)) (at level 30).
 Notation "x ∉ t" := (~ In x (tvars t)) (at level 30).
-Notation closed t := (tvars t = nil).
-Notation rclosed r := (forall n, closed (r n)).
+Abbreviation closed t := (tvars t = nil).
+Abbreviation rclosed r := (forall n, closed (r n)).
 
 Definition fup := fun n => evar (S n).
 Notation "⇑" := fup.
-Notation "t ↑" := (t⟦⇑⟧) (at level 8, format "t ↑").
+Notation "t ↑" := (t⟦⇑⟧) (format "t ↑").
 
 Lemma closed_fup : rclosed ⇑.
 Proof. reflexivity. Qed.
@@ -213,7 +213,7 @@ Definition fesubs v := fun n =>
   | 0 => v
   | S n => evar n
   end.
-Notation "v ⇓" := (fesubs v) (at level 18, format "v ⇓").
+Notation "v ⇓" := (fesubs v) (format "v ⇓").
 
 Lemma closed_fesubs v : closed v -> rclosed (v⇓).
 Proof. now intros Hc [|]. Qed.
@@ -232,7 +232,7 @@ Definition felift u (r : _ -> term 0) := fun n =>
   | 0 => u
   | S k => (r k)↑
   end.
-Notation "⇑[ u ] r" := (felift u r) (at level 25, format "⇑[ u ] r").
+Notation "⇑[ u ] r" := (felift u r) (at level 19, format "⇑[ u ] r").
 
 Lemma closed_felift u r : closed u -> rclosed r -> rclosed (⇑[u]r).
 Proof. rnow intros ? ? [|]. Qed.

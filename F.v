@@ -54,7 +54,7 @@ match A with
 | imp B C => imp (fup k B) (fup k C)
 | frl X B => frl X (fup k B)
 end.
-Notation fupz := (fup 0).
+Abbreviation fupz := (fup 0).
 
 Lemma fsize_fup : forall k A, fsize (fup k A) = fsize A.
 Proof. formula_induction A. Qed.
@@ -117,7 +117,7 @@ match A with
 | imp B C => (freevars B) ++ (freevars C)
 | frl X B => remove eq_dt_dec X (freevars B)
 end.
-Notation closed A := (freevars A = nil).
+Abbreviation closed A := (freevars A = nil).
 
 Lemma closed_nofreevars : forall A X, closed A -> ~ In X (freevars A).
 Proof. intros A X Hc Hin ; now rewrite Hc in Hin. Qed.

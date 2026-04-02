@@ -12,11 +12,11 @@ Section Terms.
 
 Context {vatom : DecType} {tatom : Type}.
 
-Notation "t [ u // x ]" := (tsubs x u t) (at level 8, format "t [ u // x ]").
+Notation "t [ u // x ]" := (tsubs x u t) (format "t [ u // x ]").
 Notation "x ∈ t" := (In x (tvars t)) (at level 30).
 Notation "x ∉ t" := (~ In x (tvars t)) (at level 30).
-Notation closed t := (tvars t = nil).
-Notation rclosed r := (forall n, closed (r n)).
+Abbreviation closed t := (tvars t = nil).
+Abbreviation rclosed r := (forall n, closed (r n)).
 
 Hint Rewrite (@tesubs_evar vatom tatom) : term_db.
 Hint Rewrite (@tesubs_comp vatom tatom) : term_db.
@@ -60,7 +60,7 @@ Qed.
 (** * Iterated substitution *)
 
 Definition multi_tsubs L t := fold_left (fun v '(x,u) => v[u//x]) L t.
-Notation "t [[ L ]]" := (multi_tsubs L t) (at level 8, format "t [[ L ]]").
+Notation "t [[ L ]]" := (multi_tsubs L t) (format "t [[ L ]]").
 
 Lemma multi_tsubs_nil : multi_tsubs nil = id.
 Proof. reflexivity. Qed.
@@ -124,13 +124,13 @@ Variable T1 T2 : Type.
 Variable r : T1 -> @term vatom tatom T2.
 Implicit Type t : @term vatom tatom T1.
 
-Notation "t ⟦ r ⟧" := (tesubs r t) (at level 8, format "t ⟦ r ⟧").
+Notation "t ⟦ r ⟧" := (tesubs r t) (format "t ⟦ r ⟧").
 Notation "x ∈ t" := (In x (tvars t)) (at level 30).
 Notation "x ∉ t" := (~ In x (tvars t)) (at level 30).
-Notation closed t := (tvars t = nil).
-Notation rclosed := (forall n, closed (r n)).
-Notation "t [ u // x ]" := (tsubs x u t) (at level 8, format "t [ u // x ]").
-Notation "t [[ L ]]" := (multi_tsubs L t) (at level 8, format "t [[ L ]]").
+Abbreviation closed t := (tvars t = nil).
+Abbreviation rclosed := (forall n, closed (r n)).
+Notation "t [ u // x ]" := (tsubs x u t) (format "t [ u // x ]").
+Notation "t [[ L ]]" := (multi_tsubs L t) (format "t [[ L ]]").
 
 Lemma tvars_tesubs t : incl (tvars t) (tvars t⟦r⟧).
 Proof. term_induction t.

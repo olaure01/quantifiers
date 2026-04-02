@@ -14,12 +14,12 @@ Context { vatom : DecType } { tatom fatom : Type }.
 
 Arguments tvar {_} {_} {T} _.
 
-Notation term := (@term vatom tatom Empty_set).
-Notation closed t := (tvars t = nil).
+Abbreviation term := (@term vatom tatom Empty_set).
+Abbreviation closed t := (tvars t = nil).
 
-Notation formula := (@formula vatom tatom fatom Nocon Nocon Icon Qcon Empty_set).
-Notation fvar := (@fvar vatom tatom fatom Nocon Nocon Icon Qcon Empty_set).
-Notation "A [ u // x ]" := (subs x u A) (at level 8, format "A [ u // x ]").
+Abbreviation formula := (@formula vatom tatom fatom Nocon Nocon Icon Qcon Empty_set).
+Abbreviation fvar := (@fvar vatom tatom fatom Nocon Nocon Icon Qcon Empty_set).
+Notation "A [ u // x ]" := (subs x u A) (format "A [ u // x ]").
 Notation "x ∈ A" := (In x (freevars A)) (at level 30).
 Notation "x ∉ A" := (~ In x (freevars A)) (at level 30).
 Notation "y #[ x ] A" := (no_capture_at x y A) (at level 30, format "y  #[ x ]  A").

@@ -10,40 +10,38 @@ Parameter vatom : DecType.
 Parameter tatom : Type.
 Parameter satom : DecType.
 Parameter fatom : Type.
-Inductive Ncon := top_con.
-Inductive Bcon := wth_con.
-Inductive Qcon := frl_con.
+Variant Ncon := top_con.
+Variant Bcon := wth_con.
+Variant Qcon := frl_con.
 
-Notation term := (@term vatom tatom nat).
-Notation tclosed t := (tvars t = nil).
-Notation rtclosed r := (forall n, tclosed (r n)).
+Abbreviation term := (@term vatom tatom nat).
+Abbreviation tclosed t := (tvars t = nil).
+Abbreviation rtclosed r := (forall n, tclosed (r n)).
 Notation "↑ r" := (felift (evar 0) r) (at level 25, format "↑ r").
 Notation "↑2 r" := (feslift (sevar _ 0) r) (at level 25, format "↑2 r").
-Notation "v ⇓" := (fesubs v) (at level 18, format "v ⇓").
-Notation "F ⇓2" := (fessubs F) (at level 18, format "F ⇓2").
-Notation "A ⟦ r ⟧" := (esubs r A) (at level 8, left associativity, format "A ⟦ r ⟧").
-Notation "A ⟦ r ⟧2" := (essubs r A) (at level 8, left associativity, format "A ⟦ r ⟧2").
-Notation "A [ u // x ]" := (subs x u A) (at level 8, format "A [ u // x ]").
-Notation "A [ F // X ]2" := (ssubs X F A) (at level 8, format "A [ F // X ]2").
+Notation "v ⇓" := (fesubs v) (format "v ⇓").
+Notation "F ⇓2" := (fessubs F) (format "F ⇓2").
+Notation "A ⟦ r ⟧" := (esubs r A) (left associativity, format "A ⟦ r ⟧").
+Notation "A ⟦ r ⟧2" := (essubs r A) (left associativity, format "A ⟦ r ⟧2").
+Notation "A [ u // x ]" := (subs x u A) (format "A [ u // x ]").
+Notation "A [ F // X ]2" := (ssubs X F A) (format "A [ F // X ]2").
 Notation "⇑" := fup.
 Notation "⇑2" := (sfup nat).
-Notation "A ↑" := (A⟦⇑⟧) (at level 8, format "A ↑").
-Notation "A ↑2" := (A⟦⇑2⟧2) (at level 8, format "A ↑2").
-Notation fclosed A := (freevars A = nil).
-Notation rfclosed r := (forall n, fclosed (r n)).
-Notation sclosed A := (sfreevars A = nil).
-Notation rsclosed r := (forall n, sclosed (r n)).
+Notation "A ↑" := (A⟦⇑⟧) (format "A ↑").
+Notation "A ↑2" := (A⟦⇑2⟧2) (format "A ↑2").
+Abbreviation fclosed A := (freevars A = nil).
+Abbreviation rfclosed r := (forall n, fclosed (r n)).
+Abbreviation sclosed A := (sfreevars A = nil).
+Abbreviation rsclosed r := (forall n, sclosed (r n)).
 
-Notation formula := (@formula vatom tatom satom fatom Ncon Nocon Bcon Qcon Qcon nat nat).
-Notation top := (fnul nat nat top_con).
-Notation wth := (fbin wth_con).
-Notation frl := (fqtf frl_con).
-Notation frl2 := (sqtf frl_con).
-Definition evar_nat := (@evar vatom tatom nat).
-Coercion evar_nat : nat >-> term.
-Definition sevar_nat := (@sevar vatom tatom satom fatom Ncon Nocon Bcon Qcon Qcon nat nat).
-Coercion sevar_nat : nat >-> formula.
-Notation sevar := (sevar nat).
+Abbreviation formula := (@formula vatom tatom satom fatom Ncon Nocon Bcon Qcon Qcon nat nat).
+Abbreviation top := (fnul nat nat top_con).
+Abbreviation wth := (fbin wth_con).
+Abbreviation frl := (fqtf frl_con).
+Abbreviation frl2 := (sqtf frl_con).
+Coercion evar_nat := (@evar vatom tatom nat).
+Coercion sevar_nat := (@sevar vatom tatom satom fatom Ncon Nocon Bcon Qcon Qcon nat nat).
+Abbreviation sevar := (sevar nat).
 
 #[local] Hint Resolve closed_fesubs : term_db.
 #[local] Hint Resolve closed_felift : term_db.

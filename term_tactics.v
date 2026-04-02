@@ -4,6 +4,8 @@ From Stdlib Require Import PeanoNat List.
 From OLlibs Require Import dectype.
 
 Create HintDb term_db.
+Create Rewrite HintDb term_db.
+
 Ltac Tauto.intuition_solver ::= auto with datatypes term_db.
 
 Lemma ltb_S n m : (S n <? S m) = (n <? m).

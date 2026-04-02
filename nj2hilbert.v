@@ -11,20 +11,20 @@ Section N2H.
 Context {vatom : InfDecType} {tatom fatom : Type}.
 Arguments tvar {_} {_} {T} _.
 
-Notation hterm := (@term vatom tatom Empty_set).
-Notation hformula := (@formula vatom tatom fatom Nocon Nocon Icon Qcon Empty_set).
+Abbreviation hterm := (@term vatom tatom Empty_set).
+Abbreviation hformula := (@formula vatom tatom fatom Nocon Nocon Icon Qcon Empty_set).
 
-Notation term := (@term vatom tatom nat).
-Notation formula := (@formula vatom tatom fatom Nocon Nocon Icon Qcon nat).
-Notation closed t := (tvars t = nil).
-Notation rclosed r := (forall n, closed (r n)).
-Notation "A ⟦ r ⟧" := (esubs r A) (at level 8, left associativity, format "A ⟦ r ⟧").
-Notation "A [ u // x ]" := (subs x u A) (at level 8, format "A [ u // x ]").
-Notation "A [[ L ]]" := (multi_subs L A) (at level 8, format "A [[ L ]]").
+Abbreviation term := (@term vatom tatom nat).
+Abbreviation formula := (@formula vatom tatom fatom Nocon Nocon Icon Qcon nat).
+Abbreviation closed t := (tvars t = nil).
+Abbreviation rclosed r := (forall n, closed (r n)).
+Notation "A ⟦ r ⟧" := (esubs r A) (left associativity, format "A ⟦ r ⟧").
+Notation "A [ u // x ]" := (subs x u A) (format "A [ u // x ]").
+Notation "A [[ L ]]" := (multi_subs L A) (format "A [[ L ]]").
 Notation "L ∖ x" := (remove_assoc x L) (at level 18).
 Notation "⇑" := fup.
-Notation "A ↑" := (A⟦⇑⟧) (at level 8, format "A ↑").
-Notation "l ⇈" := (map (fun F => F↑) l) (at level 8, format "l ⇈").
+Notation "A ↑" := (A⟦⇑⟧) (format "A ↑").
+Notation "l ⇈" := (map (fun F => F↑) l) (format "l ⇈").
 Notation "x ∈ A" := (In x (freevars A)) (at level 30).
 Notation "x ∉ A" := (~ In x (freevars A)) (at level 30).
 Notation "y #[ x ] A" := (no_capture_at x y A) (at level 30, format "y  #[ x ]  A").
@@ -42,8 +42,8 @@ Section Fixed_r.
 
 Variable r : nat -> hterm.
 
-Notation n2h_term := (tesubs r).
-Notation n2h_formula := (esubs r).
+Abbreviation n2h_term := (tesubs r).
+Abbreviation n2h_formula := (esubs r).
 
 (* Turn sequents into formulas *)
 Definition s2f l (A : formula) := fold_left (fun x y => y → x) l A.
@@ -57,7 +57,7 @@ induction l; simpl; intros A; split; intros Hg; intuition.
 - apply IHl; inversion_clear Hg as [ | ? ? Hi Hl]; inversion_clear Hl; constructor; simpl; intuition.
 Qed.
 
-Notation n2h_sequent l A := (n2h_formula (s2f l A)).
+Abbreviation n2h_sequent l A := (n2h_formula (s2f l A)).
 
 Lemma n2h_sequent_fvars : forall l A,
   incl (fvars (n2h_sequent l A))
@@ -132,10 +132,10 @@ Qed.
 End Fixed_r.
 
 
-Notation n2h_term := (@tesubs vatom tatom nat Empty_set).
-Notation n2h_formula := (@esubs vatom tatom fatom Nocon Nocon Icon Qcon nat Empty_set).
-Notation n2h_sequent r l A := (n2h_formula r (s2f l A)).
-Notation no_ecapture r := (no_ecapture_at r nil).
+Abbreviation n2h_term := (@tesubs vatom tatom nat Empty_set).
+Abbreviation n2h_formula := (@esubs vatom tatom fatom Nocon Nocon Icon Qcon nat Empty_set).
+Abbreviation n2h_sequent r l A := (n2h_formula r (s2f l A)).
+Abbreviation no_ecapture r := (no_ecapture_at r nil).
 
 Definition rrename x y (r : nat -> hterm) n := tsubs x (tvar y) (r n).
 
@@ -386,7 +386,7 @@ Definition hfelift (u : hterm) r := fun n =>
   | 0 => u
   | S k => r k
   end.
-Notation "⇑ [ u ] r" := (hfelift u r) (at level 0, format "⇑ [ u ] r").
+Notation "⇑ [ u ] r" := (hfelift u r) (at level 2, format "⇑ [ u ] r").
 
 Lemma no_tecapture_hfelift : forall u r t lv,
   no_tecapture_at r lv t -> no_tecapture_at (⇑[u]r) lv (tesubs ⇑ t).

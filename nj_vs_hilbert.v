@@ -12,22 +12,22 @@ Section NJvsH.
 Context {vatom : InfDecType} {tatom fatom : Type}.
 Arguments tvar {_} {_} {T} _.
 
-Notation hterm := (@term vatom tatom Empty_set).
-Notation hformula := (@formula vatom tatom fatom Nocon Nocon Icon Qcon Empty_set).
-Notation r_h2n := (r_empty nat).
-Notation term := (@term vatom tatom nat).
-Notation formula := (@formula vatom tatom fatom Nocon Nocon Icon Qcon nat).
-Notation n2h_term r := (@tesubs vatom tatom nat Empty_set r).
-Notation n2h_formula r := (@esubs vatom tatom fatom Nocon Nocon Icon Qcon nat Empty_set r).
-Notation h2n_term := (@tesubs vatom tatom Empty_set nat r_h2n).
-Notation h2n_formula := (@esubs vatom tatom fatom Nocon Nocon Icon Qcon Empty_set nat r_h2n).
+Abbreviation hterm := (@term vatom tatom Empty_set).
+Abbreviation hformula := (@formula vatom tatom fatom Nocon Nocon Icon Qcon Empty_set).
+Abbreviation r_h2n := (r_empty nat).
+Abbreviation term := (@term vatom tatom nat).
+Abbreviation formula := (@formula vatom tatom fatom Nocon Nocon Icon Qcon nat).
+Abbreviation n2h_term r := (@tesubs vatom tatom nat Empty_set r).
+Abbreviation n2h_formula r := (@esubs vatom tatom fatom Nocon Nocon Icon Qcon nat Empty_set r).
+Abbreviation h2n_term := (@tesubs vatom tatom Empty_set nat r_h2n).
+Abbreviation h2n_formula := (@esubs vatom tatom fatom Nocon Nocon Icon Qcon Empty_set nat r_h2n).
 
 Hint Rewrite (@multi_tsubs_evar vatom tatom) : term_db.
 
 
 (* * From Hilbert System to Natural Deduction *)
 
-Notation xf := (@fresh vatom nil).
+Abbreviation xf := (@fresh vatom nil).
 
 Definition vars_to_nat l :=
   ((fix f n s : list (vatom * nat) :=

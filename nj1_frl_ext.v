@@ -8,16 +8,16 @@ Section Proofs.
 
 Context {vatom : DecType} {tatom fatom : Type}.
 
-Notation term := (@term vatom tatom nat).
-Notation formula := (@formula vatom tatom fatom Nocon Nocon Icon FQcon nat).
-Notation frl := (fqtf frl_con).
-Notation closed t := (tvars t = nil).
-Notation rclosed r := (forall n, closed (r n)).
-Notation "A ⟦ r ⟧" := (esubs r A) (at level 8, left associativity, format "A ⟦ r ⟧").
-Notation "A [ u // x ]" := (subs x u A) (at level 8, format "A [ u // x ]").
+Abbreviation term := (@term vatom tatom nat).
+Abbreviation formula := (@formula vatom tatom fatom Nocon Nocon Icon FQcon nat).
+Abbreviation frl := (fqtf frl_con).
+Abbreviation closed t := (tvars t = nil).
+Abbreviation rclosed r := (forall n, closed (r n)).
+Notation "A ⟦ r ⟧" := (esubs r A) (left associativity, format "A ⟦ r ⟧").
+Notation "A [ u // x ]" := (subs x u A) (format "A [ u // x ]").
 Notation "⇑" := fup.
-Notation "A ↑" := (A⟦⇑⟧) (at level 8, format "A ↑").
-Notation "l ⇈" := (map (fun F => F↑) l) (at level 8, format "l ⇈").
+Notation "A ↑" := (A⟦⇑⟧) (format "A ↑").
+Notation "l ⇈" := (map (fun F => F↑) l) (format "l ⇈").
 
 Notation "'ε' k" := (evar k) (at level 5, format "ε k").
 

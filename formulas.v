@@ -12,15 +12,15 @@ Set Implicit Arguments.
 Section Formulas.
 
 Context {vatom : DecType} {tatom : Type}.
-Notation term := (@term vatom tatom).
+Abbreviation term := (@term vatom tatom).
 Arguments evar _ _ {T}.
-Notation evar := (evar vatom tatom).
+Abbreviation evar := (evar vatom tatom).
 
-Notation "r ;; s" := (fecomp r s) (at level 20, format "r  ;;  s").
-Notation tclosed t := (tvars t = nil).
-Notation rtclosed r := (forall n, tclosed (r n)).
+Infix ";;" := fecomp (at level 20).
+Abbreviation tclosed t := (tvars t = nil).
+Abbreviation rtclosed r := (forall n, tclosed (r n)).
 Notation "⇑" := fup.
-Notation "⇑[ u ] r" := (felift u r) (at level 25, format "⇑[ u ] r").
+Notation "⇑[ u ] r" := (felift u r) (at level 19, format "⇑[ u ] r").
 
 Hint Rewrite (@tesubs_evar vatom tatom) : term_db.
 Hint Rewrite (@tesubs_comp vatom tatom) : term_db.
@@ -132,8 +132,8 @@ match A with
 | fqtf _ x B => remove eq_dt_dec x (freevars B)
 | sqtf _ x B => freevars B
 end.
-Notation fclosed A := (freevars A = nil).
-Notation rfclosed r := (forall n, fclosed (r n)).
+Abbreviation fclosed A := (freevars A = nil).
+Abbreviation rfclosed r := (forall n, fclosed (r n)).
 
 Lemma fclosed_nofreevars U T (A : formula U T) x : fclosed A -> ~ In x (freevars A).
 Proof. intros -> []. Qed.
@@ -152,8 +152,8 @@ match A with
 | fqtf _ x B => sfreevars B
 | sqtf _ X B => remove eq_dt_dec X (sfreevars B)
 end.
-Notation sclosed A := (sfreevars A = nil).
-Notation rsclosed r := (forall n, sclosed (r n)).
+Abbreviation sclosed A := (sfreevars A = nil).
+Abbreviation rsclosed r := (forall n, sclosed (r n)).
 
 Lemma sclosed_nosfreevars U T (A : formula U T) X : sclosed A -> ~ In X (sfreevars A).
 Proof. intros -> []. Qed.
@@ -177,7 +177,7 @@ match A with
 | fqtf qcon x B => fqtf qcon x (esubs r B)
 | sqtf qcon X B => sqtf qcon X (esubs r B)
 end.
-Notation "A ⟦ r ⟧" := (esubs r A) (at level 8, left associativity, format "A ⟦ r ⟧").
+Notation "A ⟦ r ⟧" := (esubs r A) (left associativity, format "A ⟦ r ⟧").
 
 Lemma fsize_esubs U T1 T2 (r : T1 -> term T2) (A : formula U T1) : fsize A⟦r⟧ = fsize A.
 Proof. formula_induction A. Qed.
@@ -232,7 +232,7 @@ match A with
 | fqtf qcon x B => fqtf qcon x (essubs r B)
 | sqtf qcon X B => sqtf qcon X (essubs r B)
 end.
-Notation "A ⟦ r ⟧2" := (essubs r A) (at level 8, left associativity, format "A ⟦ r ⟧2").
+Notation "A ⟦ r ⟧2" := (essubs r A) (left associativity, format "A ⟦ r ⟧2").
 
 Definition fescomp U1 U2 U3 T (r : U1 -> formula U2 T) (s : U2 -> formula U3 T) := fun x => (r x)⟦s⟧2.
 Notation "r ;2; s" := (fescomp r s) (at level 20, format "r  ;2;  s").
@@ -280,7 +280,7 @@ match A with
 | fqtf qcon y B => fqtf qcon y (if eq_dt_dec y x then B else subs x u B)
 | sqtf qcon X B => sqtf qcon X (subs x u B)
 end.
-Notation "A [ u // x ]" := (subs x u A) (at level 8, format "A [ u // x ]").
+Notation "A [ u // x ]" := (subs x u A) (format "A [ u // x ]").
 
 Lemma fsize_subs U T u x (A : formula U T) : fsize A[u//x] = fsize A.
 Proof. formula_induction A. Qed.
@@ -312,7 +312,7 @@ match A with
 | fqtf qcon y B => fqtf qcon y (ssubs X F B)
 | sqtf qcon Y B => sqtf qcon Y (if eq_dt_dec Y X then B else ssubs X F B)
 end.
-Notation "A [ F // X ]2" := (ssubs X F A) (at level 8, format "A [ F // X ]2").
+Notation "A [ F // X ]2" := (ssubs X F A) (format "A [ F // X ]2").
 
 Lemma fsize_ssubs U T F X (A : formula U T) : fsize A <= fsize A[F//X]2.
 Proof. formula_induction A; (try destruct F); cbn; lia. Qed.
@@ -352,8 +352,8 @@ Proof. formula_induction A. Qed.
 (* We restrict to [formula nat nat] *)
 (** * Eigen variables *)
 
-Notation "A ↑" := (A⟦⇑⟧) (at level 8, format "A ↑").
-Notation "v ⇓" := (fesubs v) (at level 18, format "v ⇓").
+Notation "A ↑" := (A⟦⇑⟧) (format "A ↑").
+Notation "v ⇓" := (fesubs v) (format "v ⇓").
 
 Lemma freevars_fup T (A : formula T nat) : freevars A↑ = freevars A.
 Proof. formula_induction A. Qed.
@@ -373,7 +373,7 @@ Proof. rcauto. Qed.
 
 Definition sfup T := fun n => @sevar nat T (S n).
 Notation "⇑2" := (sfup nat).
-Notation "A ↑2" := (A⟦⇑2⟧2) (at level 8, format "A ↑2").
+Notation "A ↑2" := (A⟦⇑2⟧2) (format "A ↑2").
 
 Lemma fclosed_sfup : rfclosed ⇑2.
 Proof. reflexivity. Qed.
@@ -400,7 +400,7 @@ Definition fessubs T (F : formula nat T) := fun n =>
   | 0 => F
   | S n => sevar n
   end.
-Notation "F ⇓2" := (fessubs F) (at level 18, format "F ⇓2").
+Notation "F ⇓2" := (fessubs F) (format "F ⇓2").
 
 Lemma fclosed_fessubs T (F : formula nat T) : fclosed F -> rfclosed (F⇓2).
 Proof. now intros Hc [|]. Qed.
@@ -445,13 +445,13 @@ End Formulas.
 
 
 (* Some sets of connectives *)
-Inductive Nocon := .
-Inductive Icon := imp_con.
-Inductive Qcon := frl_con | exs_con.
+Variant Nocon := .
+Variant Icon := imp_con.
+Variant Qcon := frl_con | exs_con.
 
-Notation imp := (fbin imp_con).
-Notation frl := (fqtf frl_con).
-Notation exs := (fqtf exs_con).
+Abbreviation imp := (fbin imp_con).
+Abbreviation frl := (fqtf frl_con).
+Abbreviation exs := (fqtf exs_con).
 
 
 Ltac formula_induction A :=

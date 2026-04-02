@@ -15,15 +15,15 @@ Section Formulas.
 Context {vatom : DecType} {tatom fatom : Type}.
 Context {NCon UCon BCon QCon : Type}.
 
-Notation term := (@term vatom tatom).
+Abbreviation term := (@term vatom tatom).
 Arguments evar _ _ {T}.
-Notation evar := (evar vatom tatom).
-Notation formula := (@formula vatom tatom fatom NCon UCon BCon QCon).
+Abbreviation evar := (evar vatom tatom).
+Abbreviation formula := (@formula vatom tatom fatom NCon UCon BCon QCon).
 
-Notation "r ;; s" := (fecomp r s) (at level 20, format "r  ;;  s").
-Notation closed t := (tvars t = nil).
+Infix ";;" := fecomp (at level 20).
+Abbreviation closed t := (tvars t = nil).
 Notation "⇑" := fup.
-Notation "⇑[ u ] r" := (felift u r) (at level 25, format "⇑[ u ] r").
+Notation "⇑[ u ] r" := (felift u r) (at level 19, format "⇑[ u ] r").
 
 Hint Rewrite (@tesubs_evar vatom tatom) : term_db.
 Hint Rewrite (@tesubs_comp vatom tatom) : term_db.
@@ -58,7 +58,7 @@ Implicit Type A : formula T.
 
 Hint Rewrite (@remove_assoc_remove vatom (formula T)) : term_db.
 
-Notation "A [ u // x ]" := (subs x u A) (at level 8, format "A [ u // x ]").
+Notation "A [ u // x ]" := (subs x u A) (format "A [ u // x ]").
 
 Lemma subs_subs_eq x u v A : A[v//x][u//x] = A[tsubs x u v//x].
 Proof. formula_induction A. Qed.
@@ -216,7 +216,7 @@ Qed.
 (** * Iterated substitution *)
 
 Definition multi_subs L A := fold_left (fun F '(x,u) => F[u//x]) L A.
-Notation "A [[ L ]]" := (multi_subs L A) (at level 8, format "A [[ L ]]").
+Notation "A [[ L ]]" := (multi_subs L A) (format "A [[ L ]]").
 Notation "L ∖ x" := (remove_assoc x L) (at level 18).
 
 Lemma multi_subs_nil : multi_subs nil = id.
@@ -326,12 +326,12 @@ Variable T1 T2 : Type.
 Variable r : T1 -> term T2.
 Implicit Type A : @formula T1.
 
-Notation "A ⟦ r ⟧" := (esubs r A) (at level 8, left associativity, format "A ⟦ r ⟧").
+Notation "A ⟦ r ⟧" := (esubs r A) (left associativity, format "A ⟦ r ⟧").
 Notation "x ∈ A" := (In x (freevars A)) (at level 30).
 Notation "x ∉ A" := (~ In x (freevars A)) (at level 30).
-Notation rclosed := (forall n, closed (r n)).
-Notation "A [ u // x ]" := (subs x u A) (at level 8, format "A [ u // x ]").
-Notation "A [[ L ]]" := (multi_subs L A) (at level 8, format "A [[ L ]]").
+Abbreviation rclosed := (forall n, closed (r n)).
+Notation "A [ u // x ]" := (subs x u A) (format "A [ u // x ]").
+Notation "A [[ L ]]" := (multi_subs L A) (format "A [[ L ]]").
 Notation "y #[ x ] A" := (no_capture_at x y A) (at level 30, format "y  #[ x ]  A").
 
 (** * Additional results with variable eigen type *)
@@ -468,8 +468,8 @@ match A with
 | fqtf _ _ B => eigen_max B
 end.
 
-Notation "A ⟦ r ⟧" := (esubs r A) (at level 8, left associativity, format "A ⟦ r ⟧").
-Notation "A ↑" := (A⟦⇑⟧) (at level 8, format "A ↑").
+Notation "A ⟦ r ⟧" := (esubs r A) (left associativity, format "A ⟦ r ⟧").
+Notation "A ↑" := (A⟦⇑⟧) (format "A ↑").
 
 Lemma esubs_ext_max T (r1 r2 : nat -> term T) A :
   (forall n, n <= (eigen_max A) -> r1 n = r2 n) -> A⟦r1⟧ = A⟦r2⟧.

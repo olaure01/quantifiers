@@ -9,27 +9,27 @@ Set Implicit Arguments.
 Parameter vatom : DecType.
 Parameter tatom : Type.
 Parameter fatom : Type.
-Inductive Ncon := top_con.
-Inductive Bcon := wth_con.
-Inductive Qcon := frl_con.
+Variant Ncon := top_con.
+Variant Bcon := wth_con.
+Variant Qcon := frl_con.
 
-Notation term := (@term vatom tatom nat).
-Notation closed t := (tvars t = nil).
-Notation rclosed r := (forall n, closed (r n)).
+Abbreviation term := (@term vatom tatom nat).
+Abbreviation closed t := (tvars t = nil).
+Abbreviation rclosed r := (forall n, closed (r n)).
 Notation "↑ r" := (felift (evar 0) r) (at level 25, format "↑ r").
-Notation "v ⇓" := (fesubs v) (at level 18, format "v ⇓").
-Notation "A ⟦ r ⟧" := (esubs r A) (at level 8, left associativity, format "A ⟦ r ⟧").
-Notation "A [ u // x ]" := (subs x u A) (at level 8, format "A [ u // x ]").
+Notation "v ⇓" := (fesubs v) (format "v ⇓").
+Notation "A ⟦ r ⟧" := (esubs r A) (left associativity, format "A ⟦ r ⟧").
+Notation "A [ u // x ]" := (subs x u A) (format "A [ u // x ]").
 Notation "⇑" := fup.
-Notation "A ↑" := (A⟦⇑⟧) (at level 8, format "A ↑").
+Notation "A ↑" := (A⟦⇑⟧) (format "A ↑").
 Notation "x ∈ A" := (In x (freevars A)) (at level 30).
 Notation "x ∉ A" := (~ In x (freevars A)) (at level 30).
 
-Notation formula := (@formula vatom tatom fatom Ncon Nocon Bcon Qcon nat).
+Abbreviation formula := (@formula vatom tatom fatom Ncon Nocon Bcon Qcon nat).
 (*
-Notation top := (fnul nat top_con).
-Notation wth := (fbin wth_con).
-Notation frl := (fqtf frl_con).
+Abbreviation top := (fnul nat top_con).
+Abbreviation wth := (fbin wth_con).
+Abbreviation frl := (fqtf frl_con).
 *)
 Notation "⟙" := (fnul nat top_con).
 Infix "﹠" := (fbin wth_con) (at level 50).

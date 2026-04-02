@@ -15,21 +15,21 @@ Context {vatom : DecType} {tatom fatom : Type}.
 Context {tarity : tatom -> nat} {farity : fatom -> nat}.
 Arguments tvar {_} {_} {_} {T} _.
 
-Notation term := (@term vatom tatom tarity nat).
-Notation closed t := (tvars t = nil).
-Notation rclosed r := (forall n, closed (r n)).
+Abbreviation term := (@term vatom tatom tarity nat).
+Abbreviation closed t := (tvars t = nil).
+Abbreviation rclosed r := (forall n, closed (r n)).
 Notation "↑ r" := (felift (evar 0) r) (at level 25, format "↑ r").
-Notation "v ⇓" := (fesubs v) (at level 18, format "v ⇓").
-Notation "A ⟦ r ⟧" := (esubs r A) (at level 8, left associativity, format "A ⟦ r ⟧").
-Notation "A [ u // x ]" := (subs x u A) (at level 8, format "A [ u // x ]").
+Notation "v ⇓" := (fesubs v) (format "v ⇓").
+Notation "A ⟦ r ⟧" := (esubs r A) (left associativity, format "A ⟦ r ⟧").
+Notation "A [ u // x ]" := (subs x u A) (format "A [ u // x ]").
 Notation "⇑" := fup.
-Notation "A ↑" := (A⟦⇑⟧) (at level 8, format "A ↑").
-Notation "l ⇈" := (map (fun F => F↑) l) (at level 8, format "l ⇈").
+Notation "A ↑" := (A⟦⇑⟧) (format "A ↑").
+Notation "l ⇈" := (map (fun F => F↑) l) (format "l ⇈").
 
-Inductive FQcon := frl_con.
-Notation frl := (fqtf frl_con).
+Variant FQcon := frl_con.
+Abbreviation frl := (fqtf frl_con).
 
-Notation formula := (@formula vatom tatom tarity fatom farity Nocon Nocon Icon FQcon nat).
+Abbreviation formula := (@formula vatom tatom tarity fatom farity Nocon Nocon Icon FQcon nat).
 
 Hint Rewrite (@fsize_esubs vatom tatom tarity fatom farity Nocon Nocon Icon FQcon) : term_db.
 Hint Rewrite (@fsize_subs vatom tatom tarity fatom farity Nocon Nocon Icon FQcon nat) : term_db.
@@ -244,8 +244,8 @@ Variable P : fatom.
 Definition tarity : tatom -> nat := fun _ => 1.
 Definition farity : fatom -> nat := fun _ => 1.
 
-Notation frl := (fqtf frl_con).
-Notation formula := (@formula vatom tatom tarity fatom farity Nocon Nocon Icon FQcon nat).
+Abbreviation frl := (fqtf frl_con).
+Abbreviation formula := (@formula vatom tatom tarity fatom farity Nocon Nocon Icon FQcon nat).
 
 (* Apply all (reversible) introduction rules *)
 Ltac rev_intros := repeat (repeat apply rimpi; repeat (apply rfrli; simpl)); apply rninj.
