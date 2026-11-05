@@ -153,7 +153,7 @@ intros A pi; induction pi; intros L Hcl Hsub;
     intros z Hinz.
     revert Hsub; case (eq_dt_reflect z x); intros Heq Hsub; subst;
       rewrite map_app; simpl; try in_solve.
-    rewrite map_map, map_ext with (g:= fst) by (intros [? ?]; reflexivity).
+    rewrite map_map, (@map_ext _ _ _ fst) by (intros [? ?]; reflexivity).
     rewrite <- remove_assoc_remove.
     eapply in_in_remove with (y:= x) in Hinz; intuition ; apply Hsub in Hinz.
     apply in_in_remove with (eq_dec:= eq_dt_dec) (y:= x) in Hinz; intuition.

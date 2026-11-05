@@ -2,7 +2,7 @@
 (*  aka System F *)
 
 From Stdlib Require Import PeanoNat Wf_nat Lia List.
-From OLlibs Require Import dectype.
+From OLlibs Require Export dectype.
 From Quantifiers Require Import term_tactics.
 
 #[local] Hint Resolve in_in_remove : term_db.
