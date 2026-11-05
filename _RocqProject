@@ -1,3 +1,7 @@
+--rocq-package rocq-alnlquantifiers
+--package-version dev
+-package rocq-stdlib
+-package rocq-ollibs
 -R . Quantifiers
 
 term_tactics.v

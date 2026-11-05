@@ -24,6 +24,7 @@ TODO.org
 Makefile
 Makefile.conf
 .Makefile.d
+META*
 
 *.o
 *.v.crashcoqide
